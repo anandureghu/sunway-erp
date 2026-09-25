@@ -81,10 +81,41 @@ function currentYearMonth(): string {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function formatMonthLabel(dateStr: string): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr + "-01");
-  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+/** Local yyyy-mm-dd (no UTC shift). */
+function localIso(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Last day of the current month — a pay period may not run past it. */
+function endOfCurrentMonthIso(): string {
+  const d = new Date();
+  return localIso(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+}
+
+/** yyyy-mm-dd → DD/MM/YYYY */
+function formatDmy(iso?: string | null): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : iso;
+}
+
+/**
+ * The processed payroll (if any) whose pay period overlaps [start, end]. A multi-month
+ * run (e.g. Jun–Aug) blocks any later run touching those months, and vice versa.
+ */
+function findOverlappingPayroll(
+  rows: PayrollRow[],
+  start: string,
+  end: string,
+): PayrollRow | null {
+  if (!start || !end) return null;
+  return (
+    rows.find((r) => {
+      const rs = r.payPeriodStart?.slice(0, 10);
+      const re = (r.payPeriodEnd || r.payPeriodStart)?.slice(0, 10);
+      return !!rs && !!re && rs <= end && re >= start;
+    }) ?? null
+  );
 }
 
 function validateDates(input: {
@@ -112,6 +143,13 @@ function validateDates(input: {
     return "Pay Period End must be on or after Pay Period Start.";
 
   if (pay < start) return "Pay Date cannot be before Pay Period Start.";
+
+  // A period may span several past months, but only up to the current month.
+  if (payPeriodStart > localIso(new Date()))
+    return "Pay Period Start cannot be in the future.";
+  const monthEnd = endOfCurrentMonthIso();
+  if (payPeriodEnd > monthEnd)
+    return `Payroll can be processed for past months up to the current month only — Pay Period End must be on or before ${formatDmy(monthEnd)}.`;
 
   return null;
 }
@@ -304,6 +342,9 @@ function EmployeePayrollTab() {
     CompanyPropertyResponse[]
   >([]);
   const [history, setHistory] = useState<PayrollRow[]>([]);
+  // Every payroll ever processed for the selected employee — used to stop a new pay
+  // period overlapping an earlier (possibly multi-month) run.
+  const [fullHistory, setFullHistory] = useState<PayrollRow[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const historyPg = usePagination(history, 10);
 
@@ -399,6 +440,12 @@ function EmployeePayrollTab() {
         .catch(() => setAssignedProperties([]));
     }
 
+    setFullHistory([]);
+    payrollService
+      .getPayrollHistory(empId, true)
+      .then((r) => setFullHistory((r?.data ?? []) as PayrollRow[]))
+      .catch(() => setFullHistory([]));
+
     setLoadingHistory(true);
     try {
       const res = await payrollService.getPayrollHistory(empId);
@@ -415,11 +462,17 @@ function EmployeePayrollTab() {
   // ── bulk checkbox helpers ───────────────────────────────────────────────────
   const todayIso = new Date().toISOString().slice(0, 10);
   const filteredEmployees = employees
-    // Inactive employees are not payable and are excluded from the selection list.
+    // Inactive employees (separation complete) are not payable and are excluded.
     .filter((e) => String(e.status ?? "").toUpperCase() !== "INACTIVE")
-    // Expired employees — whose expected end date (last working day) has already
-    // passed — have left the company and are removed from the payroll list.
-    .filter((e) => !e.expectedEndDate || e.expectedEndDate >= todayIso)
+    // Resigned / terminated / retired employees stay listed until their final
+    // settlement is processed, even after their last working day has passed.
+    // Anyone else whose expected end date has passed has left and is hidden.
+    .filter(
+      (e) =>
+        isExitStatus(e.status) ||
+        !e.expectedEndDate ||
+        e.expectedEndDate >= todayIso,
+    )
     // Searchable by name AND employee code.
     .filter((e) =>
       `${e.firstName ?? ""} ${e.lastName ?? ""} ${e.employeeNo ?? ""}`
@@ -510,17 +563,32 @@ function EmployeePayrollTab() {
     )
     .reduce((s, r) => s + parseFloat(r.netPayable || "0"), 0);
 
-  // ── once-a-month guard (single mode) ────────────────────────────────────────
-  const alreadyGeneratedForMonth = useMemo(() => {
-    if (!selected || !payrollInput.payPeriodStart) return false;
-    const targetMonth = payrollInput.payPeriodStart.slice(0, 7);
-    const rows = allHistories[String(selected.id)] ?? history;
-    return rows.some(
-      (r) =>
-        r.payPeriodStart?.slice(0, 7) === targetMonth ||
-        r.payDate?.slice(0, 7) === targetMonth,
+  // ── no-overlap guard (single mode) ──────────────────────────────────────────
+  // A pay period may cover several months, but never days already paid by another run.
+  const overlappingPayroll = useMemo(() => {
+    if (!selected || !payrollInput.payPeriodStart || !payrollInput.payPeriodEnd)
+      return null;
+    const rows = [
+      ...fullHistory,
+      ...(allHistories[String(selected.id)] ?? history),
+    ];
+    return findOverlappingPayroll(
+      rows,
+      payrollInput.payPeriodStart,
+      payrollInput.payPeriodEnd,
     );
-  }, [selected, payrollInput.payPeriodStart, allHistories, history]);
+  }, [
+    selected,
+    payrollInput.payPeriodStart,
+    payrollInput.payPeriodEnd,
+    fullHistory,
+    allHistories,
+    history,
+  ]);
+  const alreadyGeneratedForMonth = !!overlappingPayroll;
+  const overlapMessage = overlappingPayroll
+    ? `Payroll ${overlappingPayroll.payrollCode} already covers ${formatDmy(overlappingPayroll.payPeriodStart)} – ${formatDmy(overlappingPayroll.payPeriodEnd || overlappingPayroll.payPeriodStart)}. The pay period must not overlap it.`
+    : "";
 
   // ── single generate ─────────────────────────────────────────────────────────
   // Record a refusal reason both inline (persistent) and as a toast.
@@ -537,7 +605,8 @@ function EmployeePayrollTab() {
       failGenerate(dateErr);
       return;
     }
-    // A final settlement cannot run beyond the expected end date (last working day).
+    // A final settlement's pay PERIOD cannot run beyond the expected end date (last
+    // working day); the pay date itself may fall after it (settlements are paid later).
     if (isExitStatus(selected.status)) {
       if (!selected.expectedEndDate) {
         failGenerate(
@@ -545,10 +614,7 @@ function EmployeePayrollTab() {
         );
         return;
       }
-      if (
-        payrollInput.payPeriodEnd > selected.expectedEndDate ||
-        payrollInput.payDate > selected.expectedEndDate
-      ) {
+      if (payrollInput.payPeriodEnd > selected.expectedEndDate) {
         failGenerate(
           `Payroll cannot be processed beyond the expected end date (${selected.expectedEndDate}).`,
         );
@@ -556,10 +622,7 @@ function EmployeePayrollTab() {
       }
     }
     if (alreadyGeneratedForMonth) {
-      const label = formatMonthLabel(payrollInput.payPeriodStart.slice(0, 7));
-      failGenerate(
-        `Payroll already generated for ${label}. Each employee can only have one payroll per month.`,
-      );
+      failGenerate(overlapMessage);
       return;
     }
     // Outstanding company property on a final settlement — confirm before releasing.
@@ -579,6 +642,10 @@ function EmployeePayrollTab() {
       const rows = (res?.data ?? []) as PayrollRow[];
       setHistory(rows);
       setAllHistories((prev) => ({ ...prev, [String(selected.id)]: rows }));
+      payrollService
+        .getPayrollHistory(Number(selected.id), true)
+        .then((r) => setFullHistory((r?.data ?? []) as PayrollRow[]))
+        .catch(() => undefined);
       setPayrollInput({ payPeriodStart: "", payPeriodEnd: "", payDate: "" });
     } catch (err: any) {
       const data = err?.response?.data;
@@ -603,7 +670,6 @@ function EmployeePayrollTab() {
       return;
     }
 
-    const targetMonth = payrollInput.payPeriodStart.slice(0, 7);
     const initialResults: BulkResult[] = selectedBulkEmployees.map((e) => ({
       empId: Number(e.id),
       status: "pending",
@@ -635,19 +701,26 @@ function EmployeePayrollTab() {
         continue;
       }
 
-      // check if already generated this month
+      // Skip anyone whose loaded payrolls already cover part of this period (the
+      // backend also rejects any overlap with older runs not loaded here).
       const existingRows = allHistories[String(emp.id)] ?? [];
-      const alreadyDone = existingRows.some(
-        (r) =>
-          r.payPeriodStart?.slice(0, 7) === targetMonth ||
-          r.payDate?.slice(0, 7) === targetMonth,
+      const overlap = findOverlappingPayroll(
+        existingRows,
+        payrollInput.payPeriodStart,
+        payrollInput.payPeriodEnd,
       );
 
-      if (alreadyDone) {
+      if (overlap) {
         skippedCount++;
         setBulkResults((prev) =>
           prev.map((r) =>
-            r.empId === empId ? { ...r, status: "skipped" } : r,
+            r.empId === empId
+              ? {
+                  ...r,
+                  status: "skipped",
+                  message: `Already paid by ${overlap.payrollCode}`,
+                }
+              : r,
           ),
         );
         continue;
@@ -797,7 +870,7 @@ function EmployeePayrollTab() {
         <Calendar className="h-4 w-4 text-indigo-600" />
         <h3 className="font-bold text-slate-800">{title}</h3>
         <span className="ml-auto text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-          Once per month
+          Past months · up to this month
         </span>
       </div>
       <div className="grid grid-cols-3 gap-4">
@@ -809,6 +882,7 @@ function EmployeePayrollTab() {
             type="date"
             value={payrollInput.payPeriodStart}
             min="2000-01-01"
+            max={localIso(new Date())}
             onChange={(e) =>
               setPayrollInput((p) => ({ ...p, payPeriodStart: e.target.value }))
             }
@@ -828,6 +902,7 @@ function EmployeePayrollTab() {
             type="date"
             value={payrollInput.payPeriodEnd}
             min={payrollInput.payPeriodStart || "2000-01-01"}
+            max={endOfCurrentMonthIso()}
             onChange={(e) =>
               setPayrollInput((p) => ({ ...p, payPeriodEnd: e.target.value }))
             }
@@ -1441,7 +1516,7 @@ function EmployeePayrollTab() {
                         </span>
                       ))}
                     <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                      Once per month
+                      Past months · up to this month
                     </span>
                   </div>
                 </div>
@@ -1480,13 +1555,7 @@ function EmployeePayrollTab() {
                   <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 border border-amber-200 p-3">
                     <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
                     <p className="text-sm text-amber-800">
-                      Payroll already generated for{" "}
-                      <strong>
-                        {formatMonthLabel(
-                          payrollInput.payPeriodStart.slice(0, 7),
-                        )}
-                      </strong>
-                      . Only one payroll per month is allowed.
+                      {overlapMessage}
                     </p>
                   </div>
                 )}
@@ -1518,6 +1587,7 @@ function EmployeePayrollTab() {
                     <Input
                       type="date"
                       value={payrollInput.payPeriodStart}
+                      max={localIso(new Date())}
                       onChange={(e) =>
                         setPayrollInput((p) => ({
                           ...p,
@@ -1534,10 +1604,13 @@ function EmployeePayrollTab() {
                     <Input
                       type="date"
                       value={payrollInput.payPeriodEnd}
+                      min={payrollInput.payPeriodStart || undefined}
                       max={
-                        isExitStatus(selected.status)
-                          ? selected.expectedEndDate || undefined
-                          : undefined
+                        isExitStatus(selected.status) &&
+                        selected.expectedEndDate &&
+                        selected.expectedEndDate < endOfCurrentMonthIso()
+                          ? selected.expectedEndDate
+                          : endOfCurrentMonthIso()
                       }
                       onChange={(e) =>
                         setPayrollInput((p) => ({
@@ -1588,7 +1661,16 @@ function EmployeePayrollTab() {
                     </div>
                     <div className="divide-y divide-slate-50 text-sm">
                       <div className="flex items-center justify-between px-3 py-2">
-                        <span className="text-slate-600">Gross earnings</span>
+                        <span className="text-slate-600">
+                          Gross earnings{" "}
+                          {(payrollPreview.periodMonths ?? 1) > 0 &&
+                            Math.abs((payrollPreview.periodMonths ?? 1) - 1) >= 0.005 && (
+                              <span className="text-[11px] text-slate-400">
+                                ({payrollPreview.periodMonths} months ×{" "}
+                                {formatMoney(payrollPreview.monthlyGross, currencySymbol)})
+                              </span>
+                            )}
+                        </span>
                         <span className="font-semibold text-slate-800 tabular-nums">
                           {formatMoney(payrollPreview.earnedGrossPay, currencySymbol)}
                         </span>
@@ -1646,6 +1728,19 @@ function EmployeePayrollTab() {
                           <span className="text-slate-600">End of service</span>
                           <span className="font-semibold text-emerald-700 tabular-nums">
                             + {formatMoney(payrollPreview.endOfServiceCompensation, currencySymbol)}
+                          </span>
+                        </div>
+                      )}
+                      {(payrollPreview.benefitsAmount ?? 0) > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">
+                            Benefits{" "}
+                            <span className="text-[11px] text-slate-400">
+                              (ticket / bonus / reimbursement)
+                            </span>
+                          </span>
+                          <span className="font-semibold text-emerald-700 tabular-nums">
+                            + {formatMoney(payrollPreview.benefitsAmount ?? 0, currencySymbol)}
                           </span>
                         </div>
                       )}

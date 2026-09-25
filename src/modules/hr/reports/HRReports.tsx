@@ -3,10 +3,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
@@ -16,14 +12,11 @@ import {
   UserX,
   Clock,
   TrendingUp,
-  Globe,
-  Building2,
   Award,
   Loader2,
   RefreshCw,
   BarChart3,
   ArrowUpRight,
-  Briefcase,
   ShieldAlert,
   CalendarCheck,
   CheckCircle2,
@@ -40,6 +33,8 @@ import {
   Umbrella,
   Shield,
   UserRoundCog,
+  ClipboardList,
+  IdCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
@@ -65,6 +60,9 @@ import AttendanceHistory from "./AttendanceHistory";
 import { ExitInterviewsPanel } from "./ExitInterviewsPanel";
 import { PayrollSummaryPanel } from "./PayrollSummaryPanel";
 import { ArchivePanel } from "./ArchivePanel";
+import EmployeeRegisterReport from "./EmployeeRegisterReport";
+import EmployeeSummaryReport from "./EmployeeSummaryReport";
+import WorkforceOverview from "./WorkforceOverview";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
 
 // ── colour palette ────────────────────────────────────────────────────────────
@@ -80,49 +78,8 @@ const COLORS = {
   teal: "#14b8a6",
   pink: "#ec4899",
 };
-const PALETTE = Object.values(COLORS);
-
-const STATUS_COLOR: Record<string, string> = {
-  ACTIVE: COLORS.emerald,
-  INACTIVE: COLORS.slate,
-  ON_LEAVE: COLORS.amber,
-  UNDER_PROBATION: COLORS.sky,
-  RESIGNED: COLORS.rose,
-  TERMINATED: COLORS.rose,
-  RETIRED: COLORS.violet,
-};
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-/** Normalize API/display status strings to enum-style keys (e.g. ACTIVE). */
-function normalizeStatus(s?: string | null): string {
-  const raw = String(s ?? "")
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, "_");
-  if (!raw) return "";
-  // Compact / display aliases → canonical EmployeeStatus names
-  const ALIASES: Record<string, string> = {
-    ACTIVE: "ACTIVE",
-    INACTIVE: "INACTIVE",
-    ON_LEAVE: "ON_LEAVE",
-    ONLEAVE: "ON_LEAVE",
-    UNDER_PROBATION: "UNDER_PROBATION",
-    UNDERPROBATION: "UNDER_PROBATION",
-    RESIGNED: "RESIGNED",
-    TERMINATED: "TERMINATED",
-    RETIRED: "RETIRED",
-  };
-  return ALIASES[raw] ?? raw;
-}
-
-function statusLabel(key: string): string {
-  return key.replace(/_/g, " ");
-}
-
-function deptOf(e: { departmentName?: string; department?: string }): string {
-  return e.departmentName || e.department || "Unassigned";
-}
-
 function countBy<T>(
   arr: T[],
   key: (item: T) => string,
@@ -135,16 +92,6 @@ function countBy<T>(
   return Object.entries(map)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
-}
-
-function isWithinDays(dateStr: string | undefined, days: number): boolean {
-  if (!dateStr) return false;
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diff = (now.getTime() - d.getTime()) / 86400000;
-  // Must be in the past (or today) and within the window — a future-dated join
-  // date has a negative diff and must not count as a recent hire.
-  return diff >= 0 && diff <= days;
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -210,37 +157,6 @@ function SectionTitle({
   );
 }
 
-function HBar({
-  label,
-  value,
-  total,
-  color = "#6366f1",
-}: {
-  label: string;
-  value: number;
-  total: number;
-  color?: string;
-}) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-slate-700 font-medium truncate max-w-[160px]">
-          {label}
-        </span>
-        <span className="text-slate-500 tabular-nums text-xs">
-          {value} <span className="text-slate-400">({pct}%)</span>
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
-      </div>
-    </div>
-  );
-}
 
 const CUSTOM_TOOLTIP = ({ active, payload }: any) => {
   if (!active || !payload?.length) return null;
@@ -260,6 +176,18 @@ const ANALYTICS_TABS = [
   { value: "workforce", label: "Workforce Overview", icon: Users },
   { value: "appraisal", label: "Employee Performance", icon: Award },
 ] as const;
+// Employee reports from live data — the all-employee register and a one-employee
+// summary sheet. Gated with the workforce analytics (HRR_WORKFORCE / HR_REPORTS).
+const EMPLOYEE_REGISTER_TAB = {
+  value: "employee-register",
+  label: "Employee Register",
+  icon: ClipboardList,
+} as const;
+const EMPLOYEE_SUMMARY_TAB = {
+  value: "employee-summary",
+  label: "Employee Summary",
+  icon: IdCard,
+} as const;
 // Employee Time Sheets (monthly worked days that feed payroll) — shown with the
 // workforce analytics under the HR_REPORTS grant.
 const ATTENDANCE_TAB = {
@@ -316,6 +244,8 @@ const HISTORY_TAB = {
 } as const;
 type TabId =
   | "workforce"
+  | "employee-register"
+  | "employee-summary"
   | "appraisal"
   | "attendance"
   | "attendance-history"
@@ -343,6 +273,8 @@ type GroupTab = {
 /** Map legacy flat ?tab= ids onto grouped navigation. */
 const legacyTabMap: Record<string, { tab: string; sub: TabId }> = {
   workforce: { tab: "workforce-analytics", sub: "workforce" },
+  "employee-register": { tab: "workforce-analytics", sub: "employee-register" },
+  "employee-summary": { tab: "workforce-analytics", sub: "employee-summary" },
   appraisal: { tab: "workforce-analytics", sub: "appraisal" },
   attendance: { tab: "time-attendance", sub: "attendance" },
   "attendance-history": { tab: "time-attendance", sub: "attendance-history" },
@@ -483,7 +415,9 @@ export default function HRReports() {
     const list: GroupTab[] = [];
 
     const workforce = [
-      ...(canRpt("HRR_WORKFORCE") ? [ANALYTICS_TABS[0]] : []),
+      ...(canRpt("HRR_WORKFORCE")
+        ? [ANALYTICS_TABS[0], EMPLOYEE_REGISTER_TAB, EMPLOYEE_SUMMARY_TAB]
+        : []),
       ...(canRpt("HRR_PERFORMANCE") ? [ANALYTICS_TABS[1]] : []),
     ];
     if (workforce.length) {
@@ -611,6 +545,21 @@ export default function HRReports() {
     setSearchParams(params, { replace: true });
   };
 
+  // Employee Summary: the selected employee lives in ?emp= so the sheet can be
+  // linked to, refreshed and reached from a click in the Employee Register.
+  const summaryEmployeeId = Number(searchParams.get("emp")) || null;
+  const summaryParams = (id: number | null) => {
+    const params: Record<string, string> = {};
+    if (activeGroup !== groups[0]?.value) params.tab = activeGroup;
+    params.sub = "employee-summary";
+    if (id) params.emp = String(id);
+    return params;
+  };
+  const openEmployeeSummary = (id: number) =>
+    setSearchParams(summaryParams(id), { replace: false });
+  const selectSummaryEmployee = (id: number | null) =>
+    setSearchParams(summaryParams(id), { replace: true });
+
   // Keep the active sub-tab within the set the user is allowed to see.
   useEffect(() => {
     if (allVisibleSubIds.length === 0) return;
@@ -624,7 +573,7 @@ export default function HRReports() {
   const [appraisals, setAppraisals] = useState<any[]>([]);
   const [appraisalYear, setAppraisalYear] = useState(new Date().getFullYear());
 
-  const [loadingEmp, setLoadingEmp] = useState(true);
+  const [, setLoadingEmp] = useState(true);
   const [loadingAppr, setLoadingAppr] = useState(false);
 
   const [leaveApprovals, setLeaveApprovals] = useState<LeaveApprovalRow[]>([]);
@@ -781,46 +730,6 @@ export default function HRReports() {
       setLoanBusyId(null);
     }
   };
-
-  // ── workforce analytics ─────────────────────────────────────────────────────
-  const statusData = useMemo(
-    () =>
-      countBy(employees, (e) => normalizeStatus(e.status) || "Unknown"),
-    [employees],
-  );
-  const statusCount = (key: string) =>
-    statusData.find((s) => s.name === key)?.value ?? 0;
-  // Derive KPI cards from the same buckets as the status pie so they cannot drift.
-  const activeCount = statusCount("ACTIVE");
-  const inactiveCount = statusCount("INACTIVE");
-  const onLeaveCount = statusCount("ON_LEAVE");
-  const genderData = useMemo(
-    () => countBy(employees, (e) => e.gender || "Unknown"),
-    [employees],
-  );
-  const allDeptData = useMemo(
-    () => countBy(employees, (e) => deptOf(e)),
-    [employees],
-  );
-  // Chart shows the top 8; the KPI count must reflect the true total.
-  const deptData = useMemo(() => allDeptData.slice(0, 8), [allDeptData]);
-  const departmentCount = allDeptData.length;
-  const nationalityData = useMemo(
-    () => countBy(employees, (e) => e.nationality || "Unknown").slice(0, 6),
-    [employees],
-  );
-  const roleData = useMemo(
-    () =>
-      countBy(
-        employees,
-        (e) => e.companyRole || e.designation || "Unknown",
-      ).slice(0, 6),
-    [employees],
-  );
-  const newHires = useMemo(
-    () => employees.filter((e) => isWithinDays(e.joinDate, 30)),
-    [employees],
-  );
 
   // ── appraisal analytics ─────────────────────────────────────────────────────
   const appraisalStatusData = useMemo(
@@ -993,362 +902,10 @@ export default function HRReports() {
   // ── render ───────────────────────────────────────────────────────────────────
   const reportPanels = (
     <>
-      {activeSub === "workforce" &&
-        (loadingEmp ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
-          </div>
-        ) : (
-          <div className="space-y-5">
-            {/* KPI cards */}
-            <div className="mb-6">
-              <KpiSummaryStrip
-                className="lg:grid-cols-6"
-                items={[
-                  {
-                    label: "Total Employees",
-                    value: employees.length,
-                    hint: "Total workforce",
-                    accent: "violet",
-                    icon: Users,
-                  },
-                  {
-                    label: "Departments",
-                    value: departmentCount,
-                    hint: "Active departments",
-                    accent: "sky",
-                    icon: Building2,
-                  },
-                  {
-                    label: "Active",
-                    value: activeCount,
-                    hint: `${employees.length ? Math.round((activeCount / employees.length) * 100) : 0}% of total`,
-                    accent: "emerald",
-                    icon: UserCheck,
-                  },
-                  {
-                    label: "Inactive",
-                    value: inactiveCount,
-                    hint: "Former employees",
-                    accent: "slate",
-                    icon: UserX,
-                  },
-                  {
-                    label: "On Leave",
-                    value: onLeaveCount,
-                    hint: "Currently away",
-                    accent: "amber",
-                    icon: Clock,
-                  },
-                  {
-                    label: "New Hires (30d)",
-                    value: newHires.length,
-                    hint: newHires.length > 0 ? `+${newHires.length} this month` : "No recent hires",
-                    accent: "sky",
-                    icon: TrendingUp,
-                  },
-                ]}
-              />
-            </div>
-
-            {/* Row 1: Status pie + Gender bars */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Status distribution */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Users}
-                  label="Employee Status"
-                  color="text-violet-600"
-                />
-                <div className="flex items-center gap-6">
-                  <ResponsiveContainer width="50%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={statusData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        innerRadius={40}
-                      >
-                        {statusData.map((entry) => (
-                          <Cell
-                            key={entry.name}
-                            fill={STATUS_COLOR[entry.name] || COLORS.slate}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex-1 space-y-2.5">
-                    {statusData.map((s) => (
-                      <div key={s.name} className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{
-                            backgroundColor:
-                              STATUS_COLOR[s.name] || COLORS.slate,
-                          }}
-                        />
-                        <span className="text-sm text-slate-700 flex-1">
-                          {statusLabel(s.name)}
-                        </span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">
-                          {s.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Gender distribution */}
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Users}
-                  label="Gender Distribution"
-                  color="text-blue-600"
-                />
-                <div className="flex items-center gap-4">
-                  <ResponsiveContainer width="50%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={genderData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={70}
-                        innerRadius={40}
-                      >
-                        {genderData.map((entry, i) => (
-                          <Cell
-                            key={entry.name}
-                            fill={PALETTE[i % PALETTE.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex-1 space-y-2.5">
-                    {genderData.map((g, i) => (
-                      <div key={g.name} className="flex items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full shrink-0"
-                          style={{
-                            backgroundColor: PALETTE[i % PALETTE.length],
-                          }}
-                        />
-                        <span className="text-sm text-slate-700 flex-1">
-                          {g.name}
-                        </span>
-                        <span className="text-sm font-bold text-slate-800 tabular-nums">
-                          {g.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* New hires table */}
-            {newHires.length > 0 && (
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={TrendingUp}
-                  label="Recent Hires (Last 30 Days)"
-                  color="text-emerald-600"
-                />
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Name
-                        </th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Department
-                        </th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Role
-                        </th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Join Date
-                        </th>
-                        <th className="py-2 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {newHires.map((e) => (
-                        <tr key={e.id} className="hover:bg-slate-50/50">
-                          <td className="py-2.5 font-medium text-slate-800">
-                            {e.firstName} {e.lastName}
-                          </td>
-                          <td className="py-2.5 text-slate-500">
-                            {deptOf(e) === "Unassigned" ? "—" : deptOf(e)}
-                          </td>
-                          <td className="py-2.5 text-slate-500">
-                            {e.companyRole || e.designation || "—"}
-                          </td>
-                          <td className="py-2.5 text-slate-500 tabular-nums">
-                            {e.joinDate
-                              ? new Date(e.joinDate).toLocaleDateString()
-                              : "—"}
-                          </td>
-                          <td className="py-2.5">
-                            <span
-                              className={cn(
-                                "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                normalizeStatus(e.status) === "ACTIVE"
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : normalizeStatus(e.status) === "ON_LEAVE"
-                                    ? "bg-amber-50 text-amber-700"
-                                    : "bg-slate-100 text-slate-600",
-                              )}
-                            >
-                              {statusLabel(normalizeStatus(e.status)) || "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-
-      {/* ── DEPARTMENT HEADCOUNT (under Workforce Overview) ── */}
-      {activeSub === "workforce" && !loadingEmp && (
-          <div className="space-y-5">
-            <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-              <SectionTitle
-                icon={Building2}
-                label="Headcount by Department"
-                color="text-indigo-600"
-              />
-              {deptData.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-12">
-                  No department data available
-                </p>
-              ) : (
-                <ResponsiveContainer
-                  width="100%"
-                  height={Math.max(260, deptData.length * 42)}
-                >
-                  <BarChart
-                    data={deptData}
-                    layout="vertical"
-                    margin={{ left: 16, right: 40, top: 4, bottom: 4 }}
-                  >
-                    <XAxis
-                      type="number"
-                      allowDecimals={false}
-                      tick={{ fontSize: 11, fill: "#94a3b8" }}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      tick={{ fontSize: 12, fill: "#64748b" }}
-                      width={130}
-                    />
-                    <Tooltip content={<CUSTOM_TOOLTIP />} />
-                    <Bar dataKey="value" name="Employees" radius={[0, 8, 8, 0]}>
-                      {deptData.map((_, i) => (
-                        <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {deptData.length > 0 && (
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Building2}
-                  label="Department Breakdown"
-                  color="text-violet-600"
-                />
-                <div className="space-y-3">
-                  {deptData.map((d, i) => (
-                    <HBar
-                      key={d.name}
-                      label={d.name}
-                      value={d.value}
-                      total={employees.length}
-                      color={PALETTE[i % PALETTE.length]}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-      {/* ── WORKFORCE BREAKDOWN (under Workforce Overview) ── */}
-      {activeSub === "workforce" && !loadingEmp && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Globe}
-                  label="Top Nationalities"
-                  color="text-sky-600"
-                />
-                {nationalityData.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">
-                    No nationality data
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {nationalityData.map((n, i) => (
-                      <HBar
-                        key={n.name}
-                        label={n.name}
-                        value={n.value}
-                        total={employees.length}
-                        color={PALETTE[i % PALETTE.length]}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-                <SectionTitle
-                  icon={Briefcase}
-                  label="Role Distribution"
-                  color="text-violet-600"
-                />
-                {roleData.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">
-                    No role data
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {roleData.map((r, i) => (
-                      <HBar
-                        key={r.name}
-                        label={r.name}
-                        value={r.value}
-                        total={employees.length}
-                        color={PALETTE[(i + 4) % PALETTE.length]}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+      {/* ── WORKFORCE OVERVIEW (live data) ── */}
+      {activeSub === "workforce" && (
+        <WorkforceOverview onOpenEmployee={openEmployeeSummary} />
+      )}
 
       {/* ── EMPLOYEE PERFORMANCE TAB ── */}
       {activeSub === "appraisal" && (
@@ -2165,6 +1722,19 @@ export default function HRReports() {
       {activeSub === "exit-interviews" && <ExitInterviewsPanel />}
 
       {activeSub === "archive" && <ArchivePanel />}
+
+      {/* ── EMPLOYEE REGISTER (all employees) ── */}
+      {activeSub === "employee-register" && (
+        <EmployeeRegisterReport onOpenEmployee={openEmployeeSummary} />
+      )}
+
+      {/* ── EMPLOYEE SUMMARY (one employee) ── */}
+      {activeSub === "employee-summary" && (
+        <EmployeeSummaryReport
+          employeeId={summaryEmployeeId}
+          onSelectEmployee={selectSummaryEmployee}
+        />
+      )}
 
       {activeSub === "history" && <HistoryTabPanel module="hr" />}
     </>

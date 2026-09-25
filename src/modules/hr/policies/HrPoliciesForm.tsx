@@ -10,6 +10,7 @@ import {
 } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
 import BenefitsAdjustmentPanel from "./BenefitsAdjustmentPanel";
+import BenefitGrantsPanel from "./BenefitGrantsPanel";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { COMPANY_TIMEZONE_OPTIONS } from "@/lib/timesheet-time";
 import {
@@ -904,6 +905,9 @@ export default function HrPoliciesForm() {
 
           {/* Bulk benefits adjustment — under Statutory Compensation */}
           <BenefitsAdjustmentPanel />
+
+          {/* One-off grants: annual ticket, bonus, reimbursement — paid via payroll */}
+          <BenefitGrantsPanel />
         </div>
       </div>
     </div>

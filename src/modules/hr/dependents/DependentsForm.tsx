@@ -1,12 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
-import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Plus,
-  Trash2,
-  Eye,
   Users,
   User,
   Calendar,
@@ -17,8 +12,33 @@ import {
   ShieldCheck,
   MapPin,
   Phone,
+  Flag,
+  UserPlus,
+  Hash,
+  Building2,
 } from "lucide-react";
 import { FormRow } from "@/modules/hr/components/form-components";
+import {
+  RecordActions,
+  RecordAvatar,
+  SectionCard,
+  SectionHeading,
+  ViewField,
+  todayIso,
+} from "@/modules/hr/components/profile-form-ui";
+import {
+  DFact,
+  DFactGrid,
+  DField,
+  DHeaderTag,
+  DHighlights,
+  DInput,
+  DSelect,
+  DialogSection,
+  RecordFormDialog,
+  RecordViewDialog,
+  dInputCls,
+} from "@/modules/hr/components/record-form-dialog";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import CountrySelect from "@/components/country-select";
 import CountryFlag from "@/components/CountryFlag";
@@ -38,42 +58,20 @@ import { toast } from "sonner";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 
+/** Red flag shown next to a dependent's name when they are the emergency contact. */
+const EmergencyFlag = () => (
+  <span
+    title="Emergency contact"
+    className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[11px] font-semibold text-red-600"
+  >
+    <Flag className="h-3 w-3 fill-red-500 text-red-500" />
+    Emergency Contact
+  </span>
+);
+
 interface ValidationErrors {
   [key: string]: string | undefined;
 }
-
-const ViewField = ({
-  icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: ReactNode;
-  label: string;
-  value?: ReactNode;
-  mono?: boolean;
-}) => {
-  const empty = value == null || value === "" || value === "—";
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium text-slate-400">{label}</p>
-        <p
-          className={cn(
-            "truncate text-sm font-semibold",
-            empty ? "text-slate-300" : "text-slate-700",
-            mono && "font-mono",
-          )}
-        >
-          {empty ? "—" : value}
-        </p>
-      </div>
-    </div>
-  );
-};
 
 // Format an ISO / yyyy-mm-dd date string as DD/MM/YYYY for read-only display.
 const formatDMY = (value?: string) => {
@@ -163,6 +161,8 @@ function validateDependent(dependent: Dependent): ValidationErrors {
   if (!dependent.relationship) errors.relationship = "Relationship is required";
   if (dependent.dob && !isValidDate(dependent.dob))
     errors.dob = "Invalid date format";
+  else if (dependent.dob && dependent.dob > todayIso())
+    errors.dob = "Date of birth cannot be in the future";
 
   return errors;
 }
@@ -182,11 +182,33 @@ const getRelationshipColor = (relationship: string) => {
   }
 };
 
+const initialsOf = (d: Dependent) =>
+  (
+    (d.firstName?.trim()[0] ?? "") + (d.lastName?.trim()[0] ?? "")
+  ).toUpperCase() || "?";
+
+const fullNameOf = (d: Dependent) =>
+  [d.firstName, d.middleName, d.lastName].filter((s) => s?.trim()).join(" ");
+
+const countryIcon = (name?: string) => {
+  const iso2 = getCountryByName(name)?.iso2;
+  return iso2 ? (
+    <CountryFlag iso2={iso2} className="text-base leading-none" />
+  ) : (
+    <Globe className="h-4 w-4" />
+  );
+};
+
 export function DependentsForm() {
   const { confirm } = useConfirmDialog();
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  // Copy of a saved record taken when its edit starts, so Cancel can restore it.
+  const [editSnapshot, setEditSnapshot] = useState<Dependent | null>(null);
+  // Field errors are shown only after the user tries to save (like Add Employee).
+  const [showErrors, setShowErrors] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { id } = useParams<{ id: string }>();
   const empId = id ? Number(id) : undefined;
 
@@ -235,23 +257,25 @@ export function DependentsForm() {
     // rows use numeric ids, so this non-numeric id keeps the save path on create.
     const newDependent = { ...INITIAL_DEPENDENT, id: generateId() };
     setDependents((current) => [...current, newDependent]);
+    setViewingId(null);
+    setEditSnapshot(null);
     setEditingId(newDependent.id);
   }, []);
 
   const navigate = useNavigate();
 
   const handleSave = useCallback(
-    async (dependent: Dependent) => {
+    async (dependent: Dependent): Promise<boolean> => {
       setDependents((current) =>
         current.map((d) => (d.id === dependent.id ? dependent : d)),
       );
 
-      if (!empId) return;
+      if (!empId) return false;
 
       const phoneCheck = validatePhone(dependent.phoneNo, { required: true });
       if (!phoneCheck.valid) {
         toast.error(phoneCheck.message ?? "Invalid phone number");
-        return;
+        return false;
       }
 
       try {
@@ -289,31 +313,34 @@ export function DependentsForm() {
 
         await reloadFromBackend();
         navigate(`/hr/employees/${empId}/dependents`);
+        return true;
       } catch (err: any) {
         toast.error(dependentService.extractErrorMessage(err));
+        return false;
       }
     },
     [empId, reloadFromBackend, navigate],
   );
 
+  const handleStartEdit = useCallback((dependent: Dependent) => {
+    setViewingId(null);
+    setEditSnapshot({ ...dependent });
+    setEditingId(dependent.id);
+  }, []);
+
   const handleCancel = useCallback(() => {
     setDependents((current) =>
-      current.filter((d) => {
-        if (d.id !== editingId) return true;
-        const isEmpty = !(
-          d.firstName?.trim() ||
-          d.lastName?.trim() ||
-          d.relationship ||
-          d.gender ||
-          d.nationalId ||
-          d.nationality ||
-          d.dob
-        );
-        return !isEmpty;
-      }),
+      current
+        // Cancelling the pop-up discards an unsaved new dependent.
+        .filter((d) => d.id !== editingId || /^\d+$/.test(d.id))
+        // Undo unsaved changes to an existing record.
+        .map((d) =>
+          editSnapshot && d.id === editSnapshot.id ? editSnapshot : d,
+        ),
     );
+    setEditSnapshot(null);
     setEditingId(null);
-  }, [editingId]);
+  }, [editingId, editSnapshot]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -327,6 +354,7 @@ export function DependentsForm() {
         await dependentService.remove(empId, Number(id));
         toast.success("Dependent deleted");
         setEditingId(null);
+        setViewingId(null);
         await reloadFromBackend();
       } catch (err: any) {
         console.error(
@@ -363,20 +391,505 @@ export function DependentsForm() {
     return age >= 0 ? age : null;
   };
 
-  const totalDependents = dependents.length;
-  const spouseCount = dependents.filter(
+  // Saved records only — an unsaved draft lives in the pop-up, not the list.
+  const savedDependents = dependents.filter((d) => /^\d+$/.test(d.id));
+  const totalDependents = savedDependents.length;
+  const spouseCount = savedDependents.filter(
     (d) => d.relationship === "Spouse",
   ).length;
-  const childrenCount = dependents.filter(
+  const childrenCount = savedDependents.filter(
     (d) => d.relationship === "Son" || d.relationship === "Daughter",
   ).length;
-  const parentsCount = dependents.filter(
+  const parentsCount = savedDependents.filter(
     (d) => d.relationship === "Father" || d.relationship === "Mother",
   ).length;
 
   const editingDependent = editingId
     ? (dependents.find((d) => d.id === editingId) ?? null)
     : null;
+
+  /* ================= EDIT FORM (pop-up, like Add Employee) ================= */
+
+  const renderEditorDialog = () => {
+    const dependent = editingDependent;
+    if (!dependent) return null;
+    const all = validateDependent(dependent);
+    const errors: ValidationErrors = showErrors ? all : {};
+    const age = dependent.dob && !all.dob ? calculateAge(dependent.dob) : null;
+    const phoneCheck = validatePhone(dependent.phoneNo, { required: true });
+    const phoneError =
+      showErrors && !phoneCheck.valid
+        ? (phoneCheck.message ?? "Enter a valid phone number")
+        : undefined;
+    const isNew = !/^\d+$/.test(dependent.id);
+    const name = fullNameOf(dependent);
+
+    const submit = async () => {
+      setShowErrors(true);
+      if (Object.keys(all).length > 0 || !phoneCheck.valid) {
+        toast.error("Please complete the highlighted fields");
+        return;
+      }
+      setSaving(true);
+      try {
+        const ok = await handleSave(dependent);
+        if (ok) {
+          setEditSnapshot(null);
+          setEditingId(null);
+          setShowErrors(false);
+        }
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <RecordFormDialog
+        open
+        onClose={() => {
+          setShowErrors(false);
+          handleCancel();
+        }}
+        title={isNew ? "Add new dependent" : `Edit ${name || "dependent"}`}
+        subtitle={
+          isNew
+            ? "Fill in the details to add a dependent for this employee"
+            : "Update the dependent's details"
+        }
+        badge={initialsOf(dependent)}
+        badgeClassName="bg-blue-100 text-blue-700"
+        saveLabel={isNew ? "Save dependent" : "Update dependent"}
+        saveIcon={<UserPlus className="h-3.5 w-3.5" />}
+        onSave={submit}
+        saving={saving}
+      >
+        {/* ── Personal information ── */}
+        <DialogSection
+          icon={<User className="h-3.5 w-3.5 text-slate-600" />}
+          iconBg="bg-slate-100"
+          title="Personal information"
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <DField label="First name" required error={errors.firstName}>
+              <DInput
+                placeholder="John"
+                value={dependent.firstName}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { firstName: e.target.value })
+                }
+                invalid={!!errors.firstName}
+              />
+            </DField>
+            <DField label="Middle name">
+              <DInput
+                placeholder="(optional)"
+                value={dependent.middleName ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { middleName: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="Last name" required error={errors.lastName}>
+              <DInput
+                placeholder="Doe"
+                value={dependent.lastName}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { lastName: e.target.value })
+                }
+                invalid={!!errors.lastName}
+              />
+            </DField>
+            <DField label="Relationship" required error={errors.relationship}>
+              <DSelect
+                value={dependent.relationship ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, {
+                    relationship:
+                      ((e.target.value ||
+                        undefined) as (typeof RELATIONSHIPS)[number]["value"]) ||
+                      undefined,
+                  })
+                }
+                invalid={!!errors.relationship}
+              >
+                <option value="">Select</option>
+                {RELATIONSHIPS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </DSelect>
+            </DField>
+            <DField label="Gender" required error={errors.gender}>
+              <DSelect
+                value={dependent.gender ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, {
+                    gender: (e.target.value as Gender) || undefined,
+                  })
+                }
+                invalid={!!errors.gender}
+              >
+                <option value="">Select</option>
+                {GENDERS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </DSelect>
+            </DField>
+            <DField
+              label="Date of birth"
+              error={errors.dob}
+              hint={age !== null ? `Age: ${age} ${age === 1 ? "year" : "years"}` : undefined}
+            >
+              <DInput
+                type="date"
+                max={todayIso()}
+                value={dependent.dob}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { dob: e.target.value })
+                }
+                invalid={!!errors.dob}
+              />
+            </DField>
+            <DField label="Marital status">
+              <DSelect
+                value={dependent.maritalStatus ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, {
+                    maritalStatus:
+                      (e.target.value as MaritalStatus) || undefined,
+                  })
+                }
+              >
+                <option value="">Select</option>
+                {MARITALS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </DSelect>
+            </DField>
+          </div>
+        </DialogSection>
+
+        {/* ── Identification ── */}
+        <DialogSection
+          icon={<ShieldCheck className="h-3.5 w-3.5 text-blue-600" />}
+          iconBg="bg-blue-50"
+          title="Identification"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DField label="National ID">
+              <DInput
+                placeholder="QID / Passport / National ID"
+                value={dependent.nationalId ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { nationalId: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="Nationality">
+              <CountrySelect
+                value={dependent.nationality ?? ""}
+                onChange={(v) =>
+                  updateDependent(dependent.id, { nationality: v })
+                }
+                placeholder="Select country"
+                className={dInputCls}
+              />
+            </DField>
+          </div>
+
+          <label
+            htmlFor={`emergency-${dependent.id}`}
+            className={cn(
+              "mt-4 flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 transition-colors",
+              dependent.emergencyContact
+                ? "border-rose-200 bg-rose-50/70"
+                : "border-slate-200 bg-slate-50/60 hover:bg-slate-50",
+            )}
+          >
+            <input
+              type="checkbox"
+              id={`emergency-${dependent.id}`}
+              checked={dependent.emergencyContact ?? false}
+              onChange={(e) =>
+                updateDependent(dependent.id, {
+                  emergencyContact: e.target.checked,
+                })
+              }
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+            />
+            <span>
+              <span className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+                <Flag
+                  className={cn(
+                    "h-3.5 w-3.5",
+                    dependent.emergencyContact
+                      ? "fill-rose-500 text-rose-500"
+                      : "text-slate-400",
+                  )}
+                />
+                Emergency contact
+              </span>
+              <span className="mt-0.5 block text-[11px] text-slate-500">
+                {dependent.emergencyContact
+                  ? "This dependent's name, relationship and phone number are used as the employee's emergency contact."
+                  : "Tick to use this dependent as the employee's emergency contact."}
+              </span>
+            </span>
+          </label>
+        </DialogSection>
+
+        {/* ── Contact information ── */}
+        <DialogSection
+          icon={<Phone className="h-3.5 w-3.5 text-amber-600" />}
+          iconBg="bg-amber-50"
+          title="Contact information"
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <DField label="Phone number" required error={phoneError} className="sm:col-span-2">
+              <PhoneInput
+                value={dependent.phoneNo ?? ""}
+                onChange={(v) => updateDependent(dependent.id, { phoneNo: v })}
+                invalid={!!phoneError}
+                placeholder="Phone number"
+              />
+            </DField>
+            <DField label="Address line 1">
+              <DInput
+                placeholder="Building, street, zone"
+                value={dependent.address ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { address: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="Address line 2">
+              <DInput
+                placeholder="(optional)"
+                value={dependent.address2 ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { address2: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="City">
+              <DInput
+                placeholder="City"
+                value={dependent.city ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { city: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="State / province">
+              <DInput
+                placeholder="State / province"
+                value={dependent.state ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { state: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="Postal code">
+              <DInput
+                placeholder="(optional)"
+                value={dependent.postalCode ?? ""}
+                onChange={(e) =>
+                  updateDependent(dependent.id, { postalCode: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="Country">
+              <CountrySelect
+                value={dependent.country ?? ""}
+                onChange={(v) => updateDependent(dependent.id, { country: v })}
+                placeholder="Select country"
+                className={dInputCls}
+              />
+            </DField>
+          </div>
+        </DialogSection>
+      </RecordFormDialog>
+    );
+  };
+
+  /* ================= VIEW (pop-up, read-only) ================= */
+
+  const renderViewDialog = () => {
+    const dependent = viewingId
+      ? savedDependents.find((d) => d.id === viewingId)
+      : undefined;
+    if (!dependent) return null;
+    const age = dependent.dob ? calculateAge(dependent.dob) : null;
+    const name = fullNameOf(dependent) || "Unnamed dependent";
+
+    return (
+      <RecordViewDialog
+        open
+        onClose={() => setViewingId(null)}
+        title={name}
+        subtitle="Dependent details"
+        badge={initialsOf(dependent)}
+        badgeClassName="bg-blue-100 text-blue-700"
+        headerExtra={
+          <>
+            {dependent.relationship && <DHeaderTag>{dependent.relationship}</DHeaderTag>}
+            {dependent.emergencyContact && (
+              <DHeaderTag className="border-rose-300/60 bg-rose-500/25 text-rose-50">
+                <Flag className="h-3 w-3 fill-rose-300 text-rose-300" /> Emergency contact
+              </DHeaderTag>
+            )}
+          </>
+        }
+        onEdit={() => {
+          setViewingId(null);
+          handleStartEdit(dependent);
+        }}
+        editLabel="Edit dependent"
+      >
+        {dependent.emergencyContact && (
+          <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-white shadow-sm">
+              <Phone className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-rose-800">Emergency contact</p>
+              <p className="text-[12.5px] text-rose-700">
+                Call{" "}
+                <span className="font-mono font-semibold">
+                  {dependent.phoneNo || "— no phone number recorded"}
+                </span>
+                {dependent.relationship ? ` · ${dependent.relationship}` : ""}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <DHighlights
+          items={[
+            {
+              label: "Relationship",
+              value: dependent.relationship,
+              className: "border-blue-100 bg-blue-50 text-blue-800",
+            },
+            {
+              label: "Age",
+              value: age !== null ? `${age} ${age === 1 ? "year" : "years"}` : "",
+              className: "border-emerald-100 bg-emerald-50 text-emerald-800",
+            },
+            {
+              label: "Gender",
+              value: dependent.gender,
+              className: "border-violet-100 bg-violet-50 text-violet-800",
+            },
+            {
+              label: "Marital status",
+              value: dependent.maritalStatus,
+              className: "border-amber-100 bg-amber-50 text-amber-800",
+            },
+          ]}
+        />
+
+        <DialogSection
+          icon={<User className="h-3.5 w-3.5 text-slate-600" />}
+          iconBg="bg-slate-100"
+          title="Personal information"
+        >
+          <DFactGrid>
+            <DFact icon={<User className="h-3.5 w-3.5" />} label="First name" value={dependent.firstName} />
+            <DFact icon={<User className="h-3.5 w-3.5" />} label="Middle name" value={dependent.middleName} />
+            <DFact icon={<User className="h-3.5 w-3.5" />} label="Last name" value={dependent.lastName} />
+            <DFact icon={<Calendar className="h-3.5 w-3.5" />} label="Date of birth" value={dependent.dob ? formatDMY(dependent.dob) : ""} mono />
+            <DFact icon={countryIcon(dependent.nationality)} label="Nationality" value={dependent.nationality} />
+            <DFact icon={<ShieldCheck className="h-3.5 w-3.5" />} label="National ID" value={dependent.nationalId} mono />
+          </DFactGrid>
+        </DialogSection>
+
+        <DialogSection
+          icon={<Phone className="h-3.5 w-3.5 text-amber-600" />}
+          iconBg="bg-amber-50"
+          title="Contact information"
+        >
+          <DFactGrid>
+            <DFact
+              icon={<Phone className="h-3.5 w-3.5" />}
+              label="Phone number"
+              value={dependent.phoneNo}
+              mono
+              tone={dependent.emergencyContact ? "text-rose-600" : undefined}
+            />
+            <DFact icon={<Building2 className="h-3.5 w-3.5" />} label="City" value={dependent.city} />
+            <DFact icon={countryIcon(dependent.country)} label="Country" value={dependent.country} />
+            <DFact
+              icon={<MapPin className="h-3.5 w-3.5" />}
+              label="Address"
+              value={[dependent.address, dependent.address2].filter((x) => x?.trim()).join(", ")}
+              wide
+              multiline
+            />
+            <DFact icon={<MapPin className="h-3.5 w-3.5" />} label="State / province" value={dependent.state} />
+            <DFact icon={<Hash className="h-3.5 w-3.5" />} label="Postal code" value={dependent.postalCode} mono />
+          </DFactGrid>
+        </DialogSection>
+      </RecordViewDialog>
+    );
+  };
+
+  /* ================= LIST ROW ================= */
+
+  const renderRow = (dependent: Dependent) => {
+    const age = dependent.dob ? calculateAge(dependent.dob) : null;
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <RecordAvatar>{initialsOf(dependent)}</RecordAvatar>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="truncate text-sm font-bold text-slate-800">
+                  {fullNameOf(dependent) || "Unnamed dependent"}
+                </h4>
+                {dependent.relationship && (
+                  <span
+                    className={cn(
+                      "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
+                      getRelationshipColor(dependent.relationship),
+                    )}
+                  >
+                    {dependent.relationship}
+                  </span>
+                )}
+                {dependent.emergencyContact && <EmergencyFlag />}
+              </div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {[dependent.gender, age !== null ? `${age} yrs` : null, dependent.nationality]
+                  .filter(Boolean)
+                  .join(" · ") || "No details yet"}
+              </p>
+            </div>
+          </div>
+          <RecordActions
+            onView={() => {
+              setEditingId(null);
+              setViewingId(dependent.id);
+            }}
+            onEdit={() => handleStartEdit(dependent)}
+            onDelete={() => handleDelete(dependent.id)}
+          />
+        </div>
+        <FormRow columns={4} className="mt-4 border-t border-slate-100 pt-3">
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Date of Birth" value={formatDMY(dependent.dob)} />
+          <ViewField icon={countryIcon(dependent.nationality)} label="Nationality" value={dependent.nationality} />
+          <ViewField icon={<Phone className="h-4 w-4" />} label="Phone" value={dependent.phoneNo} mono />
+          <ViewField icon={<Heart className="h-4 w-4" />} label="Marital Status" value={dependent.maritalStatus} />
+        </FormRow>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4 rounded-xl">
@@ -385,37 +898,17 @@ export function DependentsForm() {
         description="Manage dependent information"
         icon={<Users className="h-5 w-5 text-white" />}
         actions={
-          editingDependent ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                className="rounded-xl px-5"
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={
-                  Object.keys(validateDependent(editingDependent)).length > 0
-                }
-                onClick={async () => {
-                  await handleSave(editingDependent);
-                  setEditingId(null);
-                }}
-                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white shadow-lg px-5"
-              >
-                Save Dependent
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={handleAdd}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-            >
-              <Plus className="h-4 w-4" />
-              Add Dependent
-            </Button>
-          )
+          <Button
+            onClick={() => {
+              setShowErrors(false);
+              handleAdd();
+            }}
+            disabled={!!editingDependent}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+          >
+            <Plus className="h-4 w-4" />
+            Add Dependent
+          </Button>
         }
       />
 
@@ -450,721 +943,47 @@ export function DependentsForm() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <User className="h-4 w-4 text-blue-600" />
-          Dependents Details
-        </h3>
+      {renderEditorDialog()}
 
-        <div className="grid gap-4">
-          {dependents.map((dependent) => (
-            <div
-              key={dependent.id}
-              className="border border-slate-200 rounded-lg p-4 mb-6"
-            >
-              {editingId === dependent.id ? (
-                <div className="p-4 bg-gradient-to-br from-white to-slate-50">
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Users className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-slate-800 mb-1">
-                          Dependent Information
-                        </h4>
-                        <p className="text-sm text-slate-600">
-                          Please provide accurate information about the
-                          employee's dependent. This information is used for
-                          benefits, insurance, and emergency contact purposes.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+      {renderViewDialog()}
 
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
-                      Personal Information
-                    </h3>
-
-                    <FormRow columns={4}>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          First Name <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          value={dependent.firstName}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              firstName: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter first name"
-                        />
-                        {validateDependent(dependent).firstName && (
-                          <p className="text-xs text-red-500">
-                            {validateDependent(dependent).firstName}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Middle Name
-                        </Label>
-                        <Input
-                          value={dependent.middleName}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              middleName: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter middle name"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Last Name <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          value={dependent.lastName}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              lastName: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter last name"
-                        />
-                        {validateDependent(dependent).lastName && (
-                          <p className="text-xs text-red-500">
-                            {validateDependent(dependent).lastName}
-                          </p>
-                        )}
-                      </div>
-                    </FormRow>
-
-                    <FormRow columns={3}>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Gender <span className="text-red-500">*</span>
-                        </Label>
-                        <select
-                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                          value={dependent.gender ?? ""}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              gender: (e.target.value as Gender) || undefined,
-                            })
-                          }
-                        >
-                          <option value="">Select Gender</option>
-                          {GENDERS.map((g) => (
-                            <option key={g} value={g}>
-                              {g}
-                            </option>
-                          ))}
-                        </select>
-                        {validateDependent(dependent).gender && (
-                          <p className="text-xs text-red-500">
-                            {validateDependent(dependent).gender}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Date of Birth
-                        </Label>
-                        <Input
-                          type="date"
-                          value={dependent.dob}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              dob: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                        />
-                        {dependent.dob &&
-                          calculateAge(dependent.dob) !== null && (
-                            <div className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium">
-                              Age: {calculateAge(dependent.dob)} years old
-                            </div>
-                          )}
-                        {validateDependent(dependent).dob && (
-                          <p className="text-xs text-red-500">
-                            {validateDependent(dependent).dob}
-                          </p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Relationship <span className="text-red-500">*</span>
-                        </Label>
-                        <select
-                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                          value={dependent.relationship ?? ""}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              relationship:
-                                ((e.target.value ||
-                                  undefined) as (typeof RELATIONSHIPS)[number]["value"]) ||
-                                undefined,
-                            })
-                          }
-                        >
-                          <option value="">Select Relationship</option>
-                          {RELATIONSHIPS.map((r) => (
-                            <option key={r.value} value={r.value}>
-                              {r.label}
-                            </option>
-                          ))}
-                        </select>
-                        {validateDependent(dependent).relationship && (
-                          <p className="text-xs text-red-500">
-                            {validateDependent(dependent).relationship}
-                          </p>
-                        )}
-                      </div>
-                    </FormRow>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100 mb-6">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                      Identification
-                    </h3>
-
-                    <FormRow columns={3}>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          National ID
-                        </Label>
-                        <Input
-                          value={dependent.nationalId}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              nationalId: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter national ID number"
-                        />
-                        <p className="text-xs text-slate-500">
-                          Passport number, SSN, or other ID
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Nationality
-                        </Label>
-                        <CountrySelect
-                          value={dependent.nationality}
-                          onChange={(v) =>
-                            updateDependent(dependent.id, { nationality: v })
-                          }
-                          placeholder="Select country..."
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Marital Status
-                        </Label>
-                        <select
-                          className="h-9 w-full rounded-lg border border-slate-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                          value={dependent.maritalStatus ?? ""}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              maritalStatus:
-                                (e.target.value as MaritalStatus) || undefined,
-                            })
-                          }
-                        >
-                          <option value="">Select Status</option>
-                          {MARITALS.map((m) => (
-                            <option key={m} value={m}>
-                              {m}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </FormRow>
-                    <div className="mt-3">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`emergency-${dependent.id}`}
-                          checked={dependent.emergencyContact ?? false}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              emergencyContact: e.target.checked,
-                            })
-                          }
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <Label
-                          htmlFor={`emergency-${dependent.id}`}
-                          className="cursor-pointer text-sm font-medium text-slate-700"
-                        >
-                          Emergency Contact
-                        </Label>
-                      </div>
-                      {dependent.emergencyContact && (
-                        <p className="mt-1.5 rounded-md bg-blue-50 px-2.5 py-1.5 text-[11px] text-blue-700">
-                          This dependent is the emergency contact. Their{" "}
-                          <strong>name, relationship</strong> (above) and{" "}
-                          <strong>phone number</strong> (in Contact Information
-                          below) will be used — fill those in to complete the
-                          emergency contact details.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                      Contact Information
-                    </h3>
-
-                    <FormRow columns={3}>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Phone Number <span className="text-red-500">*</span>
-                        </Label>
-                        <PhoneInput
-                          value={dependent.phoneNo ?? ""}
-                          onChange={(v) =>
-                            updateDependent(dependent.id, {
-                              phoneNo: v,
-                            })
-                          }
-                          invalid={
-                            !!dependent.phoneNo &&
-                            !validatePhone(dependent.phoneNo, { required: true })
-                              .valid
-                          }
-                          placeholder="Phone number"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Address Line 1
-                        </Label>
-                        <Input
-                          value={dependent.address}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              address: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter address line 1"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Address Line 2
-                        </Label>
-                        <Input
-                          value={dependent.address2}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              address2: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter address line 2 (optional)"
-                        />
-                      </div>
-                    </FormRow>
-
-                    <FormRow columns={4}>
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          City
-                        </Label>
-                        <Input
-                          value={dependent.city}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              city: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter city"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          State/Province
-                        </Label>
-                        <Input
-                          value={dependent.state}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              state: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter state/province"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Postal Code{" "}
-                          <span className="text-slate-400 text-xs font-normal">
-                            (optional)
-                          </span>
-                        </Label>
-                        <Input
-                          value={dependent.postalCode}
-                          onChange={(e) =>
-                            updateDependent(dependent.id, {
-                              postalCode: e.target.value,
-                            })
-                          }
-                          className="rounded-lg border-slate-300"
-                          placeholder="Enter postal code"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700">
-                          Country
-                        </Label>
-                        <CountrySelect
-                          value={dependent.country}
-                          onChange={(v) =>
-                            updateDependent(dependent.id, { country: v })
-                          }
-                          placeholder="Select country..."
-                        />
-                      </div>
-                    </FormRow>
-                  </div>
-
-                </div>
-              ) : (
-                <div className="p-4">
-                  {/* Summary View */}
-                  {viewingId !== dependent.id && (
-                    <div className="relative">
-                      <div className="pr-52">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-xl font-bold text-slate-800">
-                            {dependent.firstName} {dependent.middleName}{" "}
-                            {dependent.lastName}
-                          </h3>
-                          {dependent.relationship && (
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRelationshipColor(dependent.relationship)}`}
-                            >
-                              {dependent.relationship}
-                            </span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                            <p className="text-xs text-slate-600 mb-1">
-                              Gender
-                            </p>
-                            <p className="text-sm font-semibold text-blue-700">
-                              {dependent.gender || "N/A"}
-                            </p>
-                          </div>
-                          {dependent.dob && (
-                            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                              <p className="text-xs text-slate-600 mb-1">Age</p>
-                              <p className="text-sm font-semibold text-emerald-700">
-                                {calculateAge(dependent.dob)} years
-                              </p>
-                            </div>
-                          )}
-                          {dependent.nationality && (
-                            <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-3 rounded-lg border border-violet-100">
-                              <p className="text-xs text-slate-600 mb-1">
-                                Nationality
-                              </p>
-                              <p className="text-sm font-semibold text-violet-700">
-                                {dependent.nationality}
-                              </p>
-                            </div>
-                          )}
-                          {dependent.maritalStatus && (
-                            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
-                              <p className="text-xs text-slate-600 mb-1">
-                                Status
-                              </p>
-                              <p className="text-sm font-semibold text-amber-700">
-                                {dependent.maritalStatus}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="absolute top-0 right-0 flex gap-2 w-48">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setViewingId(dependent.id)}
-                          className="flex items-center gap-1 rounded-lg flex-1"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="rounded-lg flex-1"
-                          onClick={() => setEditingId(dependent.id)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(dependent.id)}
-                          className="text-red-600 rounded-lg flex-1"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {viewingId === dependent.id && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-2xl font-bold text-slate-800">
-                          {dependent.firstName} {dependent.middleName}{" "}
-                          {dependent.lastName}
-                        </h3>
-                        {dependent.relationship && (
-                          <span
-                            className={`px-4 py-2 rounded-full text-sm font-semibold border ${getRelationshipColor(dependent.relationship)}`}
-                          >
-                            {dependent.relationship}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        <ViewField
-                          icon={<User className="h-4 w-4" />}
-                          label="Gender"
-                          value={dependent.gender || "—"}
-                        />
-                        <ViewField
-                          icon={<Calendar className="h-4 w-4" />}
-                          label="Date of Birth"
-                          value={formatDMY(dependent.dob)}
-                        />
-                        <ViewField
-                          icon={
-                            getCountryByName(dependent.nationality)?.iso2 ? (
-                              <CountryFlag
-                                iso2={
-                                  getCountryByName(dependent.nationality)?.iso2
-                                }
-                                className="text-base leading-none"
-                              />
-                            ) : (
-                              <Globe className="h-4 w-4" />
-                            )
-                          }
-                          label="Nationality"
-                          value={dependent.nationality || "—"}
-                        />
-                      </div>
-
-                      <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
-                        <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                          Personal Information
-                        </h4>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <ViewField
-                            icon={<User className="h-4 w-4" />}
-                            label="First Name"
-                            value={dependent.firstName || "—"}
-                          />
-                          <ViewField
-                            icon={<User className="h-4 w-4" />}
-                            label="Middle Name"
-                            value={dependent.middleName || "—"}
-                          />
-                          <ViewField
-                            icon={<User className="h-4 w-4" />}
-                            label="Last Name"
-                            value={dependent.lastName || "—"}
-                          />
-                          <ViewField
-                            icon={<Heart className="h-4 w-4" />}
-                            label="Marital Status"
-                            value={dependent.maritalStatus || "—"}
-                          />
-                        </div>
-                      </div>
-
-                      {dependent.nationalId && (
-                        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                            Identification
-                          </h4>
-                          <ViewField
-                            icon={<ShieldCheck className="h-4 w-4" />}
-                            label="National ID"
-                            value={dependent.nationalId}
-                            mono
-                          />
-                        </div>
-                      )}
-
-                      {(dependent.phoneNo ||
-                        dependent.address ||
-                        dependent.city ||
-                        dependent.state ||
-                        dependent.postalCode ||
-                        dependent.country) && (
-                        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border border-cyan-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                            Contact Information
-                          </h4>
-                          {dependent.phoneNo && (
-                            <ViewField
-                              icon={<Phone className="h-4 w-4" />}
-                              label="Phone Number"
-                              value={dependent.phoneNo}
-                              mono
-                            />
-                          )}
-                          {dependent.address && (
-                            <ViewField
-                              icon={<MapPin className="h-4 w-4" />}
-                              label="Address Line 1"
-                              value={dependent.address}
-                            />
-                          )}
-                          {dependent.address2 && (
-                            <ViewField
-                              icon={<MapPin className="h-4 w-4" />}
-                              label="Address Line 2"
-                              value={dependent.address2}
-                            />
-                          )}
-                          {dependent.city && (
-                            <ViewField
-                              icon={<MapPin className="h-4 w-4" />}
-                              label="City"
-                              value={dependent.city}
-                            />
-                          )}
-                          {dependent.state && (
-                            <ViewField
-                              icon={<MapPin className="h-4 w-4" />}
-                              label="State/Province"
-                              value={dependent.state}
-                            />
-                          )}
-                          {dependent.postalCode && (
-                            <ViewField
-                              icon={<MapPin className="h-4 w-4" />}
-                              label="Postal Code"
-                              value={dependent.postalCode}
-                            />
-                          )}
-                          {dependent.country && (
-                            <ViewField
-                              icon={
-                                getCountryByName(dependent.country)?.iso2 ? (
-                                  <CountryFlag
-                                    iso2={
-                                      getCountryByName(dependent.country)?.iso2
-                                    }
-                                    className="text-base leading-none"
-                                  />
-                                ) : (
-                                  <Globe className="h-4 w-4" />
-                                )
-                              }
-                              label="Country"
-                              value={dependent.country}
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      {dependent.dob &&
-                        calculateAge(dependent.dob) !== null && (
-                          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-2">
-                              Age Information
-                            </h4>
-                            <p className="text-slate-700">
-                              <span className="font-semibold">
-                                {calculateAge(dependent.dob)} years old
-                              </span>{" "}
-                              (Born:{" "}
-                              {new Date(dependent.dob).toLocaleDateString()})
-                            </p>
-                          </div>
-                        )}
-
-                      <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setViewingId(null)}
-                          className="rounded-lg border-slate-300"
-                        >
-                          Close
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setViewingId(null);
-                            setEditingId(dependent.id);
-                          }}
-                          className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg"
-                        >
-                          Edit Dependent
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+      <SectionCard>
+        <SectionHeading
+          icon={<Users className="h-4 w-4" />}
+          label="Dependents Details"
+          description={
+            totalDependents
+              ? `${totalDependents} dependent${totalDependents === 1 ? "" : "s"} on record`
+              : "Spouse, children, parents and other dependents"
+          }
+        />
+        {savedDependents.length > 0 ? (
+          <div className="space-y-3">
+            {savedDependents.map((dependent) => (
+              <div key={dependent.id}>{renderRow(dependent)}</div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-10 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100">
+              <Users className="h-7 w-7 text-violet-600" />
             </div>
-          ))}
-        </div>
-
-        {dependents.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center">
-            <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
-              <Users className="h-12 w-12 text-blue-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+            <h3 className="text-sm font-semibold text-slate-800">
               No dependents added yet
             </h3>
-            <p className="text-slate-600 mb-6">
-              Click "Add Dependent" to create your first employee dependent
+            <p className="mt-1 text-xs text-muted-foreground">
+              Click "Add Dependent" to record the employee's first dependent.
             </p>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
+              className="mt-4 h-9 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white"
             >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Dependent
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Dependent
             </Button>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

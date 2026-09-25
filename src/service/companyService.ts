@@ -488,7 +488,9 @@ export const getSidebarItems = async (
   ] as SidebarItem[];
 };
 
-const EXIT_STATUSES = ["RESIGNED", "TERMINATED", "RETIRED"];
+// Exit Interview tab is shown for exiting employees and for INACTIVE ones (separation
+// complete) so their submitted interview stays viewable.
+const EXIT_STATUSES = ["RESIGNED", "TERMINATED", "RETIRED", "INACTIVE"];
 
 export const getVisibleEmployeeSubModules = (
   permissions: Record<string, any> | null | undefined,
@@ -548,7 +550,7 @@ export const getVisibleEmployeeSubModules = (
       to: empBase ? `${empBase}/immigration` : "#",
     },
     // Exit Interview only surfaces once the employee has exited (resigned /
-    // terminated / retired); gated by the same grant as the profile.
+    // terminated / retired / inactive); gated by the same grant as the profile.
     ...(isExit
       ? [
           {

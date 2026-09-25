@@ -1,12 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
-  Trash2,
-  Eye,
   Briefcase,
   Building,
   Calendar,
@@ -18,47 +13,32 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { useParams } from "react-router-dom";
-import { cn, generateId } from "@/lib/utils";
+import { generateId } from "@/lib/utils";
 import { toInputDate, toIsoDate } from "@/lib/date";
 import { FormRow } from "@/modules/hr/components/form-components";
+import {
+  RecordActions,
+  RecordAvatar,
+  SectionCard,
+  SectionHeading,
+  ViewField,
+  todayIso,
+} from "@/modules/hr/components/profile-form-ui";
+import {
+  DFact,
+  DFactGrid,
+  DField,
+  DHeaderTag,
+  DHighlights,
+  DInput,
+  DTextarea,
+  DialogSection,
+  RecordFormDialog,
+  RecordViewDialog,
+} from "@/modules/hr/components/record-form-dialog";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { formatDisplayDate } from "@/lib/format-date";
-
-/* ================= VIEW HELPERS ================= */
-
-const ViewField = ({
-  icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value?: React.ReactNode;
-  mono?: boolean;
-}) => {
-  const empty = value == null || value === "" || value === "—";
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium text-slate-400">{label}</p>
-        <p
-          className={cn(
-            "truncate text-sm font-semibold",
-            empty ? "text-slate-300" : "text-slate-700",
-            mono && "font-mono",
-          )}
-        >
-          {empty ? "—" : value}
-        </p>
-      </div>
-    </div>
-  );
-};
 
 const formatViewDate = formatDisplayDate;
 
@@ -86,6 +66,13 @@ function validateExperience(exp: Experience): ValidationErrors {
   if (!exp.jobTitle?.trim()) errors.jobTitle = "Job title is required";
   if (!exp.lastDateWorked)
     errors.lastDateWorked = "Last date worked is required";
+  else if (exp.lastDateWorked > todayIso())
+    errors.lastDateWorked = "Last date worked cannot be in the future";
+  if (exp.numberOfYears) {
+    const years = Number(exp.numberOfYears);
+    if (Number.isNaN(years) || years < 0 || years > 60)
+      errors.numberOfYears = "Enter years between 0 and 60";
+  }
   return errors;
 }
 
@@ -99,6 +86,15 @@ const INITIAL_EXPERIENCE: Experience = {
   notes: "",
 };
 
+const initialsOf = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase() || "?";
+
 /* ================= COMPONENT ================= */
 
 export default function PreviousExperiencesForm() {
@@ -109,6 +105,11 @@ export default function PreviousExperiencesForm() {
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  // Copy of a saved record taken when its edit starts, so Cancel can restore it.
+  const [editSnapshot, setEditSnapshot] = useState<Experience | null>(null);
+  // Field errors are shown only after the user tries to save (like Add Employee).
+  const [showErrors, setShowErrors] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   /* ================= API ================= */
 
@@ -174,6 +175,8 @@ export default function PreviousExperiencesForm() {
   const handleAdd = () => {
     const exp = { ...INITIAL_EXPERIENCE, id: generateId() };
     setExperiences((c) => [...c, exp]);
+    setViewingId(null);
+    setEditSnapshot(null);
     setEditingId(exp.id);
   };
 
@@ -186,7 +189,7 @@ export default function PreviousExperiencesForm() {
 
     const errors = validateExperience(exp);
     if (Object.values(errors).some(Boolean)) {
-      toast.error("Please fill all required fields");
+      toast.error("Please fix the highlighted fields");
       return;
     }
 
@@ -204,27 +207,29 @@ export default function PreviousExperiencesForm() {
       const refreshed = await listExperiences(employeeId);
       setExperiences((refreshed || []).map(mapApiToForm));
       setEditingId(null);
+      setEditSnapshot(null);
     } catch {
       toast.error("Failed to save experience");
     }
   };
 
+  const handleStartEdit = (exp: Experience) => {
+    setViewingId(null);
+    setEditSnapshot({ ...exp });
+    setEditingId(exp.id);
+  };
+
   const handleCancel = () => {
     setExperiences((c) =>
-      c.filter((e) => {
-        if (e.id !== editingId) return true;
-        const isPersisted = Number(e.id);
-        if (isPersisted) return true;
-        const hasContent =
-          e.companyName?.trim() ||
-          e.jobTitle?.trim() ||
-          e.lastDateWorked ||
-          e.numberOfYears ||
-          e.companyAddress?.trim() ||
-          e.notes?.trim();
-        return !!hasContent;
-      }),
+      c
+        // Cancelling the pop-up discards an unsaved new experience.
+        .filter((e) => e.id !== editingId || !!Number(e.id))
+        // Undo unsaved changes to an existing record.
+        .map((e) =>
+          editSnapshot && e.id === editSnapshot.id ? editSnapshot : e,
+        ),
     );
+    setEditSnapshot(null);
     setEditingId(null);
   };
 
@@ -235,6 +240,7 @@ export default function PreviousExperiencesForm() {
     try {
       if (Number(expId)) await deleteExperienceApi(employeeId, Number(expId));
       setExperiences((c) => c.filter((e) => e.id !== expId));
+      setViewingId(null);
       toast.success("Experience deleted");
     } catch {
       toast.error("Failed to delete experience");
@@ -243,7 +249,14 @@ export default function PreviousExperiencesForm() {
 
   /* ================= SUMMARY METRICS ================= */
 
+  // Saved records only — an unsaved draft lives in the pop-up, not the list.
+  const savedExperiences = useMemo(
+    () => experiences.filter((e) => !!Number(e.id)),
+    [experiences],
+  );
+
   const stats = useMemo(() => {
+    const experiences = savedExperiences;
     const total = experiences.length;
     const totalYears = experiences.reduce(
       (sum, e) => sum + (Number(e.numberOfYears) || 0),
@@ -258,13 +271,291 @@ export default function PreviousExperiencesForm() {
       .sort()
       .pop();
     return { total, totalYears, uniqueCompanies, latestDate };
-  }, [experiences]);
+  }, [savedExperiences]);
 
   /* ================= RENDER ================= */
 
   const editingExperience = editingId
     ? (experiences.find((e) => e.id === editingId) ?? null)
     : null;
+  const viewingExperience = viewingId
+    ? (savedExperiences.find((e) => e.id === viewingId) ?? null)
+    : null;
+
+  const yearsLabel = (value: string) => {
+    const n = Number(value);
+    if (!value || Number.isNaN(n)) return "";
+    return `${value} ${n === 1 ? "yr" : "yrs"}`;
+  };
+
+  const renderEditorDialog = () => {
+    const exp = editingExperience;
+    if (!exp) return null;
+    const all = validateExperience(exp);
+    const errors: ValidationErrors = showErrors ? all : {};
+    const isNew = !Number(exp.id);
+
+    const submit = async () => {
+      setShowErrors(true);
+      if (Object.values(all).some(Boolean)) {
+        toast.error("Please complete the highlighted fields");
+        return;
+      }
+      setSaving(true);
+      try {
+        await handleSave(exp);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <RecordFormDialog
+        open
+        onClose={() => {
+          setShowErrors(false);
+          handleCancel();
+        }}
+        title={isNew ? "Add previous experience" : `Edit ${exp.companyName || "experience"}`}
+        subtitle={
+          isNew
+            ? "Fill in the details of the employee's previous role"
+            : "Update the details of this previous role"
+        }
+        badge={
+          exp.companyName.trim() ? initialsOf(exp.companyName) : <Briefcase className="h-5 w-5" />
+        }
+        badgeClassName="bg-emerald-100 text-emerald-700"
+        saveLabel={isNew ? "Save experience" : "Update experience"}
+        onSave={submit}
+        saving={saving}
+      >
+        {/* ── Employment details ── */}
+        <DialogSection
+          icon={<Briefcase className="h-3.5 w-3.5 text-slate-600" />}
+          iconBg="bg-slate-100"
+          title="Employment details"
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <DField label="Company name" required error={errors.companyName}>
+              <DInput
+                placeholder="e.g., Qatar Airways"
+                value={exp.companyName}
+                onChange={(e) =>
+                  handleLocalChange(exp.id, { companyName: e.target.value })
+                }
+                invalid={!!errors.companyName}
+              />
+            </DField>
+            <DField label="Job title" required error={errors.jobTitle}>
+              <DInput
+                placeholder="e.g., Senior Accountant"
+                value={exp.jobTitle}
+                onChange={(e) =>
+                  handleLocalChange(exp.id, { jobTitle: e.target.value })
+                }
+                invalid={!!errors.jobTitle}
+              />
+            </DField>
+            <DField label="Last date worked" required error={errors.lastDateWorked}>
+              <DInput
+                type="date"
+                max={todayIso()}
+                value={exp.lastDateWorked}
+                onChange={(e) =>
+                  handleLocalChange(exp.id, { lastDateWorked: e.target.value })
+                }
+                invalid={!!errors.lastDateWorked}
+              />
+            </DField>
+            <DField
+              label="Number of years"
+              error={errors.numberOfYears}
+              hint="Total time at this company, e.g. 3.5"
+            >
+              <DInput
+                type="number"
+                step="0.1"
+                min="0"
+                max="60"
+                placeholder="e.g., 3.5"
+                value={exp.numberOfYears}
+                onChange={(e) =>
+                  handleLocalChange(exp.id, { numberOfYears: e.target.value })
+                }
+                invalid={!!errors.numberOfYears}
+              />
+            </DField>
+          </div>
+        </DialogSection>
+
+        {/* ── Location & notes ── */}
+        <DialogSection
+          icon={<MapPin className="h-3.5 w-3.5 text-blue-600" />}
+          iconBg="bg-blue-50"
+          title="Company location & notes"
+        >
+          <div className="grid grid-cols-1 gap-4">
+            <DField label="Company address">
+              <DInput
+                placeholder="City, country"
+                value={exp.companyAddress}
+                onChange={(e) =>
+                  handleLocalChange(exp.id, { companyAddress: e.target.value })
+                }
+              />
+            </DField>
+            <DField label="Notes / remarks">
+              <DTextarea
+                placeholder="Achievements, responsibilities, or reason for leaving"
+                value={exp.notes}
+                onChange={(e) =>
+                  handleLocalChange(exp.id, { notes: e.target.value })
+                }
+                maxLength={1000}
+              />
+            </DField>
+          </div>
+        </DialogSection>
+      </RecordFormDialog>
+    );
+  };
+
+  /** "2 years 3 months ago" since the last day worked. */
+  const sinceLabel = (iso: string) => {
+    if (!iso) return "";
+    const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+    if (!y || !m || !d) return "";
+    const then = new Date(y, m - 1, d);
+    const now = new Date();
+    let months = (now.getFullYear() - then.getFullYear()) * 12 + (now.getMonth() - then.getMonth());
+    if (now.getDate() < then.getDate()) months--;
+    if (months < 1) return "This month";
+    const yy = Math.floor(months / 12);
+    const mm = months % 12;
+    return [yy && `${yy} ${yy === 1 ? "year" : "years"}`, mm && `${mm} ${mm === 1 ? "month" : "months"}`]
+      .filter(Boolean)
+      .join(" ") + " ago";
+  };
+
+  const renderViewDialog = () => {
+    const exp = viewingExperience;
+    if (!exp) return null;
+    return (
+      <RecordViewDialog
+        open
+        onClose={() => setViewingId(null)}
+        title={exp.companyName || "Previous experience"}
+        subtitle={exp.jobTitle || "Previous employment"}
+        badge={exp.companyName.trim() ? initialsOf(exp.companyName) : <Briefcase className="h-6 w-6" />}
+        badgeClassName="bg-emerald-100 text-emerald-700"
+        headerExtra={
+          <>
+            {exp.numberOfYears && <DHeaderTag>{yearsLabel(exp.numberOfYears)}</DHeaderTag>}
+            {exp.lastDateWorked && (
+              <DHeaderTag>Left {formatViewDate(exp.lastDateWorked)}</DHeaderTag>
+            )}
+          </>
+        }
+        onEdit={() => handleStartEdit(exp)}
+        editLabel="Edit experience"
+      >
+        <DHighlights
+          items={[
+            {
+              label: "Job title",
+              value: exp.jobTitle,
+              className: "border-blue-100 bg-blue-50 text-blue-800",
+            },
+            {
+              label: "Time at company",
+              value: yearsLabel(exp.numberOfYears),
+              className: "border-emerald-100 bg-emerald-50 text-emerald-800",
+            },
+            {
+              label: "Last day worked",
+              value: exp.lastDateWorked ? formatViewDate(exp.lastDateWorked) : "",
+              className: "border-violet-100 bg-violet-50 text-violet-800",
+            },
+            {
+              label: "Since leaving",
+              value: sinceLabel(exp.lastDateWorked),
+              className: "border-amber-100 bg-amber-50 text-amber-800",
+            },
+          ]}
+        />
+
+        <DialogSection
+          icon={<Briefcase className="h-3.5 w-3.5 text-slate-600" />}
+          iconBg="bg-slate-100"
+          title="Employment details"
+        >
+          <DFactGrid columns={2}>
+            <DFact icon={<Building className="h-3.5 w-3.5" />} label="Company" value={exp.companyName} />
+            <DFact icon={<Briefcase className="h-3.5 w-3.5" />} label="Job title" value={exp.jobTitle} />
+            <DFact
+              icon={<Calendar className="h-3.5 w-3.5" />}
+              label="Last date worked"
+              value={exp.lastDateWorked ? formatViewDate(exp.lastDateWorked) : ""}
+              mono
+            />
+            <DFact icon={<Clock className="h-3.5 w-3.5" />} label="Number of years" value={yearsLabel(exp.numberOfYears)} />
+          </DFactGrid>
+        </DialogSection>
+
+        <DialogSection
+          icon={<MapPin className="h-3.5 w-3.5 text-blue-600" />}
+          iconBg="bg-blue-50"
+          title="Company location & notes"
+        >
+          <DFactGrid columns={2}>
+            <DFact icon={<MapPin className="h-3.5 w-3.5" />} label="Company address" value={exp.companyAddress} wide multiline />
+            <DFact icon={<FileText className="h-3.5 w-3.5" />} label="Notes / remarks" value={exp.notes} wide multiline />
+          </DFactGrid>
+        </DialogSection>
+      </RecordViewDialog>
+    );
+  };
+
+  const renderRow = (exp: Experience) => (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <RecordAvatar accent="from-emerald-500 to-teal-600">
+            {initialsOf(exp.companyName)}
+          </RecordAvatar>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="truncate text-sm font-bold text-slate-800">
+                {exp.companyName || "Unnamed company"}
+              </h4>
+              {exp.jobTitle && (
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                  {exp.jobTitle}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {exp.companyAddress || "No address recorded"}
+            </p>
+          </div>
+        </div>
+        <RecordActions
+          onView={() => {
+            setEditingId(null);
+            setViewingId(exp.id);
+          }}
+          onEdit={() => handleStartEdit(exp)}
+          onDelete={() => handleDelete(exp.id)}
+        />
+      </div>
+      <FormRow columns={3} className="mt-4 border-t border-slate-100 pt-3">
+        <ViewField icon={<Calendar className="h-4 w-4" />} label="Last Date Worked" value={formatViewDate(exp.lastDateWorked)} />
+        <ViewField icon={<Clock className="h-4 w-4" />} label="Duration" value={yearsLabel(exp.numberOfYears)} />
+        <ViewField icon={<FileText className="h-4 w-4" />} label="Notes" value={exp.notes} />
+      </FormRow>
+    </div>
+  );
 
   return (
     <div className="space-y-4 rounded-xl">
@@ -273,34 +564,17 @@ export default function PreviousExperiencesForm() {
         description="Manage previous employment history"
         icon={<Briefcase className="h-5 w-5 text-white" />}
         actions={
-          editingExperience ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                className="rounded-xl"
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={Object.values(
-                  validateExperience(editingExperience),
-                ).some(Boolean)}
-                onClick={() => handleSave(editingExperience)}
-                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                Save Experience
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={handleAdd}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-            >
-              <Plus className="h-4 w-4" />
-              Add Experience
-            </Button>
-          )
+          <Button
+            onClick={() => {
+              setShowErrors(false);
+              handleAdd();
+            }}
+            disabled={!!editingExperience}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+          >
+            <Plus className="h-4 w-4" />
+            Add Experience
+          </Button>
         }
       />
 
@@ -335,390 +609,54 @@ export default function PreviousExperiencesForm() {
         />
         <SummaryCard
           label="Latest Date"
-          value={
-            stats.latestDate
-              ? new Date(stats.latestDate).toLocaleDateString()
-              : "—"
-          }
+          value={stats.latestDate ? formatViewDate(stats.latestDate) : "—"}
           description="Most recent role"
           icon={<Calendar className="h-5 w-5" />}
           color="amber"
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-blue-600" />
-          Experience Details
-        </h3>
+      {renderEditorDialog()}
 
-        <div className="grid gap-4">
-          {experiences.map((exp) => {
-            const errors = validateExperience(exp);
-            const editing = editingId === exp.id;
-            const viewing = viewingId === exp.id;
+      {renderViewDialog()}
 
-            return (
-              <div
-                key={exp.id}
-                className="border border-slate-200 rounded-lg p-4 mb-6"
-              >
-                {editing ? (
-                  <div className="p-4 bg-gradient-to-br from-white to-slate-50">
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Briefcase className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-slate-800 mb-1">
-                            Experience Information
-                          </h4>
-                          <p className="text-sm text-slate-600">
-                            Capture the company, role, dates worked and any
-                            additional context for this previous engagement.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
-                        Employment Details
-                      </h3>
-
-                      <FormRow columns={4}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Company Name <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={exp.companyName}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                companyName: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter company name"
-                          />
-                          {errors.companyName && (
-                            <p className="text-xs text-red-500">
-                              {errors.companyName}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Job Title <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={exp.jobTitle}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                jobTitle: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., Senior Software Engineer"
-                          />
-                          {errors.jobTitle && (
-                            <p className="text-xs text-red-500">
-                              {errors.jobTitle}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Last Date Worked{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            type="date"
-                            value={exp.lastDateWorked}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                lastDateWorked: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                          />
-                          {errors.lastDateWorked && (
-                            <p className="text-xs text-red-500">
-                              {errors.lastDateWorked}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Number of Years
-                          </Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            value={exp.numberOfYears}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                numberOfYears: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Total years at this company"
-                          />
-                        </div>
-                      </FormRow>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                        Company Location
-                      </h3>
-
-                      <FormRow columns={1}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Company Address
-                          </Label>
-                          <Input
-                            value={exp.companyAddress}
-                            onChange={(e) =>
-                              handleLocalChange(exp.id, {
-                                companyAddress: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter company address"
-                          />
-                        </div>
-                      </FormRow>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-cyan-600" />
-                        Notes / Remarks
-                      </h3>
-                      <Textarea
-                        value={exp.notes}
-                        onChange={(e) =>
-                          handleLocalChange(exp.id, { notes: e.target.value })
-                        }
-                        placeholder="Add achievements, responsibilities, or context about this role"
-                        className="min-h-[100px] rounded-lg border-slate-300 resize-none bg-white"
-                        maxLength={1000}
-                      />
-                      <p className="text-xs text-slate-500 mt-2 text-right">
-                        {exp.notes.length} / 1000 characters
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4">
-                    {viewing ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-2xl font-bold text-slate-800">
-                            {exp.companyName || "Unnamed Company"}
-                          </h3>
-                          {exp.jobTitle && (
-                            <span className="px-4 py-2 rounded-full text-sm font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-                              {exp.jobTitle}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <ViewField
-                            icon={<Briefcase className="h-4 w-4" />}
-                            label="Job Title"
-                            value={exp.jobTitle}
-                          />
-                          <ViewField
-                            icon={<Calendar className="h-4 w-4" />}
-                            label="Last Date Worked"
-                            value={formatViewDate(exp.lastDateWorked)}
-                          />
-                          <ViewField
-                            icon={<Clock className="h-4 w-4" />}
-                            label="Duration"
-                            value={
-                              exp.numberOfYears ? `${exp.numberOfYears} yrs` : ""
-                            }
-                          />
-                        </div>
-
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                            Employment Information
-                          </h4>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            <ViewField
-                              icon={<Building className="h-4 w-4" />}
-                              label="Company"
-                              value={exp.companyName}
-                            />
-                            <ViewField
-                              icon={<Briefcase className="h-4 w-4" />}
-                              label="Job Title"
-                              value={exp.jobTitle}
-                            />
-                            <ViewField
-                              icon={<Calendar className="h-4 w-4" />}
-                              label="Last Date Worked"
-                              value={formatViewDate(exp.lastDateWorked)}
-                            />
-                            <ViewField
-                              icon={<Clock className="h-4 w-4" />}
-                              label="Years"
-                              value={exp.numberOfYears}
-                            />
-                          </div>
-                        </div>
-
-                        {exp.companyAddress && (
-                          <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                              <MapPin className="h-5 w-5 text-indigo-600" />
-                              Company Address
-                            </h4>
-                            <p className="text-slate-700">
-                              {exp.companyAddress}
-                            </p>
-                          </div>
-                        )}
-
-                        {exp.notes && (
-                          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-amber-600" />
-                              Notes / Remarks
-                            </h4>
-                            <p className="text-slate-700 whitespace-pre-wrap">
-                              {exp.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setViewingId(null)}
-                            className="rounded-lg border-slate-300"
-                          >
-                            Close
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <div className="pr-36">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-slate-800">
-                              {exp.companyName || "Unnamed Company"}
-                            </h3>
-                            {exp.jobTitle && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-                                {exp.jobTitle}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                              <p className="text-xs text-slate-600 mb-1">
-                                Job Title
-                              </p>
-                              <p className="text-sm font-semibold text-blue-700">
-                                {exp.jobTitle || "—"}
-                              </p>
-                            </div>
-                            {exp.lastDateWorked && (
-                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                                <p className="text-xs text-slate-600 mb-1">
-                                  Last Date
-                                </p>
-                                <p className="text-sm font-semibold text-emerald-700">
-                                  {new Date(
-                                    exp.lastDateWorked,
-                                  ).toLocaleDateString()}
-                                </p>
-                              </div>
-                            )}
-                            {exp.numberOfYears && (
-                              <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-3 rounded-lg border border-violet-100">
-                                <p className="text-xs text-slate-600 mb-1">
-                                  Duration
-                                </p>
-                                <p className="text-sm font-semibold text-violet-700">
-                                  {exp.numberOfYears} yrs
-                                </p>
-                              </div>
-                            )}
-                            {exp.companyAddress && (
-                              <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
-                                <p className="text-xs text-slate-600 mb-1">
-                                  Location
-                                </p>
-                                <p className="text-sm font-semibold text-amber-700 truncate">
-                                  {exp.companyAddress}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="absolute top-0 right-0 flex gap-2 w-32">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewingId(exp.id)}
-                            className="flex items-center gap-1 rounded-lg flex-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(exp.id)}
-                            className="text-red-600 rounded-lg flex-1"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {experiences.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center">
-            <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
-              <Briefcase className="h-12 w-12 text-blue-600" />
+      <SectionCard>
+        <SectionHeading
+          icon={<Briefcase className="h-4 w-4" />}
+          label="Experience Details"
+          description={
+            stats.total
+              ? `${stats.total} previous role${stats.total === 1 ? "" : "s"} on record`
+              : "Employment history before joining the company"
+          }
+        />
+        {savedExperiences.length > 0 ? (
+          <div className="space-y-3">
+            {savedExperiences.map((exp) => (
+              <div key={exp.id}>{renderRow(exp)}</div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-10 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100">
+              <Briefcase className="h-7 w-7 text-violet-600" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+            <h3 className="text-sm font-semibold text-slate-800">
               No work experience added yet
             </h3>
-            <p className="text-slate-600 mb-6">
-              Click "Add Experience" to create your first work experience entry
+            <p className="mt-1 text-xs text-muted-foreground">
+              Click "Add Experience" to record the employee's previous roles.
             </p>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
+              className="mt-4 h-9 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white"
             >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Experience
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Experience
             </Button>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

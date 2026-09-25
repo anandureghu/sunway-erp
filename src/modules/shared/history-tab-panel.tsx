@@ -62,6 +62,8 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exportingAll, setExportingAll] = useState(false);
+  // Archived employees are permanent records — they can be viewed but never deleted.
+  const canDelete = entityType !== "EMPLOYEE";
 
   const selectedIds = useMemo(
     () =>
@@ -295,27 +297,31 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
                 />
               </div>
             </div>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => setDeleteAllDialogOpen(true)}
-                disabled={!entityType || totalElements === 0 || loading}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete all archived
-              </Button>
-            </div>
+            {canDelete && (
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => setDeleteAllDialogOpen(true)}
+                  disabled={!entityType || totalElements === 0 || loading}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete all archived
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <BulkActionBar
-            mode="delete"
-            selectedCount={selectedIds.length}
-            onDelete={() => setDeleteDialogOpen(true)}
-            onClear={() => setRowSelection({})}
-            deleting={deleting}
-          />
+          {canDelete && (
+            <BulkActionBar
+              mode="delete"
+              selectedCount={selectedIds.length}
+              onDelete={() => setDeleteDialogOpen(true)}
+              onClear={() => setRowSelection({})}
+              deleting={deleting}
+            />
+          )}
           {loading ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               Loading archived records...

@@ -1,64 +1,42 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Plus,
-  Trash2,
-  Eye,
   GraduationCap,
   School,
   Award,
   FileText,
   Calendar,
   MapPin,
-  Sparkles,
   BookOpen,
 } from "lucide-react";
-import { cn, generateId } from "@/lib/utils";
+import { generateId } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { educationService } from "@/service/educationService";
 import { FormRow } from "@/modules/hr/components/form-components";
+import {
+  RecordActions,
+  RecordAvatar,
+  SectionCard,
+  SectionHeading,
+  ViewField,
+} from "@/modules/hr/components/profile-form-ui";
+import {
+  DFact,
+  DFactGrid,
+  DField,
+  DHeaderTag,
+  DHighlights,
+  DInput,
+  DTextarea,
+  DialogSection,
+  RecordFormDialog,
+  RecordViewDialog,
+} from "@/modules/hr/components/record-form-dialog";
 import { SummaryCard } from "@/modules/hr/components/summary-card";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
-
-/* ================= VIEW HELPERS ================= */
-
-const ViewField = ({
-  icon,
-  label,
-  value,
-  mono,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value?: React.ReactNode;
-  mono?: boolean;
-}) => {
-  const empty = value == null || value === "" || value === "—";
-  return (
-    <div className="flex items-start gap-2.5">
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
-        {icon}
-      </span>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium text-slate-400">{label}</p>
-        <p
-          className={cn(
-            "truncate text-sm font-semibold",
-            empty ? "text-slate-300" : "text-slate-700",
-            mono && "font-mono",
-          )}
-        >
-          {empty ? "—" : value}
-        </p>
-      </div>
-    </div>
-  );
-};
 
 /* ================= TYPES ================= */
 
@@ -79,13 +57,25 @@ interface ValidationErrors {
 
 /* ================= VALIDATION ================= */
 
+// A graduation year may be a few years ahead (expected graduation), not more.
+const MAX_FUTURE_YEARS = 6;
+
 function validateEducation(e: Education): ValidationErrors {
   const errors: ValidationErrors = {};
   if (!e.schoolName?.trim()) errors.schoolName = "School name is required";
   if (!e.degreeEarned?.trim())
     errors.degreeEarned = "Degree earned is required";
-  if (!e.yearGraduated?.trim())
+  const year = e.yearGraduated?.trim();
+  if (!year) {
     errors.yearGraduated = "Year graduated is required";
+  } else if (!/^\d{4}$/.test(year)) {
+    errors.yearGraduated = "Enter a 4-digit year, e.g. 2020";
+  } else {
+    const n = Number(year);
+    const current = new Date().getFullYear();
+    if (n < 1950 || n > current + MAX_FUTURE_YEARS)
+      errors.yearGraduated = `Year must be between 1950 and ${current + MAX_FUTURE_YEARS}`;
+  }
   return errors;
 }
 
@@ -100,6 +90,15 @@ const INITIAL_EDUCATION: Education = {
   notes: "",
 };
 
+const initialsOf = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0] ?? "")
+    .join("")
+    .toUpperCase() || "?";
+
 /* ================= COMPONENT ================= */
 
 export default function EducationQualificationsForm() {
@@ -110,6 +109,11 @@ export default function EducationQualificationsForm() {
   const [educations, setEducations] = useState<Education[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
+  // Copy of a saved record taken when its edit starts, so Cancel can restore it.
+  const [editSnapshot, setEditSnapshot] = useState<Education | null>(null);
+  // Field errors are shown only after the user tries to save (like Add Employee).
+  const [showErrors, setShowErrors] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   /* ================= MAPPERS ================= */
 
@@ -158,6 +162,8 @@ export default function EducationQualificationsForm() {
   const handleAdd = useCallback(() => {
     const edu = { ...INITIAL_EDUCATION, id: generateId() };
     setEducations((c) => [...c, edu]);
+    setViewingId(null);
+    setEditSnapshot(null);
     setEditingId(edu.id);
   }, []);
 
@@ -170,7 +176,7 @@ export default function EducationQualificationsForm() {
 
     const errors = validateEducation(edu);
     if (Object.values(errors).some(Boolean)) {
-      toast.error("Please fill all required fields");
+      toast.error("Please fix the highlighted fields");
       return;
     }
 
@@ -188,28 +194,29 @@ export default function EducationQualificationsForm() {
       const refreshed = await educationService.getAll(employeeId);
       setEducations((refreshed || []).map(mapApiToForm));
       setEditingId(null);
+      setEditSnapshot(null);
     } catch {
       toast.error("Failed to save education");
     }
   };
 
+  const handleStartEdit = (edu: Education) => {
+    setViewingId(null);
+    setEditSnapshot({ ...edu });
+    setEditingId(edu.id);
+  };
+
   const handleCancel = () => {
     setEducations((c) =>
-      c.filter((e) => {
-        if (e.id !== editingId) return true;
-        const isPersisted = Number(e.id);
-        if (isPersisted) return true;
-        const hasContent =
-          e.schoolName?.trim() ||
-          e.degreeEarned?.trim() ||
-          e.yearGraduated?.trim() ||
-          e.major?.trim() ||
-          e.schoolAddress?.trim() ||
-          e.awards?.trim() ||
-          e.notes?.trim();
-        return !!hasContent;
-      }),
+      c
+        // Cancelling the pop-up discards an unsaved new education record.
+        .filter((e) => e.id !== editingId || !!Number(e.id))
+        // Undo unsaved changes to an existing record.
+        .map((e) =>
+          editSnapshot && e.id === editSnapshot.id ? editSnapshot : e,
+        ),
     );
+    setEditSnapshot(null);
     setEditingId(null);
   };
 
@@ -221,6 +228,7 @@ export default function EducationQualificationsForm() {
       if (Number(eduId))
         await educationService.remove(employeeId, Number(eduId));
       setEducations((c) => c.filter((e) => e.id !== eduId));
+      setViewingId(null);
       toast.success("Education deleted");
     } catch {
       toast.error("Failed to delete education");
@@ -228,11 +236,10 @@ export default function EducationQualificationsForm() {
   };
 
   const calculateYearsAgo = (yearGraduated: string) => {
-    if (!yearGraduated) return null;
+    if (!/^\d{4}$/.test(yearGraduated?.trim() ?? "")) return null;
     const currentYear = new Date().getFullYear();
     const yearsAgo = currentYear - Number(yearGraduated);
 
-    if (Number.isNaN(yearsAgo)) return null;
     if (yearsAgo < 0) {
       return `Expected in ${Math.abs(yearsAgo)} year${Math.abs(yearsAgo) > 1 ? "s" : ""}`;
     } else if (yearsAgo === 0) {
@@ -244,7 +251,14 @@ export default function EducationQualificationsForm() {
 
   /* ================= SUMMARY METRICS ================= */
 
+  // Saved records only — an unsaved draft lives in the pop-up, not the list.
+  const savedEducations = useMemo(
+    () => educations.filter((e) => !!Number(e.id)),
+    [educations],
+  );
+
   const stats = useMemo(() => {
+    const educations = savedEducations;
     const total = educations.length;
     const latestYear = educations
       .map((e) => Number(e.yearGraduated))
@@ -255,13 +269,284 @@ export default function EducationQualificationsForm() {
     ).size;
     const withAwards = educations.filter((e) => e.awards?.trim()).length;
     return { total, latestYear, uniqueDegrees, withAwards };
-  }, [educations]);
+  }, [savedEducations]);
 
   /* ================= RENDER ================= */
 
   const editingEducation = editingId
     ? (educations.find((e) => e.id === editingId) ?? null)
     : null;
+  const viewingEducation = viewingId
+    ? (savedEducations.find((e) => e.id === viewingId) ?? null)
+    : null;
+
+  const renderEditorDialog = () => {
+    const edu = editingEducation;
+    if (!edu) return null;
+    const all = validateEducation(edu);
+    const errors: ValidationErrors = showErrors ? all : {};
+    const yearsAgoText = all.yearGraduated
+      ? null
+      : calculateYearsAgo(edu.yearGraduated);
+    const isNew = !Number(edu.id);
+
+    const submit = async () => {
+      setShowErrors(true);
+      if (Object.values(all).some(Boolean)) {
+        toast.error("Please complete the highlighted fields");
+        return;
+      }
+      setSaving(true);
+      try {
+        await handleSave(edu);
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <RecordFormDialog
+        open
+        onClose={() => {
+          setShowErrors(false);
+          handleCancel();
+        }}
+        title={isNew ? "Add education" : `Edit ${edu.schoolName || "education"}`}
+        subtitle={
+          isNew
+            ? "Fill in the details of the employee's qualification"
+            : "Update the details of this qualification"
+        }
+        badge={
+          edu.schoolName.trim() ? initialsOf(edu.schoolName) : <GraduationCap className="h-5 w-5" />
+        }
+        badgeClassName="bg-amber-100 text-amber-700"
+        saveLabel={isNew ? "Save education" : "Update education"}
+        onSave={submit}
+        saving={saving}
+      >
+        {/* ── Academic details ── */}
+        <DialogSection
+          icon={<GraduationCap className="h-3.5 w-3.5 text-slate-600" />}
+          iconBg="bg-slate-100"
+          title="Academic details"
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <DField label="School / university" required error={errors.schoolName}>
+              <DInput
+                placeholder="e.g., Qatar University"
+                value={edu.schoolName}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, { schoolName: e.target.value })
+                }
+                invalid={!!errors.schoolName}
+              />
+            </DField>
+            <DField label="Degree earned" required error={errors.degreeEarned}>
+              <DInput
+                placeholder="e.g., Bachelor's, Master's"
+                value={edu.degreeEarned}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, { degreeEarned: e.target.value })
+                }
+                invalid={!!errors.degreeEarned}
+              />
+            </DField>
+            <DField label="Major">
+              <DInput
+                placeholder="e.g., Computer Science"
+                value={edu.major}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, { major: e.target.value })
+                }
+              />
+            </DField>
+            <DField
+              label="Year graduated"
+              required
+              error={errors.yearGraduated}
+              hint={yearsAgoText ?? undefined}
+            >
+              <DInput
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="e.g., 2020"
+                value={edu.yearGraduated}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, {
+                    yearGraduated: e.target.value.replace(/\D/g, "").slice(0, 4),
+                  })
+                }
+                invalid={!!errors.yearGraduated}
+              />
+            </DField>
+            <DField label="School address" className="sm:col-span-2">
+              <DInput
+                placeholder="City, country"
+                value={edu.schoolAddress}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, { schoolAddress: e.target.value })
+                }
+              />
+            </DField>
+          </div>
+        </DialogSection>
+
+        {/* ── Awards & additional information ── */}
+        <DialogSection
+          icon={<Award className="h-3.5 w-3.5 text-amber-600" />}
+          iconBg="bg-amber-50"
+          title="Awards & additional information"
+        >
+          <div className="grid grid-cols-1 gap-4">
+            <DField label="Awards and certificates">
+              <DTextarea
+                placeholder="Honours, awards, certifications or special achievements"
+                value={edu.awards}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, { awards: e.target.value })
+                }
+                maxLength={500}
+              />
+            </DField>
+            <DField label="Notes / remarks">
+              <DTextarea
+                placeholder="Any additional notes or relevant information"
+                value={edu.notes}
+                onChange={(e) =>
+                  handleLocalChange(edu.id, { notes: e.target.value })
+                }
+                maxLength={1000}
+              />
+            </DField>
+          </div>
+        </DialogSection>
+      </RecordFormDialog>
+    );
+  };
+
+  const renderViewDialog = () => {
+    const edu = viewingEducation;
+    if (!edu) return null;
+    const ago = calculateYearsAgo(edu.yearGraduated);
+    return (
+      <RecordViewDialog
+        open
+        onClose={() => setViewingId(null)}
+        title={edu.schoolName || "Education"}
+        subtitle={[edu.degreeEarned, edu.major].filter((x) => x?.trim()).join(" · ") || "Qualification"}
+        badge={edu.schoolName.trim() ? initialsOf(edu.schoolName) : <GraduationCap className="h-6 w-6" />}
+        badgeClassName="bg-amber-100 text-amber-700"
+        headerExtra={
+          <>
+            {edu.yearGraduated && <DHeaderTag>Class of {edu.yearGraduated}</DHeaderTag>}
+            {edu.awards?.trim() && (
+              <DHeaderTag className="border-amber-300/60 bg-amber-400/25 text-amber-50">
+                <Award className="h-3 w-3" /> Awards
+              </DHeaderTag>
+            )}
+          </>
+        }
+        onEdit={() => handleStartEdit(edu)}
+        editLabel="Edit education"
+      >
+        <DHighlights
+          items={[
+            {
+              label: "Degree",
+              value: edu.degreeEarned,
+              className: "border-blue-100 bg-blue-50 text-blue-800",
+            },
+            {
+              label: "Major",
+              value: edu.major,
+              className: "border-emerald-100 bg-emerald-50 text-emerald-800",
+            },
+            {
+              label: "Graduated",
+              value: edu.yearGraduated,
+              className: "border-violet-100 bg-violet-50 text-violet-800",
+            },
+            {
+              label: "Since graduating",
+              value: ago ?? "",
+              className: "border-amber-100 bg-amber-50 text-amber-800",
+            },
+          ]}
+        />
+
+        <DialogSection
+          icon={<GraduationCap className="h-3.5 w-3.5 text-slate-600" />}
+          iconBg="bg-slate-100"
+          title="Academic details"
+        >
+          <DFactGrid columns={2}>
+            <DFact icon={<School className="h-3.5 w-3.5" />} label="School / university" value={edu.schoolName} />
+            <DFact icon={<GraduationCap className="h-3.5 w-3.5" />} label="Degree earned" value={edu.degreeEarned} />
+            <DFact icon={<BookOpen className="h-3.5 w-3.5" />} label="Major" value={edu.major} />
+            <DFact icon={<Calendar className="h-3.5 w-3.5" />} label="Year graduated" value={edu.yearGraduated} mono />
+            <DFact icon={<MapPin className="h-3.5 w-3.5" />} label="School address" value={edu.schoolAddress} wide multiline />
+          </DFactGrid>
+        </DialogSection>
+
+        <DialogSection
+          icon={<Award className="h-3.5 w-3.5 text-amber-600" />}
+          iconBg="bg-amber-50"
+          title="Awards & additional information"
+        >
+          <DFactGrid columns={2}>
+            <DFact icon={<Award className="h-3.5 w-3.5" />} label="Awards & certificates" value={edu.awards} wide multiline />
+            <DFact icon={<FileText className="h-3.5 w-3.5" />} label="Notes / remarks" value={edu.notes} wide multiline />
+          </DFactGrid>
+        </DialogSection>
+      </RecordViewDialog>
+    );
+  };
+
+  const renderRow = (edu: Education) => (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <RecordAvatar accent="from-amber-500 to-orange-500">
+            {initialsOf(edu.schoolName)}
+          </RecordAvatar>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="truncate text-sm font-bold text-slate-800">
+                {edu.schoolName || "Unnamed school"}
+              </h4>
+              {edu.degreeEarned && (
+                <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                  {edu.degreeEarned}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {[edu.major, edu.schoolAddress].filter((s) => s?.trim()).join(" · ") ||
+                "No major or address recorded"}
+            </p>
+          </div>
+        </div>
+        <RecordActions
+          onView={() => {
+            setEditingId(null);
+            setViewingId(edu.id);
+          }}
+          onEdit={() => handleStartEdit(edu)}
+          onDelete={() => handleDelete(edu.id)}
+        />
+      </div>
+      <FormRow columns={3} className="mt-4 border-t border-slate-100 pt-3">
+        <ViewField
+          icon={<Calendar className="h-4 w-4" />}
+          label="Year Graduated"
+          value={edu.yearGraduated}
+        />
+        <ViewField icon={<BookOpen className="h-4 w-4" />} label="Major" value={edu.major} />
+        <ViewField icon={<Award className="h-4 w-4" />} label="Awards" value={edu.awards} />
+      </FormRow>
+    </div>
+  );
 
   return (
     <div className="space-y-4 rounded-xl">
@@ -270,34 +555,17 @@ export default function EducationQualificationsForm() {
         description="Manage educational background"
         icon={<GraduationCap className="h-5 w-5 text-white" />}
         actions={
-          editingEducation ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                className="rounded-xl"
-              >
-                Cancel
-              </Button>
-              <Button
-                disabled={Object.values(
-                  validateEducation(editingEducation),
-                ).some(Boolean)}
-                onClick={() => handleSave(editingEducation)}
-                className="rounded-xl bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                Save Education
-              </Button>
-            </div>
-          ) : (
-            <Button
-              onClick={handleAdd}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
-            >
-              <Plus className="h-4 w-4" />
-              Add Education
-            </Button>
-          )
+          <Button
+            onClick={() => {
+              setShowErrors(false);
+              handleAdd();
+            }}
+            disabled={!!editingEducation}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg flex items-center gap-2 rounded-xl px-5"
+          >
+            <Plus className="h-4 w-4" />
+            Add Education
+          </Button>
         }
       />
 
@@ -333,422 +601,47 @@ export default function EducationQualificationsForm() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-          <GraduationCap className="h-4 w-4 text-blue-600" />
-          Education Details
-        </h3>
+      {renderEditorDialog()}
 
-        <div className="grid gap-4">
-          {educations.map((edu) => {
-            const errors = validateEducation(edu);
-            const editing = editingId === edu.id;
-            const viewing = viewingId === edu.id;
-            const yearsAgoText = calculateYearsAgo(edu.yearGraduated);
+      {renderViewDialog()}
 
-            return (
-              <div
-                key={edu.id}
-                className="border border-slate-200 rounded-lg p-4 mb-6"
-              >
-                {editing ? (
-                  <div className="p-4 bg-gradient-to-br from-white to-slate-50">
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <GraduationCap className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-slate-800 mb-1">
-                            Education Information
-                          </h4>
-                          <p className="text-sm text-slate-600">
-                            Record the school, degree, year graduated, and any
-                            additional honors for this qualification.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 pb-3 border-b border-slate-200">
-                        School Information
-                      </h3>
-
-                      <FormRow columns={3}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            School Name <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={edu.schoolName}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                schoolName: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter school/university name"
-                          />
-                          {errors.schoolName && (
-                            <p className="text-xs text-red-500">
-                              {errors.schoolName}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Year Graduated{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={edu.yearGraduated}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                yearGraduated: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., 2020"
-                          />
-                          {yearsAgoText && (
-                            <div className="inline-block px-3 py-1 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium">
-                              {yearsAgoText}
-                            </div>
-                          )}
-                          {errors.yearGraduated && (
-                            <p className="text-xs text-red-500">
-                              {errors.yearGraduated}
-                            </p>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            School Address
-                          </Label>
-                          <Input
-                            value={edu.schoolAddress}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                schoolAddress: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="Enter school address"
-                          />
-                        </div>
-                      </FormRow>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 shadow-sm border border-blue-100 mb-4">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                        Academic Details
-                      </h3>
-
-                      <FormRow columns={3}>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Degree Earned{" "}
-                            <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            value={edu.degreeEarned}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                degreeEarned: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., Bachelor's, Master's"
-                          />
-                          {errors.degreeEarned && (
-                            <p className="text-xs text-red-500">
-                              {errors.degreeEarned}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Major
-                          </Label>
-                          <Input
-                            value={edu.major}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                major: e.target.value,
-                              })
-                            }
-                            className="rounded-lg border-slate-300"
-                            placeholder="e.g., Computer Science"
-                          />
-                        </div>
-                      </FormRow>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 shadow-sm border border-cyan-100">
-                      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                        <Award className="h-5 w-5 text-cyan-600" />
-                        Awards & Additional Information
-                      </h3>
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Awards and Certificates
-                          </Label>
-                          <Textarea
-                            value={edu.awards}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                awards: e.target.value,
-                              })
-                            }
-                            placeholder="List any honors, awards, certifications, or special achievements"
-                            className="min-h-[80px] rounded-lg border-slate-300 resize-none bg-white"
-                            maxLength={500}
-                          />
-                          <p className="text-xs text-slate-500 text-right">
-                            {edu.awards.length} / 500 characters
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-slate-700">
-                            Notes / Remarks
-                          </Label>
-                          <Textarea
-                            value={edu.notes}
-                            onChange={(e) =>
-                              handleLocalChange(edu.id, {
-                                notes: e.target.value,
-                              })
-                            }
-                            placeholder="Add any additional notes or relevant information"
-                            className="min-h-[80px] rounded-lg border-slate-300 resize-none bg-white"
-                            maxLength={1000}
-                          />
-                          <p className="text-xs text-slate-500 text-right">
-                            {edu.notes.length} / 1000 characters
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-4">
-                    {viewing ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between mb-6">
-                          <h3 className="text-2xl font-bold text-slate-800">
-                            {edu.schoolName || "Education Details"}
-                          </h3>
-                          {edu.degreeEarned && (
-                            <span className="px-4 py-2 rounded-full text-sm font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-                              {edu.degreeEarned}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          <ViewField
-                            icon={<School className="h-4 w-4" />}
-                            label="School"
-                            value={edu.schoolName}
-                          />
-                          <ViewField
-                            icon={<GraduationCap className="h-4 w-4" />}
-                            label="Degree"
-                            value={edu.degreeEarned}
-                          />
-                          <ViewField
-                            icon={<Calendar className="h-4 w-4" />}
-                            label="Year"
-                            value={edu.yearGraduated}
-                          />
-                        </div>
-
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-4 border border-blue-100">
-                          <h4 className="text-lg font-semibold text-slate-800 mb-4">
-                            Academic Information
-                          </h4>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            <ViewField
-                              icon={<BookOpen className="h-4 w-4" />}
-                              label="Major"
-                              value={edu.major}
-                            />
-                            <ViewField
-                              icon={<GraduationCap className="h-4 w-4" />}
-                              label="Degree"
-                              value={edu.degreeEarned}
-                            />
-                            <ViewField
-                              icon={<Calendar className="h-4 w-4" />}
-                              label="Year Graduated"
-                              value={edu.yearGraduated}
-                            />
-                            <ViewField
-                              icon={<School className="h-4 w-4" />}
-                              label="School"
-                              value={edu.schoolName}
-                            />
-                          </div>
-                        </div>
-
-                        {edu.schoolAddress && (
-                          <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                              <MapPin className="h-5 w-5 text-indigo-600" />
-                              School Address
-                            </h4>
-                            <p className="text-slate-700">
-                              {edu.schoolAddress}
-                            </p>
-                          </div>
-                        )}
-
-                        {edu.awards && (
-                          <div className="bg-cyan-50 rounded-xl p-4 border border-cyan-100">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
-                              <Award className="h-5 w-5 text-cyan-600" />
-                              Awards & Certificates
-                            </h4>
-                            <p className="text-slate-700 whitespace-pre-wrap">
-                              {edu.awards}
-                            </p>
-                          </div>
-                        )}
-
-                        {edu.notes && (
-                          <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                            <h4 className="text-lg font-semibold text-slate-800 mb-2 flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-amber-600" />
-                              Notes / Remarks
-                            </h4>
-                            <p className="text-slate-700 whitespace-pre-wrap">
-                              {edu.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setViewingId(null)}
-                            className="rounded-lg border-slate-300"
-                          >
-                            Close
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative">
-                        <div className="pr-36">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h3 className="text-xl font-bold text-slate-800">
-                              {edu.schoolName || "Unnamed School"}
-                            </h3>
-                            {edu.degreeEarned && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-blue-50 text-blue-700 border-blue-200">
-                                {edu.degreeEarned}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-3 rounded-lg border border-blue-100">
-                              <p className="text-xs text-slate-600 mb-1">
-                                Degree
-                              </p>
-                              <p className="text-sm font-semibold text-blue-700">
-                                {edu.degreeEarned || "—"}
-                              </p>
-                            </div>
-                            {edu.major && (
-                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-lg border border-emerald-100">
-                                <p className="text-xs text-slate-600 mb-1">
-                                  Major
-                                </p>
-                                <p className="text-sm font-semibold text-emerald-700">
-                                  {edu.major}
-                                </p>
-                              </div>
-                            )}
-                            {edu.yearGraduated && (
-                              <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-3 rounded-lg border border-violet-100">
-                                <p className="text-xs text-slate-600 mb-1">
-                                  Year
-                                </p>
-                                <p className="text-sm font-semibold text-violet-700">
-                                  {edu.yearGraduated}
-                                </p>
-                              </div>
-                            )}
-                            {edu.awards && (
-                              <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-3 rounded-lg border border-amber-100">
-                                <p className="text-xs text-slate-600 mb-1 flex items-center gap-1">
-                                  <Sparkles className="h-3 w-3" />
-                                  Awards
-                                </p>
-                                <p className="text-sm font-semibold text-amber-700 truncate">
-                                  {edu.awards}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="absolute top-0 right-0 flex gap-2 w-32">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewingId(edu.id)}
-                            className="flex items-center gap-1 rounded-lg flex-1"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(edu.id)}
-                            className="text-red-600 rounded-lg flex-1"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {educations.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-16 text-center">
-            <div className="inline-block p-4 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full mb-4">
-              <GraduationCap className="h-12 w-12 text-blue-600" />
+      <SectionCard>
+        <SectionHeading
+          icon={<GraduationCap className="h-4 w-4" />}
+          label="Education Details"
+          description={
+            stats.total
+              ? `${stats.total} qualification${stats.total === 1 ? "" : "s"} on record`
+              : "Schools, degrees and certifications"
+          }
+        />
+        {savedEducations.length > 0 ? (
+          <div className="space-y-3">
+            {savedEducations.map((edu) => (
+              <div key={edu.id}>{renderRow(edu)}</div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-10 text-center">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100">
+              <GraduationCap className="h-7 w-7 text-violet-600" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+            <h3 className="text-sm font-semibold text-slate-800">
               No education records added yet
             </h3>
-            <p className="text-slate-600 mb-6">
-              Click "Add Education" to create your first education record
+            <p className="mt-1 text-xs text-muted-foreground">
+              Click "Add Education" to record the employee's qualifications.
             </p>
             <Button
               onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg rounded-xl px-6"
+              className="mt-4 h-9 rounded-lg bg-gradient-to-r from-violet-600 to-blue-600 text-white"
             >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Education
+              <Plus className="mr-1.5 h-4 w-4" />
+              Add Education
             </Button>
           </div>
         )}
-      </div>
+      </SectionCard>
     </div>
   );
 }

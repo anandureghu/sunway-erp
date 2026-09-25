@@ -341,6 +341,9 @@ export default function ExitInterviewForm() {
     () => !!ctx?.employeeStatus && EXIT_STATUSES.includes(ctx.employeeStatus),
     [ctx],
   );
+  // INACTIVE = separation complete (exit interview submitted + final settlement
+  // processed). The recorded interview stays viewable, but read-only.
+  const isCompletedSeparation = ctx?.employeeStatus === "INACTIVE" && !!ctx?.exists;
 
   const persist = useCallback(
     async (status: "DRAFT" | "SUBMITTED") => {
@@ -387,7 +390,7 @@ export default function ExitInterviewForm() {
     );
   }
 
-  if (!isExit) {
+  if (!isExit && !isCompletedSeparation) {
     return (
       <div className="mx-auto max-w-lg rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
         <Lock className="mx-auto mb-3 h-10 w-10 text-slate-300" />
@@ -770,7 +773,13 @@ export default function ExitInterviewForm() {
         </p>
       </SectionCard>
 
-      {/* actions */}
+      {/* actions — hidden once the separation is complete (read-only record) */}
+      {isCompletedSeparation ? (
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          <Lock className="h-4 w-4 shrink-0 text-slate-400" />
+          Separation complete — this exit interview is a read-only record.
+        </div>
+      ) : (
       <div className="sticky bottom-0 flex items-center justify-end gap-3 rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
         <Button
           variant="outline"
@@ -789,6 +798,7 @@ export default function ExitInterviewForm() {
           Submit interview
         </Button>
       </div>
+      )}
     </div>
   );
 }
