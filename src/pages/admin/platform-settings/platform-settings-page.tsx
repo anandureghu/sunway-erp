@@ -20,7 +20,10 @@ const EMPTY_FORM: PlatformSettingsRequest = {
   state: "",
   country: "",
   bankName: "",
+  accountHolder: "",
   iban: "",
+  ifscCode: "",
+  branchName: "",
 };
 
 export default function PlatformSettingsPage() {
@@ -41,7 +44,10 @@ export default function PlatformSettingsPage() {
           state: data.state ?? "",
           country: data.country ?? "",
           bankName: data.bankName ?? "",
+          accountHolder: data.accountHolder ?? "",
           iban: data.iban ?? "",
+          ifscCode: data.ifscCode ?? "",
+          branchName: data.branchName ?? "",
         }),
       )
       .catch((err) =>
@@ -82,7 +88,7 @@ export default function PlatformSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Platform Settings"
-        description="Sunway Solutions' address and bank details shown as the receiver on subscription invoices and receipts."
+        description="Sunway Solutions' address and bank details shown on subscription invoices (Payment Information) and receipts."
       />
       <Card className="max-w-2xl space-y-4 p-6">
         <div className="grid grid-cols-2 gap-4">
@@ -93,7 +99,10 @@ export default function PlatformSettingsPage() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           {field("bankName", "Bank Name")}
-          {field("iban", "IBAN")}
+          {field("accountHolder", "Account Holder")}
+          {field("iban", "IBAN Number")}
+          {field("ifscCode", "IFSC / SWIFT")}
+          {field("branchName", "Branch")}
         </div>
         <Button onClick={handleSave} disabled={loading || saving}>
           {saving ? "Saving…" : "Save"}
