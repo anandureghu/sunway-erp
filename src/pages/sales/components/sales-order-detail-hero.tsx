@@ -16,11 +16,13 @@ import { SalesOrderDetailCustomer } from "./sales-order-detail-customer";
 import { SalesOrderHeroTotals } from "./sales-order-hero-totals";
 import { CreateSalesReturnDialog } from "./create-sales-return-dialog";
 import {
+  ACTIVE_DISPATCH_STATUSES,
   formatStatusLabel,
   ORDER_STATUS_STYLES,
   orderStatusKey,
   PAYMENT_STATUS_STYLES,
   paymentStatusKey,
+  SHIPMENT_STATUS_STYLES,
 } from "./sales-order-detail-utils";
 
 type Props = {
@@ -62,13 +64,18 @@ export function SalesOrderDetailHero({
     hasSalesInvoice && !isQuotation && status !== "CANCELLED";
   const showReceiptActions = isInvoiceReceiptView(so.paymentStatus);
   const shipmentStatus = (activePicklist?.shipmentStatus || "").toLowerCase();
-  const isPickedOrInTransit =
-    activePicklist != null &&
-    activePicklist.status === "picked" &&
-    shipmentStatus !== "delivered" &&
-    shipmentStatus !== "cancelled";
+  const shipmentStatusKey = shipmentStatus
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+  const showDispatchStatus =
+    ACTIVE_DISPATCH_STATUSES.has(shipmentStatus) ||
+    shipmentStatus === "created";
+  // Customer returns only after delivery (order completed). Hide while in transit /
+  // out for delivery / otherwise not yet delivered.
+  const isDelivered = shipmentStatus === "delivered" || status === "COMPLETED";
   const canReturn =
-    isPickedOrInTransit &&
+    isDelivered &&
     !isQuotation &&
     status !== "CANCELLED" &&
     (so.items ?? []).some((line) => {
@@ -109,6 +116,8 @@ export function SalesOrderDetailHero({
     ORDER_STATUS_STYLES[status] ?? "bg-slate-100 text-slate-700";
   const paymentStyle =
     PAYMENT_STATUS_STYLES[payment] ?? "bg-slate-100 text-slate-600";
+  const shipmentStyle =
+    SHIPMENT_STATUS_STYLES[shipmentStatusKey] ?? "bg-amber-50 text-amber-800";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
@@ -127,6 +136,13 @@ export function SalesOrderDetailHero({
           >
             {formatStatusLabel(payment)}
           </span>
+          {showDispatchStatus ? (
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold capitalize ${shipmentStyle}`}
+            >
+              {formatStatusLabel(shipmentStatusKey)}
+            </span>
+          ) : null}
         </div>
 
         <div className="mt-4 grid grid-cols-1 items-start gap-5 lg:grid-cols-12">

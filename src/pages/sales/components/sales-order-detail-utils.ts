@@ -60,3 +60,23 @@ export const PAYMENT_STATUS_STYLES: Record<string, string> = {
   PARTIALLY_PAID: "bg-amber-50 text-amber-700",
   UNPAID: "bg-slate-100 text-slate-600",
 };
+
+/** Shipment / dispatch status badges on the sales order hero. */
+export const SHIPMENT_STATUS_STYLES: Record<string, string> = {
+  CREATED: "bg-slate-100 text-slate-700",
+  DISPATCHED: "bg-blue-50 text-blue-700",
+  IN_TRANSIT: "bg-amber-50 text-amber-800",
+  OUT_FOR_DELIVERY: "bg-orange-50 text-orange-800",
+  DELIVERED: "bg-emerald-50 text-emerald-700",
+  FAILED_DELIVERY: "bg-rose-50 text-rose-700",
+  CANCELLED: "bg-slate-100 text-slate-500",
+};
+
+/** Statuses where the order is out for fulfillment — hide customer returns. */
+export const ACTIVE_DISPATCH_STATUSES = new Set([
+  "dispatched",
+  "in_transit",
+  "out_for_delivery",
+  "failed_delivery",
+]);
+
