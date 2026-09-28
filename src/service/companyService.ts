@@ -16,6 +16,8 @@ import {
   Wallet,
   Landmark,
   PieChart,
+  FileBarChart,
+  ScrollText,
   LayoutDashboard,
   UserRound,
   BriefcaseBusiness,
@@ -467,6 +469,17 @@ export const getSidebarItems = async (
                     title: "Finance Report",
                     url: "/finance/reports",
                     icon: PieChart,
+                  },
+                  // FIN_SHEET_REPORTS — remove with Financial/Account Summary pages + backend.
+                  {
+                    title: "Financial Summary",
+                    url: "/finance/reports/financial-summary",
+                    icon: FileBarChart,
+                  },
+                  {
+                    title: "Account Summary",
+                    url: "/finance/reports/account-summary",
+                    icon: ScrollText,
                   },
                 ]
               : []),

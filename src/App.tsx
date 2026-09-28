@@ -102,6 +102,8 @@ import AppraisalShell from "@/modules/hr/appraisal/AppraisalShell";
 import AppraisalsForm from "@/modules/hr/appraisal/AppraisalsForm";
 import GeneralLedgerPage from "./pages/finance/general-ledger-page";
 import FinanceReportsPage from "./pages/finance/finance-reports-page";
+import FinancialSummaryReportPage from "./pages/finance/financial-summary-report-page";
+import AccountSummaryReportPage from "./pages/finance/account-summary-report-page";
 import FinanceDashboardPage from "./pages/finance/finance-dashboard";
 import InventoryDashboardPage from "./pages/inventory/inventory-dashboard";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
@@ -182,6 +184,29 @@ export default function App() {
             <Route path="payable" element={<AccountsPayablePage />} />
             <Route path="ledger" element={<GeneralLedgerPage />} />
             <Route path="reports" element={<FinanceReportsPage />} />
+            {/* FIN_SHEET_REPORTS — remove with Financial/Account Summary pages + backend. */}
+            <Route
+              path="reports/financial-summary"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_REPORTS"
+                  title="Financial summary access denied"
+                >
+                  <FinancialSummaryReportPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="reports/account-summary"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_REPORTS"
+                  title="Account summary access denied"
+                >
+                  <AccountSummaryReportPage />
+                </ModuleAccessGate>
+              }
+            />
             <Route path="journals">
               <Route path=":id" element={<JournalDetailPage />} />
             </Route>
