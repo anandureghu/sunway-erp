@@ -1064,11 +1064,15 @@ export default function EmployeeContractForm() {
                 <Hash className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                 <Input
                   className="h-9 rounded-lg border-slate-300 pl-8 disabled:bg-slate-50 disabled:text-slate-700"
-                  disabled={!editing}
+                  disabled
                   value={formData.contractCode}
-                  onChange={(e) => updateField("contractCode")(e.target.value)}
+                  placeholder="Auto-assigned on save"
+                  readOnly
                 />
               </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Generated from Organization → Number Sequences (Contract Codes).
+              </p>
             </FormField>
 
             <FormField label="Staff Name" required error={errors.staffName}>

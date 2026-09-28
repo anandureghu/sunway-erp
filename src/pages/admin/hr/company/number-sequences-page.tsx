@@ -31,6 +31,7 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   BUDGET:  "Budget Codes",
   CN:      "Credit Notes",
   CUST:    "Customer Codes",
+  CTR:     "Contract Codes",
 };
 
 const DEFAULT_CONFIGS: NumberingConfig[] = [
@@ -38,6 +39,7 @@ const DEFAULT_CONFIGS: NumberingConfig[] = [
   { docType: "BUDGET", prefix: "BUD",    startNumber: 1000 },
   { docType: "CN",     prefix: "CN",     startNumber: 1000 },
   { docType: "CUST",   prefix: "CUST",   startNumber: 1000 },
+  { docType: "CTR",    prefix: "CTR",    startNumber: 1000 },
 ];
 
 export default function NumberSequencesPage({ hrSettings }: { hrSettings?: boolean }) {

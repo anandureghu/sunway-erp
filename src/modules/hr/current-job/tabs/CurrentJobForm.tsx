@@ -434,11 +434,42 @@ export default function CurrentJobForm() {
 
     (async () => {
       try {
-        const res = await currentJobService.get(employeeId);
-        if (!mounted || !res) return;
+        const [res, emp] = await Promise.all([
+          currentJobService.get(employeeId).catch(() => null),
+          hrService.getEmployee(employeeId).catch(() => null),
+        ]);
+        if (!mounted) return;
 
-        setExists(true);
-        applyServerResponse(res);
+        const joinDate =
+          typeof emp?.joinDate === "string" ? emp.joinDate.trim() : "";
+
+        if (res) {
+          setExists(true);
+          const mapped = mapServerToForm(res);
+          // Profile Join Date is the employment start — prefill when Current Job has none.
+          if (!mapped.startDate && joinDate) {
+            mapped.startDate = joinDate;
+          }
+          if (!mapped.effectiveFrom && joinDate) {
+            mapped.effectiveFrom = joinDate;
+          }
+          setFields(mapped);
+          savedDataRef.current = mapped;
+          const deptId = (res as any).department?.id;
+          if (deptId) {
+            void loadDivisionsForDepartment(deptId);
+          } else {
+            setDepartmentDivisions([]);
+          }
+        } else if (joinDate) {
+          const prefilled = {
+            ...INITIAL_DATA,
+            startDate: joinDate,
+            effectiveFrom: joinDate,
+          };
+          setFields(prefilled);
+          savedDataRef.current = prefilled;
+        }
       } catch (err) {
         console.error("Error loading current job:", err);
       }
@@ -447,7 +478,7 @@ export default function CurrentJobForm() {
     return () => {
       mounted = false;
     };
-  }, [employeeId, applyServerResponse]);
+  }, [employeeId, setFields]);
 
   const shellSave = useCallback(async (): Promise<boolean> => {
     try {
