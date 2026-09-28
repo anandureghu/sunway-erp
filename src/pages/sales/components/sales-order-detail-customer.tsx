@@ -1,4 +1,5 @@
 import type { SalesOrderResponseDTO } from "@/service/erpApiTypes";
+import { formatCustomerCode } from "@/lib/customer-api";
 import {
   CalendarClock,
   Mail,
@@ -37,7 +38,7 @@ export function SalesOrderDetailCustomer({ so }: Props) {
           </p>
           {so.customerId != null ? (
             <p className="mt-1 text-xs text-slate-500">
-              Customer ID: {String(so.customerId)}
+              Customer Code: {formatCustomerCode(so.customerId)}
             </p>
           ) : null}
           <div className="mt-2.5 space-y-2 text-sm">

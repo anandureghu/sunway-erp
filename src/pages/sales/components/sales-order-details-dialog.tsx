@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatCustomerCode } from "@/lib/customer-api";
 import type { SalesOrder } from "@/types/sales";
 
 type Props = {
@@ -89,8 +90,10 @@ export function SalesOrderDetailsDialog({ open, order, onOpenChange }: Props) {
                     </div>
                     {order.customerId && (
                       <div>
-                        <p className="text-sm text-muted-foreground">Customer ID</p>
-                        <p className="font-medium">{order.customerId}</p>
+                        <p className="text-sm text-muted-foreground">Customer Code</p>
+                        <p className="font-medium">
+                          {formatCustomerCode(order.customerId)}
+                        </p>
                       </div>
                     )}
                     {order.customerEmail && (
