@@ -160,7 +160,7 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center">
-                    Header Subtitle (Unpaid)
+                    Header Subtitle (Unpaid) — Sales invoices
                     <PlaceholderHint placeholders={HEADER_PLACEHOLDERS} />
                   </FormLabel>
                   <FormControl>
@@ -180,7 +180,7 @@ export function InvoiceBrandingSettingsCard({ company, onSaved }: Props) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center">
-                    Header Subtitle (Paid)
+                    Header Subtitle (Paid) — Sales invoices
                     <PlaceholderHint placeholders={HEADER_PLACEHOLDERS} />
                   </FormLabel>
                   <FormControl>

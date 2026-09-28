@@ -132,10 +132,9 @@ export function InvoiceDocumentPreview({
     isPaid ? invoice.invoiceNotesPaid : invoice.invoiceNotesUnpaid,
     templateVars,
   );
-  const headerSubtitle = formatInvoiceTemplate(
-    invoice.invoiceHeaderSubtitle,
-    templateVars,
-  );
+  const headerSubtitle = isSales
+    ? formatInvoiceTemplate(invoice.invoiceHeaderSubtitle, templateVars)
+    : "";
   const addressLine = [
     invoice.companyStreet,
     invoice.companyCity,
