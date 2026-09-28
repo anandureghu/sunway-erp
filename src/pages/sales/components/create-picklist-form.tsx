@@ -305,7 +305,17 @@ export function CreatePicklistForm({
                   <div>
                     <p className="text-muted-foreground">Total Due</p>
                     <p className="font-semibold">
-                      <CurrencyAmount amount={selectedOrder.total ?? 0} />
+                      <CurrencyAmount
+                        amount={
+                          (selectedOrder.paymentStatus || "")
+                            .trim()
+                            .toUpperCase() === "PAID"
+                            ? 0
+                            : (selectedOrder.outstandingAmount ??
+                              selectedOrder.total ??
+                              0)
+                        }
+                      />
                     </p>
                   </div>
                 </CardContent>

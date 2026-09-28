@@ -543,12 +543,7 @@ export default function PicklistDispatchPage() {
                 rowSelection={rowSelection}
                 onRowSelectionChange={setRowSelection}
                 getRowId={(row) => row.id}
-                isRowSelectable={(row) =>
-                  !row.archived &&
-                  (row.status === "cancelled" ||
-                    (row.status === "picked" &&
-                      row.shipmentStatus === "delivered"))
-                }
+                isRowSelectable={(row) => !row.archived}
               />
             </div>
           )}
