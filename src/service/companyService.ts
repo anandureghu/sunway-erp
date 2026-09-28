@@ -10,6 +10,8 @@ import {
   Receipt,
   ClipboardList,
   LineChart,
+  FileBarChart2,
+  Boxes,
   DollarSign,
   Wallet,
   Landmark,
@@ -369,6 +371,17 @@ export const getSidebarItems = async (
                     title: "Management Reports",
                     url: "/inventory/reports/management",
                     icon: LineChart,
+                  },
+                  // STOCK_SHEET_REPORTS — remove with Stock/Item Summary pages + backend.
+                  {
+                    title: "Stock Summary",
+                    url: "/inventory/reports/stock-summary",
+                    icon: Boxes,
+                  },
+                  {
+                    title: "Item Summary",
+                    url: "/inventory/reports/item-summary",
+                    icon: FileBarChart2,
                   },
                 ]
               : []),

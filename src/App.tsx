@@ -3,6 +3,8 @@ import "./App.css";
 /* Appraisal */
 import ManageStocks from "./pages/inventory/manage-stocks";
 import InventoryReportsPage from "./pages/inventory/inventory-reports-page";
+import StockSummaryReportPage from "./pages/inventory/stock-summary-report-page";
+import ItemSummaryReportPage from "./pages/inventory/item-summary-report-page";
 import InventoryItemDetail from "./pages/inventory/inventory-item-detail";
 
 /* Sales */
@@ -325,6 +327,29 @@ export default function App() {
                     title="Inventory reports access denied"
                   >
                     <InventoryReportsPage />
+                  </ModuleAccessGate>
+                }
+              />
+              {/* STOCK_SHEET_REPORTS — remove with Stock/Item Summary pages + backend. */}
+              <Route
+                path="stock-summary"
+                element={
+                  <ModuleAccessGate
+                    module={InventoryModule.STOCK}
+                    title="Stock summary access denied"
+                  >
+                    <StockSummaryReportPage />
+                  </ModuleAccessGate>
+                }
+              />
+              <Route
+                path="item-summary"
+                element={
+                  <ModuleAccessGate
+                    module={InventoryModule.STOCK}
+                    title="Item summary access denied"
+                  >
+                    <ItemSummaryReportPage />
                   </ModuleAccessGate>
                 }
               />
