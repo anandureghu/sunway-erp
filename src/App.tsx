@@ -109,6 +109,8 @@ import InventoryDashboardPage from "./pages/inventory/inventory-dashboard";
 import AccountsPayablePage from "./pages/finance/accounts-payable-page";
 import AdminSystemLogsPage from "./pages/admin/system-logs-page";
 import AdminSystemLogDetailPage from "./pages/admin/system-log-detail-page";
+import EnquiriesPage from "./pages/admin/enquiries-page";
+import EnquiryDetailPage from "./pages/admin/enquiry-detail-page";
 import SubscriptionsPage from "./pages/admin/subscriptions/subscriptions-page";
 import SubscriptionDetailPage from "./pages/admin/subscriptions/subscription-detail-page";
 import CompanyBillingPage from "./pages/admin/subscriptions/company-billing-page";
@@ -262,6 +264,8 @@ export default function App() {
             <Route path="vendors/:id" element={<VendorDetailPage />} />
             <Route path="system-logs" element={<AdminSystemLogsPage />} />
             <Route path="system-logs/:id" element={<AdminSystemLogDetailPage />} />
+            <Route path="enquiries" element={<EnquiriesPage />} />
+            <Route path="enquiries/:id" element={<EnquiryDetailPage />} />
           </Route>
 
           {/* Inventory */}

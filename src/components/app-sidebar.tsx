@@ -32,6 +32,7 @@ import {
   ScrollText,
   Shield,
   CreditCard,
+  Inbox,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -199,6 +200,7 @@ export function AppSidebar() {
       items: [
         { title: "Companies", url: "/admin/company", icon: Building },
         { title: "Subscriptions", url: "/admin/subscriptions", icon: CreditCard },
+        { title: "Enquiries", url: "/admin/enquiries", icon: Inbox },
         { title: "System Logs", url: "/admin/system-logs", icon: ScrollText },
         { title: "Platform Settings", url: "/admin/platform-settings", icon: Settings },
       ],
