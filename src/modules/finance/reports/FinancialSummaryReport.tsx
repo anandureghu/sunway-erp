@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Download, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { cn } from "@/lib/utils";
 import {
@@ -71,6 +72,16 @@ export default function FinancialSummaryReportView({
       return String(x).localeCompare(String(y)) * sortDir;
     });
   }, [rows, query, cls, sortKey, sortDir]);
+
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(filtered, 10);
 
   const exportCsv = () => {
     const header = [
@@ -317,6 +328,9 @@ export default function FinancialSummaryReportView({
             <table className="w-full min-w-[900px] border-collapse text-[12.5px]">
               <thead>
                 <tr>
+                  <th className="border-b border-slate-300 bg-slate-50 px-2.5 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    SL. No.
+                  </th>
                   {(
                     [
                       ["accountCode", "Account"],
@@ -352,12 +366,15 @@ export default function FinancialSummaryReportView({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => (
+                {pageItems.map((r, i) => (
                   <tr
                     key={r.accountId}
                     onClick={() => onOpenAccount(r.accountId)}
                     className="cursor-pointer border-b border-slate-100 hover:bg-[#EDF6F1]"
                   >
+                    <td className="px-2.5 py-2 font-mono text-xs tabular-nums text-slate-500">
+                      {pageIndex * pageSize + i + 1}
+                    </td>
                     <td className="px-2.5 py-2">
                       <b className="text-[#1E6B4F]">{r.accountCode}</b>
                       <div className="font-mono text-[11px] text-slate-400">{r.accountName}</div>
@@ -380,7 +397,7 @@ export default function FinancialSummaryReportView({
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-300 bg-slate-50 font-semibold">
-                  <td className="px-2.5 py-2" colSpan={3}>
+                  <td className="px-2.5 py-2" colSpan={4}>
                     Total — {filtered.length} accounts
                   </td>
                   <td className="px-2.5 py-2 text-right font-mono text-xs">{money(sumDr)}</td>
@@ -392,6 +409,18 @@ export default function FinancialSummaryReportView({
               </tfoot>
             </table>
           </div>
+          {filtered.length > 0 && (
+            <div className="print:hidden">
+              <TablePagination
+                total={total}
+                pageIndex={pageIndex}
+                pageSize={pageSize}
+                pageCount={pageCount}
+                onPageChange={setPageIndex}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
         </section>
 
         <div className="flex flex-wrap gap-4 border-t border-slate-200 pt-3 font-mono text-[10px] uppercase tracking-wider text-slate-400">

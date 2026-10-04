@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { cn } from "@/lib/utils";
 import {
@@ -40,10 +41,11 @@ type SortKey =
   | "lastIssueDays"
   | "abc";
 
-type StatusFilter = "" | "below" | "nonmoving" | "expiring" | "zero";
+type StatusFilter = "" | "active" | "below" | "nonmoving" | "expiring" | "zero";
 
 const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "", label: "All" },
+  { value: "active", label: "Active" },
   { value: "below", label: "Below reorder" },
   { value: "zero", label: "Out of stock" },
   { value: "nonmoving", label: "Non-moving" },
@@ -56,8 +58,9 @@ function statusOf(r: StockSummaryRow): [string, string] {
     return ["Below reorder", "border-amber-200 bg-amber-50 text-amber-800"];
   if (r.lastIssueDays != null && r.lastIssueDays >= NON_MOVING)
     return ["Non-moving", "border-amber-200 bg-amber-50 text-amber-800"];
-  if (r.expiringBatch) return ["Batch expiring", "border-rose-200 bg-rose-50 text-rose-700"];
-  return ["In range", "border-emerald-200 bg-emerald-50 text-emerald-800"];
+  if (r.expiringBatch)
+    return ["Expiring batches", "border-rose-200 bg-rose-50 text-rose-700"];
+  return ["Active", "border-emerald-200 bg-emerald-50 text-emerald-800"];
 }
 
 export default function StockSummaryReport({
@@ -138,6 +141,7 @@ export default function StockSummaryReport({
     const q = query.trim().toLowerCase();
     const list = rows.filter((r) => {
       if (cat && r.category !== cat) return false;
+      if (statusFilter === "active" && statusOf(r)[0] !== "Active") return false;
       if (statusFilter === "below" && !(r.reorderLevel != null && r.onHand < r.reorderLevel))
         return false;
       if (statusFilter === "zero" && r.onHand !== 0) return false;
@@ -174,6 +178,16 @@ export default function StockSummaryReport({
       return String(x).localeCompare(String(y)) * sortDir;
     });
   }, [rows, query, cat, statusFilter, sortKey, sortDir]);
+
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(filtered, 10);
 
   const shownValue = useMemo(
     () => filtered.reduce((a, r) => a + (r.stockValue ?? 0), 0),
@@ -621,6 +635,9 @@ export default function StockSummaryReport({
             <table className="w-full min-w-[960px] border-collapse text-[12.5px]">
               <thead>
                 <tr>
+                  <th className="border-b border-slate-300 bg-slate-50 px-2.5 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    SL. No.
+                  </th>
                   <SortTh k="sku" label="Item" />
                   <SortTh k="category" label="Category" />
                   <SortTh k="unitMeasure" label="UOM" />
@@ -639,13 +656,13 @@ export default function StockSummaryReport({
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="px-2.5 py-8 text-center text-slate-400">
+                    <td colSpan={12} className="px-2.5 py-8 text-center text-slate-400">
                       <Package className="mx-auto mb-1 h-5 w-5 opacity-40" />
                       No items match the current filters.
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => {
+                  pageItems.map((r, i) => {
                     const [st, stCls] = statusOf(r);
                     const below = r.reorderLevel != null && r.onHand < r.reorderLevel;
                     return (
@@ -654,6 +671,9 @@ export default function StockSummaryReport({
                         onClick={() => onOpenItem(r.itemId)}
                         className="cursor-pointer border-b border-slate-100 hover:bg-[#EEF2F9]"
                       >
+                        <td className="px-2.5 py-2 font-mono text-xs tabular-nums text-slate-500">
+                          {pageIndex * pageSize + i + 1}
+                        </td>
                         <td className="px-2.5 py-2">
                           <b className="text-[#1F3A6E]">{r.sku}</b>
                           <div className="max-w-[230px] font-mono text-[11px] text-slate-400">
@@ -726,7 +746,7 @@ export default function StockSummaryReport({
               </tbody>
               <tfoot>
                 <tr className="border-t border-slate-300 bg-slate-50 font-semibold">
-                  <td className="px-2.5 py-2" colSpan={7}>
+                  <td className="px-2.5 py-2" colSpan={8}>
                     Total — {filtered.length} items shown
                   </td>
                   <td className="px-2.5 py-2 text-right font-mono text-xs">{mask(shownValue)}</td>
@@ -735,6 +755,18 @@ export default function StockSummaryReport({
               </tfoot>
             </table>
           </div>
+          {filtered.length > 0 && (
+            <div className="print:hidden">
+              <TablePagination
+                total={total}
+                pageIndex={pageIndex}
+                pageSize={pageSize}
+                pageCount={pageCount}
+                onPageChange={setPageIndex}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
         </section>
 
         <div className="flex flex-wrap gap-4 border-t border-slate-200 pt-3 font-mono text-[10px] uppercase tracking-wider text-slate-400">
