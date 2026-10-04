@@ -20,6 +20,8 @@ export interface TimesheetEntry {
   maxShiftMinutes?: number;
   /** Auto check-out after this many hours on the clock (8 / 10 / 12). */
   autoCheckoutAfterHours?: number;
+  /** Name of today's public holiday (paid day off) when today is one. */
+  holidayName?: string | null;
 }
 
 export interface MonthlySummary {
@@ -27,6 +29,8 @@ export interface MonthlySummary {
   daysPresent: number; // "Total Days Worked" — days with >= 6 hours
   totalHours: number;
   avgHoursPerDay: number;
+  /** Paid public-holiday working days so far this month. */
+  holidayDays?: number;
 }
 
 // One employee's monthly attendance rollup (HR "Employee Time Sheets" tab).
@@ -48,6 +52,10 @@ export interface EmployeeMonthlyAttendance {
   todayCheckIn: string | null;
   todayCheckOut: string | null;
   todayHours: number;
+  /** Paid public-holiday working days in the month so far. */
+  holidayDays?: number;
+  /** Today's public holiday name when todayStatus is HOLIDAY. */
+  todayHolidayName?: string | null;
 }
 
 // One day's check-in/out row for a single employee.

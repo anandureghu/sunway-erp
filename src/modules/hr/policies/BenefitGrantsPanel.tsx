@@ -4,10 +4,13 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  CheckCircle2,
   Gift,
   Loader2,
   Paperclip,
+  Pencil,
   Plus,
+  Save,
   Trash2,
   X,
 } from "lucide-react";
@@ -22,11 +25,16 @@ import { useAuth } from "@/context/AuthContext";
 import { canEditModule } from "@/lib/module-permissions";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { hrService } from "@/service/hr.service";
+import { fetchDepartments } from "@/service/departmentService";
 import {
   benefitGrantService,
+  benefitsAdjustmentService,
   type BenefitGrant,
   type BenefitGrantType,
+  type BenefitsScope,
 } from "@/service/benefitsAdjustmentService";
+
+type Dept = { id: number; departmentName?: string; name?: string };
 
 type Emp = {
   id: string | number;
@@ -87,13 +95,19 @@ const money = (n: number) =>
  * once per calendar year; a reimbursement needs a supporting document.
  */
 export default function BenefitGrantsPanel() {
-  const { permissions } = useAuth();
+  const { permissions, company } = useAuth();
   const canEdit = canEditModule(permissions, "HR_SETTINGS");
 
   const [employees, setEmployees] = useState<Emp[]>([]);
   const [grants, setGrants] = useState<BenefitGrant[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Who receives the benefit — same choices as Benefits Adjustment.
+  const [scope, setScope] = useState<BenefitsScope>("EMPLOYEE");
+  const [gradeCode, setGradeCode] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const [gradeCodes, setGradeCodes] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<Dept[]>([]);
   const [employeeId, setEmployeeId] = useState("");
   const [benefitType, setBenefitType] = useState<BenefitGrantType | "">("");
   const [amount, setAmount] = useState("");
@@ -106,6 +120,27 @@ export default function BenefitGrantsPanel() {
   const [checkingTicket, setCheckingTicket] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [completingId, setCompletingId] = useState<number | null>(null);
+  const [openingDocId, setOpeningDocId] = useState<number | null>(null);
+
+  // Documents open through the API on click — signed storage links expire.
+  const openDocument = async (id: number) => {
+    setOpeningDocId(id);
+    try {
+      await benefitGrantService.openDocument(id);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Could not open the document."));
+    } finally {
+      setOpeningDocId(null);
+    }
+  };
+  // The grant being edited (null = granting a new one). Once paid, only the
+  // description and the document can change.
+  const [editing, setEditing] = useState<BenefitGrant | null>(null);
+  const paidLocked = editing?.status === "PAID";
+  // Grade / department / all employees — one grant per employee (bulk endpoint).
+  const groupScope = !editing && scope !== "EMPLOYEE";
+  const formRef = useRef<HTMLDivElement>(null);
 
   const loadGrants = useCallback(async () => {
     try {
@@ -116,6 +151,17 @@ export default function BenefitGrantsPanel() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    benefitsAdjustmentService.gradeCodes().then(setGradeCodes);
+  }, []);
+
+  useEffect(() => {
+    if (!company?.id) return;
+    fetchDepartments(company.id)
+      .then((list: unknown) => setDepartments(Array.isArray(list) ? (list as Dept[]) : []))
+      .catch(() => setDepartments([]));
+  }, [company?.id]);
 
   useEffect(() => {
     loadGrants();
@@ -135,13 +181,18 @@ export default function BenefitGrantsPanel() {
   // month's calendar year as soon as employee + month are chosen.
   useEffect(() => {
     setTicketWarning(null);
-    if (benefitType !== "ANNUAL_TICKET" || !employeeId || !payMonth) return;
+    if (benefitType !== "ANNUAL_TICKET" || !employeeId || !payMonth || groupScope) return;
     let cancelled = false;
     setCheckingTicket(true);
     benefitGrantService
       .annualTicketCheck(Number(employeeId), payMonth)
       .then((res) => {
-        if (!cancelled) setTicketWarning(res.alreadyGranted ? res.existing ?? null : null);
+        if (cancelled) return;
+        const other =
+          res.alreadyGranted && res.existing && res.existing.id !== editing?.id
+            ? res.existing
+            : null;
+        setTicketWarning(paidLocked ? null : other);
       })
       .catch(() => {
         if (!cancelled) setTicketWarning(null);
@@ -152,11 +203,16 @@ export default function BenefitGrantsPanel() {
     return () => {
       cancelled = true;
     };
-  }, [benefitType, employeeId, payMonth]);
+  }, [benefitType, employeeId, payMonth, editing?.id, paidLocked, groupScope]);
 
   useEffect(() => {
     if (benefitType !== "REIMBURSEMENT") setDocument(null);
   }, [benefitType]);
+
+  // A reimbursement needs one person's receipt — not offered for group grants.
+  useEffect(() => {
+    if (groupScope && benefitType === "REIMBURSEMENT") setBenefitType("");
+  }, [groupScope, benefitType]);
 
   const empLabel = (e: Emp) =>
     `${[e.firstName, e.lastName].filter(Boolean).join(" ")}${
@@ -164,30 +220,40 @@ export default function BenefitGrantsPanel() {
     }`.trim();
 
   const selectedEmployee = employees.find((e) => String(e.id) === employeeId);
+  const targetChosen =
+    editing || scope === "ALL_EMPLOYEES"
+      ? true
+      : scope === "EMPLOYEE"
+        ? !!employeeId
+        : scope === "DEPARTMENT"
+          ? !!departmentId
+          : !!gradeCode;
   const amountValue = parseFloat(amount);
   const needsDocument = benefitType === "REIMBURSEMENT";
+  const hasExistingDocument = !!editing?.documentUrl;
 
   const canSubmit = useMemo(
     () =>
       canEdit &&
       !saving &&
       !checkingTicket &&
-      !!employeeId &&
+      targetChosen &&
       !!benefitType &&
       !!payMonth &&
       amountValue > 0 &&
-      (!needsDocument || !!document) &&
+      (!needsDocument || !!document || hasExistingDocument) &&
       !ticketWarning,
     [
       canEdit,
       saving,
       checkingTicket,
-      employeeId,
+      targetChosen,
       benefitType,
       payMonth,
       amountValue,
       needsDocument,
       document,
+      hasExistingDocument,
       ticketWarning,
     ],
   );
@@ -202,7 +268,10 @@ export default function BenefitGrantsPanel() {
   };
 
   const resetForm = () => {
+    setEditing(null);
     setEmployeeId("");
+    setGradeCode("");
+    setDepartmentId("");
     setBenefitType("");
     setAmount("");
     setPayMonth(currentMonth());
@@ -215,28 +284,113 @@ export default function BenefitGrantsPanel() {
   const submit = async () => {
     if (!canSubmit || !benefitType) return;
     setSaving(true);
-    try {
-      await benefitGrantService.create(
-        {
-          employeeId: Number(employeeId),
+    const payload = {
+      employeeId: Number(employeeId),
+      benefitType,
+      amount: amountValue,
+      payMonth,
+      description: description.trim() || null,
+    };
+    if (groupScope) {
+      if (benefitType === "REIMBURSEMENT") return;
+      if (scope === "ALL_EMPLOYEES") {
+        const ok = window.confirm(
+          `Grant this ${TYPE_LABEL[benefitType]} of ${money(amountValue)} to ALL active employees?`,
+        );
+        if (!ok) {
+          setSaving(false);
+          return;
+        }
+      }
+      try {
+        const res = await benefitGrantService.createBulk({
+          scope,
+          gradeCode: scope === "GRADE_CODE" ? gradeCode : null,
+          departmentId: scope === "DEPARTMENT" ? Number(departmentId) : null,
           benefitType,
           amount: amountValue,
           payMonth,
           description: description.trim() || null,
-        },
-        needsDocument ? document : null,
-      );
-      toast.success(
-        `${TYPE_LABEL[benefitType]} granted to ${
-          selectedEmployee ? empLabel(selectedEmployee) : "the employee"
-        } — paid with the ${monthLabel(payMonth)} payroll.`,
-      );
+        });
+        if (res.matched === 0) {
+          toast.info("No active employees match this selection.");
+        } else {
+          toast.success(
+            `${TYPE_LABEL[benefitType]} granted to ${res.created} employee${res.created === 1 ? "" : "s"} — paid with the ${monthLabel(payMonth)} payroll.`,
+          );
+        }
+        if (res.skipped.length) {
+          toast.warning(
+            `Skipped ${res.skipped.length}: ${res.skipped
+              .slice(0, 5)
+              .map((x) => x.employeeName)
+              .join(", ")}${res.skipped.length > 5 ? "…" : ""} — ${res.skipped[0].reason.toLowerCase()}.`,
+            { duration: 8000 },
+          );
+        }
+        resetForm();
+        loadGrants();
+      } catch (err) {
+        toast.error(getApiErrorMessage(err, "Could not grant the benefit."));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+    try {
+      if (editing) {
+        await benefitGrantService.update(editing.id, payload, needsDocument ? document : null);
+        toast.success(`${TYPE_LABEL[benefitType]} updated.`);
+      } else {
+        await benefitGrantService.create(payload, needsDocument ? document : null);
+        toast.success(
+          `${TYPE_LABEL[benefitType]} granted to ${
+            selectedEmployee ? empLabel(selectedEmployee) : "the employee"
+          } — paid with the ${monthLabel(payMonth)} payroll.`,
+        );
+      }
       resetForm();
       loadGrants();
     } catch (err) {
-      toast.error(getApiErrorMessage(err, "Could not grant the benefit."));
+      toast.error(
+        getApiErrorMessage(err, editing ? "Could not update the benefit." : "Could not grant the benefit."),
+      );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (g: BenefitGrant) => {
+    setEditing(g);
+    setScope("EMPLOYEE");
+    setEmployeeId(String(g.employeeId));
+    setBenefitType(g.benefitType);
+    setAmount(String(g.amount ?? ""));
+    setPayMonth((g.payMonth ?? "").slice(0, 7) || currentMonth());
+    setDescription(g.description ?? "");
+    setDocument(null);
+    setTicketWarning(null);
+    if (fileRef.current) fileRef.current.value = "";
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const complete = async (g: BenefitGrant) => {
+    const ok = window.confirm(
+      `Mark the ${TYPE_LABEL[g.benefitType]} of ${money(g.amount)} for ${
+        g.employeeName ?? "this employee"
+      } as completed? It will be removed from this page.`,
+    );
+    if (!ok) return;
+    setCompletingId(g.id);
+    try {
+      await benefitGrantService.complete(g.id);
+      toast.success("Benefit completed.");
+      setGrants((prev) => prev.filter((x) => x.id !== g.id));
+      if (editing?.id === g.id) resetForm();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Could not complete the benefit."));
+    } finally {
+      setCompletingId(null);
     }
   };
 
@@ -283,21 +437,101 @@ export default function BenefitGrantsPanel() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {editing && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          <Pencil className="h-3.5 w-3.5 shrink-0" />
+          <span className="flex-1">
+            Editing the {TYPE_LABEL[editing.benefitType]} for{" "}
+            <strong>{editing.employeeName ?? "this employee"}</strong>
+            {paidLocked && " — already paid, so only the description and document can be changed"}.
+          </span>
+        </div>
+      )}
+
+      <div ref={formRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {!editing && (
+          <div>
+            <label className={labelCls}>Apply by</label>
+            <Select
+              value={scope}
+              onValueChange={(v) => setScope(v as BenefitsScope)}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="mt-1 h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GRADE_CODE">Grade code</SelectItem>
+                <SelectItem value="DEPARTMENT">Department</SelectItem>
+                <SelectItem value="EMPLOYEE">Employee</SelectItem>
+                <SelectItem value="ALL_EMPLOYEES">All employees</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div>
-          <label className={labelCls}>Employee</label>
-          <Select value={employeeId} onValueChange={setEmployeeId} disabled={!canEdit}>
-            <SelectTrigger className="mt-1 h-9 text-sm">
-              <SelectValue placeholder="Select employee" />
-            </SelectTrigger>
-            <SelectContent>
-              {employees.map((e) => (
-                <SelectItem key={e.id} value={String(e.id)}>
-                  {empLabel(e)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <label className={labelCls}>
+            {editing || scope === "EMPLOYEE"
+              ? "Employee"
+              : scope === "DEPARTMENT"
+                ? "Department"
+                : scope === "GRADE_CODE"
+                  ? "Grade code"
+                  : "Scope"}
+          </label>
+          {(editing || scope === "EMPLOYEE") && (
+            <Select value={employeeId} onValueChange={setEmployeeId} disabled={!canEdit || paidLocked}>
+              <SelectTrigger className="mt-1 h-9 text-sm">
+                <SelectValue placeholder="Select employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((e) => (
+                  <SelectItem key={e.id} value={String(e.id)}>
+                    {empLabel(e)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {!editing && scope === "DEPARTMENT" && (
+            <Select value={departmentId} onValueChange={setDepartmentId} disabled={!canEdit}>
+              <SelectTrigger className="mt-1 h-9 text-sm">
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                {departments.map((d) => (
+                  <SelectItem key={d.id} value={String(d.id)}>
+                    {d.departmentName ?? d.name ?? `#${d.id}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {!editing && scope === "GRADE_CODE" && (
+            <Select value={gradeCode} onValueChange={setGradeCode} disabled={!canEdit}>
+              <SelectTrigger className="mt-1 h-9 text-sm">
+                <SelectValue placeholder="Select grade code" />
+              </SelectTrigger>
+              <SelectContent>
+                {gradeCodes.map((g) => (
+                  <SelectItem key={g} value={g}>
+                    {g}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {!editing && scope === "ALL_EMPLOYEES" && (
+            <div className="mt-1 flex h-9 items-center text-sm text-slate-500">
+              Every active employee.
+            </div>
+          )}
+          {groupScope && (
+            <p className="mt-1 text-[10px] text-slate-400">
+              One grant per employee. For an annual ticket, anyone who already had one this year is skipped.
+            </p>
+          )}
         </div>
 
         <div>
@@ -305,13 +539,13 @@ export default function BenefitGrantsPanel() {
           <Select
             value={benefitType}
             onValueChange={(v) => setBenefitType(v as BenefitGrantType)}
-            disabled={!canEdit}
+            disabled={!canEdit || paidLocked}
           >
             <SelectTrigger className="mt-1 h-9 text-sm">
               <SelectValue placeholder="Select benefit type" />
             </SelectTrigger>
             <SelectContent>
-              {BENEFIT_TYPES.map((t) => (
+              {BENEFIT_TYPES.filter((t) => !(groupScope && t.value === "REIMBURSEMENT")).map((t) => (
                 <SelectItem key={t.value} value={t.value}>
                   {t.label}
                 </SelectItem>
@@ -334,7 +568,7 @@ export default function BenefitGrantsPanel() {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            disabled={!canEdit}
+            disabled={!canEdit || paidLocked}
             className="mt-1 h-9 text-sm"
           />
         </div>
@@ -345,7 +579,7 @@ export default function BenefitGrantsPanel() {
             type="month"
             value={payMonth}
             onChange={(e) => setPayMonth(e.target.value)}
-            disabled={!canEdit}
+            disabled={!canEdit || paidLocked}
             className="mt-1 h-9 text-sm"
           />
           <p className="mt-1 text-[10px] text-slate-400">
@@ -405,6 +639,14 @@ export default function BenefitGrantsPanel() {
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </span>
+              ) : hasExistingDocument ? (
+                <button
+                  type="button"
+                  onClick={() => openDocument(editing!.id)}
+                  className="inline-flex items-center gap-1 text-[11px] text-violet-600 hover:underline"
+                >
+                  <Paperclip className="h-3 w-3" /> Current document — upload to replace
+                </button>
               ) : (
                 <span className="text-[11px] text-slate-400">
                   PDF, JPG, PNG, DOC or DOCX — max 15 MB
@@ -432,14 +674,21 @@ export default function BenefitGrantsPanel() {
         )}
       </div>
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex justify-end gap-2">
+        {editing && (
+          <Button type="button" variant="outline" onClick={resetForm} disabled={saving} className="h-9">
+            Cancel
+          </Button>
+        )}
         <Button type="button" onClick={submit} disabled={!canSubmit} className="h-9">
           {saving ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : editing ? (
+            <Save className="mr-2 h-4 w-4" />
           ) : (
             <Plus className="mr-2 h-4 w-4" />
           )}
-          Grant benefit
+          {editing ? "Save changes" : groupScope ? "Grant to group" : "Grant benefit"}
         </Button>
       </div>
 
@@ -499,20 +748,55 @@ export default function BenefitGrantsPanel() {
                     </td>
                     <td className="py-2 pr-3">
                       {g.documentUrl ? (
-                        <a
-                          href={g.documentUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-violet-600 hover:underline"
+                        <button
+                          type="button"
+                          onClick={() => openDocument(g.id)}
+                          disabled={openingDocId === g.id}
+                          className="inline-flex items-center gap-1 text-violet-600 hover:underline disabled:opacity-60"
                         >
-                          <Paperclip className="h-3.5 w-3.5" /> View
-                        </a>
+                          {openingDocId === g.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Paperclip className="h-3.5 w-3.5" />
+                          )}{" "}
+                          View
+                        </button>
                       ) : (
                         <span className="text-slate-300">—</span>
                       )}
                     </td>
-                    <td className="py-2 text-right">
-                      {canEdit && g.status !== "PAID" && (
+                    <td className="py-2 text-right whitespace-nowrap">
+                      {canEdit && g.status === "PAID" && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="mr-1 h-7 gap-1 bg-emerald-600 px-2 text-[11px] hover:bg-emerald-700"
+                          disabled={completingId === g.id}
+                          onClick={() => complete(g)}
+                          title="Paid — close this benefit off"
+                        >
+                          {completingId === g.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          )}
+                          Completed
+                        </Button>
+                      )}
+                      {canEdit && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className={`h-7 w-7 p-0 ${editing?.id === g.id ? "text-blue-600" : "text-slate-400 hover:text-blue-600"}`}
+                          onClick={() => startEdit(g)}
+                          aria-label="Edit benefit"
+                          title="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {canEdit && g.status === "PENDING" && (
                         <Button
                           type="button"
                           variant="ghost"

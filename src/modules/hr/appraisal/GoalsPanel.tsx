@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import type { JobCode } from "@/service/jobCodeService";
 import type { Goal } from "./appraisal-types";
+import { BulkGoalsDialog, type BulkGoalsApply } from "./BulkGoalsDialog";
 
 // ── Panel 2: Goals & KPIs (per job code) ───────────────────────────────────
 export function GoalsPanel({
@@ -25,6 +26,7 @@ export function GoalsPanel({
   onAddJobCode,
   onRemoveJobCode,
   availableJobCodes = [],
+  onBulkGoals,
 }: {
   goalsByJobCode: Record<string, Goal[]>;
   setGoalsByJobCode: React.Dispatch<
@@ -38,8 +40,11 @@ export function GoalsPanel({
   onAddJobCode: (jobCode: string) => void;
   onRemoveJobCode: (jobCode: string) => void;
   availableJobCodes?: JobCode[];
+  /** Assign the same goals to many employees / departments / grades at once. */
+  onBulkGoals?: (req: BulkGoalsApply) => { applied: string[]; skipped: string[] };
 }) {
   const [newJobCode, setNewJobCode] = useState("");
+  const [bulkOpen, setBulkOpen] = useState(false);
   const goals = goalsByJobCode[selectedJobCode] || [];
   const activeGoals = goals.filter((g) => g.active);
   const totalWeight = activeGoals.reduce((s, g) => s + (g.weight || 0), 0);
@@ -103,8 +108,27 @@ export function GoalsPanel({
 
   return (
     <div className="flex gap-6">
+      {onBulkGoals && (
+        <BulkGoalsDialog
+          open={bulkOpen}
+          onClose={() => setBulkOpen(false)}
+          availableJobCodes={availableJobCodes}
+          maxGoals={maxGoals}
+          minGoals={minGoals}
+          onApply={onBulkGoals}
+        />
+      )}
       {/* Job Code Sidebar */}
       <div className="w-64 shrink-0 space-y-3">
+        {onBulkGoals && (
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:from-indigo-700 hover:to-violet-700"
+          >
+            🎯 Assign goals to many
+          </button>
+        )}
         <Card className="p-3">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">
             Configured Job Codes ({jobCodes.length})
