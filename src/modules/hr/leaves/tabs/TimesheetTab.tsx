@@ -643,7 +643,7 @@ export default function TimesheetTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  // Only an ACTIVE employee may check in. Default true so a transient load
+  // Active and under-probation employees may check in. Default true so a transient load
   // failure never wrongly blocks attendance.
   const [employeeActive, setEmployeeActive] = useState(true);
 
@@ -897,6 +897,11 @@ export default function TimesheetTab() {
                 <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1.5 text-sm font-semibold text-emerald-300 border border-emerald-500/30">
                   <CheckCircle2 className="h-4 w-4" />
                   Auto-marked present
+                </span>
+              ) : !todayEntry?.checkInTime && todayEntry?.holidayName ? (
+                <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/20 px-4 py-1.5 text-sm font-semibold text-violet-200 border border-violet-400/30">
+                  <span className="h-1.5 w-1.5 rounded-full bg-violet-300" />
+                  Public holiday · {todayEntry.holidayName} — paid day off
                 </span>
               ) : !todayEntry?.checkInTime ? (
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-semibold text-white/50 border border-white/10">

@@ -177,6 +177,9 @@ export default function CurrentJobForm() {
   })();
 
   const [exists, setExists] = useState(false);
+  // The employee profile's Join Date. The Current Job Start Date always follows it
+  // (read-only here); it is only editable when the profile has no join date yet.
+  const [profileJoinDate, setProfileJoinDate] = useState("");
   const [jobCodes, setJobCodes] = useState<JobCode[]>([]);
   const [loadingJobCodes, setLoadingJobCodes] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -254,7 +257,7 @@ export default function CurrentJobForm() {
         workLocation: data.workLocation,
         workCity: data.workCity,
         workCountry: data.workCountry,
-        startDate: data.startDate,
+        startDate: profileJoinDate || data.startDate,
         effectiveFrom: data.effectiveFrom,
         expectedEndDate: data.expectedEndDate || undefined,
         employmentCategory: category,
@@ -279,13 +282,16 @@ export default function CurrentJobForm() {
 
         // Sync join date and department to employee profile
         try {
-          if (selectedDept || data.startDate) {
+          const seedJoinDate = !profileJoinDate && !!data.startDate;
+          if (selectedDept || seedJoinDate) {
             const employeeUpdateData: {
               joinDate?: string;
               departmentId?: number;
             } = {};
 
-            if (data.startDate) {
+            // The profile owns the Join Date. Only seed it from the Start Date when
+            // the profile has none yet — never overwrite it from this tab.
+            if (seedJoinDate) {
               employeeUpdateData.joinDate = data.startDate;
             }
 
@@ -298,8 +304,11 @@ export default function CurrentJobForm() {
                 validEmployeeId,
                 employeeUpdateData,
               );
+              if (seedJoinDate) setProfileJoinDate(data.startDate);
               toast.success(
-                "Employee profile updated with join date and department",
+                seedJoinDate
+                  ? "Employee profile updated with join date and department"
+                  : "Employee profile department updated",
               );
               window.dispatchEvent(new CustomEvent("employee:updated"));
             }
@@ -442,12 +451,13 @@ export default function CurrentJobForm() {
 
         const joinDate =
           typeof emp?.joinDate === "string" ? emp.joinDate.trim() : "";
+        setProfileJoinDate(joinDate);
 
         if (res) {
           setExists(true);
           const mapped = mapServerToForm(res);
-          // Profile Join Date is the employment start — prefill when Current Job has none.
-          if (!mapped.startDate && joinDate) {
+          // Profile Join Date is the employment start — the Start Date always follows it.
+          if (joinDate) {
             mapped.startDate = joinDate;
           }
           if (!mapped.effectiveFrom && joinDate) {
@@ -722,16 +732,8 @@ export default function CurrentJobForm() {
         />
         <KpiCard
           icon={<Calendar className="h-4 w-4" />}
-          label="Start Date"
-          value={
-            formData.startDate
-              ? new Date(formData.startDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })
-              : "—"
-          }
+          label="Joined"
+          value={formatViewDate(profileJoinDate || formData.startDate) || "—"}
           accent="text-amber-600 bg-amber-50 border-amber-100"
         />
         <KpiCard
@@ -1204,17 +1206,31 @@ export default function CurrentJobForm() {
         />
         {editing ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-          <Field label="Start Date" required error={errors.startDate}>
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                className={cn(fieldCls, "pl-9")}
-                disabled={!editing}
-                value={formData.startDate}
-                onChange={(e) => updateField("startDate")(e.target.value)}
-              />
-            </div>
+          <Field label="Start Date (Join Date)" required error={errors.startDate}>
+            {profileJoinDate ? (
+              <div className="flex h-9 items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50/70 px-3">
+                <Calendar className="h-4 w-4 shrink-0 text-violet-400" />
+                <span className="truncate text-sm font-semibold text-slate-700">
+                  {formatViewDate(profileJoinDate)}
+                </span>
+              </div>
+            ) : (
+              <div className="relative">
+                <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  className={cn(fieldCls, "pl-9")}
+                  disabled={!editing}
+                  value={formData.startDate}
+                  onChange={(e) => updateField("startDate")(e.target.value)}
+                />
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {profileJoinDate
+                ? "From the profile Join Date — change it on the Employee Info tab."
+                : "No join date on the profile yet — this also sets the profile Join Date."}
+            </p>
           </Field>
 
           <Field label="Effective From" required error={errors.effectiveFrom}>
@@ -1261,7 +1277,7 @@ export default function CurrentJobForm() {
         </div>
         ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-          <ViewField icon={<Calendar className="h-4 w-4" />} label="Start Date" value={formatViewDate(formData.startDate)} />
+          <ViewField icon={<Calendar className="h-4 w-4" />} label="Start Date (Join Date)" value={formatViewDate(profileJoinDate || formData.startDate)} />
           <ViewField icon={<Calendar className="h-4 w-4" />} label="Effective From" value={formatViewDate(formData.effectiveFrom)} />
           <ViewField icon={<Calendar className="h-4 w-4" />} label="Expected End Date" value={formatViewDate(formData.expectedEndDate)} />
         </div>

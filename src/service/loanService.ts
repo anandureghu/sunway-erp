@@ -11,6 +11,38 @@ export interface LoanEligibility {
   maxRepaymentMonths?: number | null;
 }
 
+/** One repayment in a loan's payment record. */
+export interface LoanPaymentRow {
+  id: number;
+  /** yyyy-MM */
+  month: string | null;
+  paymentDate: string | null;
+  /** Paid amount in this repayment. */
+  amount: number;
+  /** Total paid so far, including this repayment. */
+  totalPaid: number;
+  /** Balance left after this repayment. */
+  balanceAfter: number;
+  /** PAYROLL, SETTLEMENT or MANUAL */
+  source: string;
+  /** Payroll code for payroll repayments. */
+  reference?: string | null;
+}
+
+/** A loan's payment record: every repayment with a running total. */
+export interface LoanPaymentRecord {
+  loanId: number;
+  loanCode?: string | null;
+  status?: string | null;
+  loanAmount: number;
+  totalPaid: number;
+  balance: number;
+  currencyCode?: string | null;
+  /** Recorded repayments don't add up to what has been repaid (older payments). */
+  incomplete: boolean;
+  rows: LoanPaymentRow[];
+}
+
 export const loanService = {
   // Get loan types for dropdown
   getLoanTypes(employeeId: number) {
@@ -93,6 +125,14 @@ export const loanService = {
     return apiClient.post<Loan>(`/loans/${loanId}/archive`, null, {
       params: { archived },
     });
+  },
+
+  // Payment record: every repayment of the loan (month, paid amount, running total).
+  async getPaymentRecord(employeeId: number, loanId: number): Promise<LoanPaymentRecord> {
+    const res = await apiClient.get<LoanPaymentRecord>(
+      `${BASE}/${employeeId}/loans/${loanId}/payments`,
+    );
+    return { ...res.data, rows: Array.isArray(res.data?.rows) ? res.data.rows : [] };
   },
 
   // Permanently delete an archived (completed) loan record.

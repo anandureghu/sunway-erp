@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LogIn, LogOut, Loader2, CheckCircle2 } from "lucide-react";
+import { LogIn, LogOut, Loader2, CheckCircle2, PartyPopper } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -89,8 +89,19 @@ export function HeaderCheckIn() {
 
   const complete = !!(today?.checkInTime && today?.checkOutTime);
 
+  const holidayName = today?.holidayName ?? null;
+
   const handle = async () => {
     if (busy) return;
+    if (!today?.checkInTime && holidayName) {
+      const ok = await confirm({
+        title: "Today is a public holiday",
+        description: `${holidayName} is a paid day off. Check in only if you are working today — the hours count as holiday overtime.`,
+        confirmLabel: "Check In",
+        cancelLabel: "Not working",
+      });
+      if (!ok) return;
+    }
     if (checkedIn) {
       const ok = await confirm({
         title: "Check out?",
@@ -126,6 +137,21 @@ export function HeaderCheckIn() {
       <span className="hidden items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 sm:inline-flex">
         <CheckCircle2 className="h-3.5 w-3.5" /> Shift done
       </span>
+    );
+  }
+
+  if (holidayName && !today?.checkInTime) {
+    return (
+      <button
+        onClick={handle}
+        disabled={busy}
+        title={`${holidayName} — public holiday (paid day off). Click to check in if you're working.`}
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 disabled:opacity-60"
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PartyPopper className="h-3.5 w-3.5" />}
+        <span className="hidden max-w-[180px] truncate sm:inline">Holiday · {holidayName}</span>
+        <span className="sm:hidden">Holiday</span>
+      </button>
     );
   }
 

@@ -33,6 +33,7 @@ import {
   Umbrella,
   Shield,
   UserRoundCog,
+  Receipt,
   ClipboardList,
   IdCard,
 } from "lucide-react";
@@ -60,6 +61,8 @@ import AttendanceHistory from "./AttendanceHistory";
 import { ExitInterviewsPanel } from "./ExitInterviewsPanel";
 import { PayrollSummaryPanel } from "./PayrollSummaryPanel";
 import { ArchivePanel } from "./ArchivePanel";
+import LoanPaymentRecord from "@/modules/hr/loans/LoanPaymentRecord";
+import { RecordViewDialog, DHeaderTag } from "@/modules/hr/components/record-form-dialog";
 import EmployeeRegisterReport from "./EmployeeRegisterReport";
 import EmployeeSummaryReport from "./EmployeeSummaryReport";
 import WorkforceOverview from "./WorkforceOverview";
@@ -348,6 +351,7 @@ type LoanApprovalRow = {
   startDate: string;
   endDate: string;
   employeeName: string;
+  employeeId?: number;
   department?: string;
   currencySymbol?: string;
   rejectionComment?: string;
@@ -591,6 +595,8 @@ export default function HRReports() {
   const [loanKpiFilter, setLoanKpiFilter] = useState<string | null>(null);
   const [loanArchivedView, setLoanArchivedView] = useState(false);
   const [loanBusyId, setLoanBusyId] = useState<number | null>(null);
+  // Loan whose payment record is open (Loan History → Payments).
+  const [paymentLoan, setPaymentLoan] = useState<LoanApprovalRow | null>(null);
 
   // ── fetch employees ─────────────────────────────────────────────────────────
   const fetchEmployees = async () => {
@@ -1406,6 +1412,29 @@ export default function HRReports() {
           </div>
         ))}
 
+      {/* ── Loan payment record pop-up (Loan History → Payments) ── */}
+      {paymentLoan && paymentLoan.employeeId != null && (
+        <RecordViewDialog
+          open
+          onClose={() => setPaymentLoan(null)}
+          title={paymentLoan.employeeName || "Loan"}
+          subtitle={[paymentLoan.loanCode, humanizeLoan(paymentLoan.loanType)].filter(Boolean).join(" · ")}
+          badge={initialsFrom(paymentLoan.employeeName)}
+          badgeClassName="bg-emerald-100 text-emerald-700"
+          headerExtra={
+            <DHeaderTag>{LOAN_STATUS_META[paymentLoan.status]?.label ?? paymentLoan.status}</DHeaderTag>
+          }
+          maxWidth={680}
+        >
+          <LoanPaymentRecord
+            employeeId={paymentLoan.employeeId}
+            loanId={paymentLoan.id}
+            currencySymbol={loanCurrency}
+            className="border-0 p-0"
+          />
+        </RecordViewDialog>
+      )}
+
       {/* ── LOAN APPROVALS TAB ── */}
       {activeSub === "loans" &&
         (loadingLoans ? (
@@ -1644,6 +1673,18 @@ export default function HRReports() {
                             </td>
                             <td className="py-2.5 text-right">
                               <div className="inline-flex items-center gap-1.5">
+                                {(l.status === "ACTIVE" || l.status === "CLOSED") &&
+                                  l.employeeId != null && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPaymentLoan(l)}
+                                      title="Payment record"
+                                      className="inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                                    >
+                                      <Receipt className="h-3.5 w-3.5" />
+                                      Payments
+                                    </button>
+                                  )}
                                 {/* Archive is only offered for completed (CLOSED) loans.
                                     In the archived view, Restore + Delete are available. */}
                                 {loanArchivedView ? (

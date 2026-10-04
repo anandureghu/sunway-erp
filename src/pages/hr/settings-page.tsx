@@ -24,6 +24,7 @@ import {
   Umbrella,
   Shield,
   Hash,
+  CalendarDays,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomization
 import LeaveApprovalPanel from "@/modules/hr/leaves/approval/LeaveApprovalPanel";
 import LoanApprovalPanel from "@/modules/hr/loans/approval/LoanApprovalPanel";
 import HrPoliciesForm from "@/modules/hr/policies/HrPoliciesForm";
+import PublicHolidaysPanel from "@/modules/hr/policies/PublicHolidaysPanel";
 import ContractRenewablesPanel from "@/modules/hr/contracts/ContractRenewablesPanel";
 import { ConfirmEmployeesPanel } from "@/modules/hr/reports/ConfirmEmployeesPanel";
 import AppraisalTab from "@/modules/hr/appraisal/AppraisalTab";
@@ -248,6 +250,13 @@ export default function HRSettingsPage() {
             label: "HR Policies",
             icon: <FileText className="h-4 w-4" />,
             element: () => <HrPoliciesForm />,
+            guard: canTab("HRS_POLICIES"),
+          },
+          {
+            value: "public-holidays",
+            label: "Public Holidays",
+            icon: <CalendarDays className="h-4 w-4" />,
+            element: () => <PublicHolidaysPanel />,
             guard: canTab("HRS_POLICIES"),
           },
           {

@@ -19,6 +19,7 @@ import {
 } from "./appraisal-constants";
 import { CycleSetupPanel } from "./CycleSetupPanel";
 import { GoalsPanel } from "./GoalsPanel";
+import type { BulkGoalsApply } from "./BulkGoalsDialog";
 import { RatingScalePanel } from "./RatingScalePanel";
 import { PhasesPanel } from "./PhasesPanel";
 import { PreviewPanel } from "./PreviewPanel";
@@ -317,6 +318,53 @@ export default function AppraisalTab() {
     );
   }
 
+  // ── Assign the same goals to many job codes at once ──
+  // Goals live per job code; employees / departments / grades picked in the dialog
+  // are resolved to job codes there. Kept in the editor until the cycle is saved.
+  function handleBulkGoals(req: BulkGoalsApply): { applied: string[]; skipped: string[] } {
+    const applied: string[] = [];
+    const skipped: string[] = [];
+    const next: Record<string, Goal[]> = { ...goalsByJobCode };
+    let idSeed = Date.now();
+
+    for (const code of req.jobCodes) {
+      const existing = next[code] || [];
+      const activeExisting = existing.filter((g) => g.active);
+      const added: Goal[] = req.goals.map((g) => ({ ...g, id: idSeed++, active: true }));
+
+      let list: Goal[];
+      if (req.mode === "replace") {
+        // Same as removing goals one by one: existing KPIs are switched off.
+        list = [...existing.map((g) => ({ ...g, active: false })), ...added];
+      } else {
+        if (activeExisting.length + added.length > cycleConfig.maxGoals) {
+          skipped.push(code);
+          continue;
+        }
+        list = [...existing, ...added];
+        if (req.rebalance) {
+          const actives = list.filter((g) => g.active);
+          const base = Math.floor(100 / actives.length);
+          const rem = 100 - base * actives.length;
+          list = list.map((g) => {
+            if (!g.active) return g;
+            const idx = actives.findIndex((a) => a.id === g.id);
+            return { ...g, weight: base + (idx === actives.length - 1 ? rem : 0) };
+          });
+        }
+      }
+      next[code] = list;
+      applied.push(code);
+    }
+
+    setGoalsByJobCode(next);
+    setJobCodes((p) => [...p, ...applied.filter((c) => !p.includes(c))]);
+    if (applied.length && (!selectedJobCode || !applied.includes(selectedJobCode))) {
+      setSelectedJobCode(applied[0]);
+    }
+    return { applied, skipped };
+  }
+
   const panels = {
     cycle: <CycleSetupPanel config={cycleConfig} setConfig={setCycleConfig} />,
     goals: (
@@ -331,6 +379,7 @@ export default function AppraisalTab() {
         onAddJobCode={handleAddJobCode}
         onRemoveJobCode={handleRemoveJobCode}
         availableJobCodes={availableJobCodes}
+        onBulkGoals={handleBulkGoals}
       />
     ),
     ratings: (

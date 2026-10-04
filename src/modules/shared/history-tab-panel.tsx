@@ -112,11 +112,15 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
     setRowSelection({});
   }, [entityType, search]);
 
+  // Archived employees have no amount; they show the last designation and the end
+  // of employment (last working day) instead.
+  const isEmployee = entityType === "EMPLOYEE";
+
   const columns = useMemo<ColumnDef<HistoryRecord>[]>(
     () => [
       {
         accessorKey: "referenceNo",
-        header: "Reference",
+        header: isEmployee ? "Employee No" : "Reference",
         cell: ({ row }) => row.original.referenceNo || "—",
       },
       {
@@ -126,17 +130,32 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
       },
       {
         accessorKey: "partyName",
-        header: "Party / Details",
+        header: isEmployee ? "Employee / Department" : "Party / Details",
         cell: ({ row }) => row.original.partyName || "—",
       },
-      {
-        accessorKey: "amount",
-        header: "Amount",
-        cell: ({ row }) =>
-          typeof row.original.amount === "number"
-            ? formatCurrencyAmount({ amount: row.original.amount })
-            : "—",
-      },
+      ...(isEmployee
+        ? ([
+            {
+              accessorKey: "designation",
+              header: "Last Designation",
+              cell: ({ row }) => row.original.designation || "—",
+            },
+            {
+              accessorKey: "endDate",
+              header: "End of Employment",
+              cell: ({ row }) => formatDate(row.original.endDate),
+            },
+          ] as ColumnDef<HistoryRecord>[])
+        : ([
+            {
+              accessorKey: "amount",
+              header: "Amount",
+              cell: ({ row }) =>
+                typeof row.original.amount === "number"
+                  ? formatCurrencyAmount({ amount: row.original.amount })
+                  : "—",
+            },
+          ] as ColumnDef<HistoryRecord>[])),
       {
         accessorKey: "createdAt",
         header: "Created",
@@ -148,19 +167,31 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
         cell: ({ row }) => formatDate(row.original.archivedAt),
       },
     ],
-    [],
+    [isEmployee],
   );
 
-  const CSV_HEADER = [
-    "ID",
-    "Type",
-    "Reference No",
-    "Status",
-    "Party / Details",
-    "Amount",
-    "Created At",
-    "Archived At",
-  ];
+  const CSV_HEADER = isEmployee
+    ? [
+        "ID",
+        "Type",
+        "Employee No",
+        "Status",
+        "Employee / Department",
+        "Last Designation",
+        "End of Employment",
+        "Created At",
+        "Archived At",
+      ]
+    : [
+        "ID",
+        "Type",
+        "Reference No",
+        "Status",
+        "Party / Details",
+        "Amount",
+        "Created At",
+        "Archived At",
+      ];
 
   const toCsvRow = (record: HistoryRecord): string[] => [
     String(record.id),
@@ -168,7 +199,9 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
     record.referenceNo ?? "",
     record.status ?? "",
     record.partyName ?? "",
-    typeof record.amount === "number" ? String(record.amount) : "",
+    ...(isEmployee
+      ? [record.designation ?? "", formatDate(record.endDate)]
+      : [typeof record.amount === "number" ? String(record.amount) : ""]),
     formatDate(record.createdAt),
     formatDate(record.archivedAt),
   ];

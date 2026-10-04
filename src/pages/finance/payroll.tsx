@@ -1686,6 +1686,17 @@ function EmployeePayrollTab() {
                           {payrollPreview.workedDays} / {payrollPreview.workingDays}
                         </span>
                       </div>
+                      {(payrollPreview.publicHolidayDays ?? 0) > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">
+                            Public holidays{" "}
+                            <span className="text-[11px] text-slate-400">(paid)</span>
+                          </span>
+                          <span className="font-medium text-slate-700 tabular-nums">
+                            {payrollPreview.publicHolidayDays} days
+                          </span>
+                        </div>
+                      )}
                       {payrollPreview.paidLeaveDays > 0 && (
                         <div className="flex items-center justify-between px-3 py-2">
                           <span className="text-slate-600">Paid leave</span>

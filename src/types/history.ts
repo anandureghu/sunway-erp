@@ -26,6 +26,10 @@ export type HistoryRecord = {
   amount?: number | null;
   createdAt?: string | null;
   archivedAt?: string | null;
+  /** Employees only: last working day (end of employment), yyyy-MM-dd. */
+  endDate?: string | null;
+  /** Employees only: last designation (job title). */
+  designation?: string | null;
 };
 
 export type HistoryPageResponse = {

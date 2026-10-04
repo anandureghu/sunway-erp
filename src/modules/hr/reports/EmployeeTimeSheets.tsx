@@ -76,6 +76,12 @@ const TODAY_META: Record<string, { label: string; cls: string; dot: string }> = 
     cls: "bg-rose-50 text-rose-700 border-rose-200",
     dot: "bg-rose-400",
   },
+  // Public holiday — a paid day off, never absent.
+  HOLIDAY: {
+    label: "Holiday",
+    cls: "bg-violet-50 text-violet-700 border-violet-200",
+    dot: "bg-violet-500",
+  },
   // On approved leave today — counts as absent for the day.
   ON_LEAVE: {
     label: "Absent",
@@ -546,6 +552,7 @@ export default function EmployeeTimeSheets() {
                       "Out",
                       "Hours Today",
                       "Days Worked",
+                      "Holidays",
                       "Regular Hours",
                       "Overtime",
                     ].map((h, i) => (
@@ -612,6 +619,7 @@ export default function EmployeeTimeSheets() {
                         </td>
                         <td className="px-4 py-3">
                           <span
+                            title={r.todayHolidayName ?? undefined}
                             className={cn(
                               "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold",
                               meta.cls,
@@ -639,6 +647,18 @@ export default function EmployeeTimeSheets() {
                           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-50 px-2 text-xs font-bold text-emerald-700">
                             {r.daysPresent}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {r.holidayDays ? (
+                            <span
+                              title="Paid public holidays this month"
+                              className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-violet-50 px-2 text-xs font-bold text-violet-700"
+                            >
+                              {r.holidayDays}
+                            </span>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-medium text-slate-800">
                           {Math.round(

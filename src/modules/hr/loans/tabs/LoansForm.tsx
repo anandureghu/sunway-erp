@@ -24,6 +24,7 @@ import { getApiErrorMessage } from "@/lib/api-error-message";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { addMonths } from "@/lib/date";
 import { useParams, useOutletContext } from "react-router-dom";
+import LoanPaymentRecord from "@/modules/hr/loans/LoanPaymentRecord";
 import type { LoansShellCtx } from "@/modules/hr/loans/LoansShell";
 import { loanService } from "@/service/loanService";
 import { SelectField } from "@/modules/hr/components/select-field";
@@ -1066,6 +1067,20 @@ export default function LoansForm(): ReactElement {
                           />
                         </div>
                       </div>
+
+                      {/* Repayments made against this loan (payroll / settlement / manual). */}
+                      {employeeId &&
+                        /^\d+$/.test(loan.id) &&
+                        ["ACTIVE", "CLOSED"].includes(
+                          (loan.loanStatus ?? "").toUpperCase(),
+                        ) && (
+                          <LoanPaymentRecord
+                            employeeId={employeeId}
+                            loanId={Number(loan.id)}
+                            currencySymbol={currencySymbol}
+                            refreshKey={loan.balance}
+                          />
+                        )}
 
                       {loan.notes && (
                         <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
