@@ -4,7 +4,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import type { SalesOrder } from "@/types/sales";
-import { createSalesOrderColumns } from "@/lib/columns/sales-columns";
+import {
+  createSalesOrderColumns,
+  salesOrderDeliveryStatus,
+} from "@/lib/columns/sales-columns";
 import {
   archiveSalesOrder,
   cancelSalesOrder,
@@ -53,7 +56,7 @@ export default function SalesOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activePicklistByOrderId, setActivePicklistByOrderId] = useState<
-    Record<string, { id: string; status: string }>
+    Record<string, { id: string; status: string; shipmentStatus?: string }>
   >({});
 
   const [actionState, setActionState] = useState<{
@@ -74,10 +77,17 @@ export default function SalesOrdersPage() {
         listPicklists().catch(() => []),
       ]);
       setOrders(data);
-      const byOrder: Record<string, { id: string; status: string }> = {};
+      const byOrder: Record<
+        string,
+        { id: string; status: string; shipmentStatus?: string }
+      > = {};
       for (const pl of picklists) {
         if (!pl.orderId || pl.status === "cancelled") continue;
-        byOrder[String(pl.orderId)] = { id: pl.id, status: pl.status };
+        byOrder[String(pl.orderId)] = {
+          id: pl.id,
+          status: pl.status,
+          shipmentStatus: pl.shipmentStatus,
+        };
       }
       setActivePicklistByOrderId(byOrder);
     } catch (e: any) {
@@ -222,10 +232,18 @@ export default function SalesOrdersPage() {
         !q ||
         order.orderNo.toLowerCase().includes(q) ||
         order.customerName.toLowerCase().includes(q);
+      const deliveryStatus = salesOrderDeliveryStatus(
+        order,
+        activePicklistByOrderId[String(order.id)],
+      );
       const matchesStatus =
         kpiFilter === "confirmed"
           ? order.status !== "quotation"
-          : statusFilter === "all" || order.status === statusFilter;
+          : statusFilter === "all"
+            ? true
+            : ["picked", "dispatched", "delivered"].includes(statusFilter)
+              ? deliveryStatus === statusFilter
+              : order.status === statusFilter;
       const matchesPaymentStatus =
         paymentStatusFilter === "all" ||
         normalizePaymentStatusKey(order.paymentStatus) ===
@@ -244,6 +262,7 @@ export default function SalesOrdersPage() {
     isClosedOrder,
     normalizePaymentStatusKey,
     kpiFilter,
+    activePicklistByOrderId,
   ]);
 
   const handleConfirmOrder = useCallback(

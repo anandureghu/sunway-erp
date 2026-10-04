@@ -41,6 +41,7 @@ import {
   summarizeBulkActionResult,
 } from "@/service/historyService";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { kpiFilterItem } from "@/lib/kpi-filter";
@@ -243,11 +244,14 @@ export default function InvoicesPage({
         await apiClient.post(`/invoices/${inv.id}/email`);
         toast.success("Invoice email sent to customer.");
       }
-    } catch {
+    } catch (error) {
       toast.error(
-        isReceipt
-          ? "Could not send receipt email."
-          : "Could not send invoice email.",
+        getApiErrorMessage(
+          error,
+          isReceipt
+            ? "Could not send receipt email."
+            : "Could not send invoice email.",
+        ),
       );
     }
   }, []);

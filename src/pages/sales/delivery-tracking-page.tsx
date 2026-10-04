@@ -596,15 +596,36 @@ export default function DeliveryTrackingPage() {
         {/* Left Sidebar - Active Dispatches */}
         <Card>
           <CardHeader>
-            <CardTitle>Active Dispatches</CardTitle>
-            <div className="relative mt-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Q Search dispatches..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+            <CardTitle>Dispatches</CardTitle>
+            <div className="mt-4 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search dispatches..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <Select
+                value={dispatchStatusFilter}
+                onValueChange={(value) => {
+                  setDispatchStatusFilter(
+                    value as "all" | "created" | "in_motion" | "delivered",
+                  );
+                  setKpiFilter(value === "all" ? null : value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Delivery status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All delivery statuses</SelectItem>
+                  <SelectItem value="created">Pending dispatch</SelectItem>
+                  <SelectItem value="in_motion">In motion</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>

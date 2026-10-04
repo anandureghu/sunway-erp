@@ -488,6 +488,8 @@ export function attachOrderAndItems(
       ...d,
       orderId,
       order,
+      picklist: pick,
+      archived: Boolean(pick?.archived),
       deliveryAddress: d.deliveryAddress || order?.shippingAddress || "",
     };
   });

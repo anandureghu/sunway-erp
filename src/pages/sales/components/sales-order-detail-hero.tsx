@@ -71,10 +71,13 @@ export function SalesOrderDetailHero({
   const showDispatchStatus =
     ACTIVE_DISPATCH_STATUSES.has(shipmentStatus) ||
     shipmentStatus === "created";
-  // Customer returns only after delivery (order completed). Hide while in transit /
-  // out for delivery / otherwise not yet delivered.
-  const isDelivered = shipmentStatus === "delivered" || status === "COMPLETED";
+  // Returns only after the warehouse has marked the picklist picked and the
+  // shipment is delivered. Order COMPLETED alone is not enough — a picklist can
+  // still be CREATED with no stock issued yet.
+  const isPicked = (activePicklist?.status || "").toLowerCase() === "picked";
+  const isDelivered = shipmentStatus === "delivered";
   const canReturn =
+    isPicked &&
     isDelivered &&
     !isQuotation &&
     status !== "CANCELLED" &&

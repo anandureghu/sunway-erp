@@ -154,18 +154,24 @@ export function SalesOrdersListView({
                 <div className="relative">
                   <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Select value={statusFilter} onValueChange={onStatusChange}>
-                    <SelectTrigger className="w-44 pl-8">
-                      <SelectValue placeholder="Order status" />
+                    <SelectTrigger className="w-52 pl-8">
+                      <SelectValue placeholder="Order / delivery status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All order status</SelectItem>
+                      <SelectItem value="all">All statuses</SelectItem>
                       {listTab === "active" ? (
                         <>
                           <SelectItem value="quotation">Quotation</SelectItem>
                           <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="picked">Picked</SelectItem>
-                          <SelectItem value="dispatched">Dispatched</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="picked">
+                            Delivery: Picked
+                          </SelectItem>
+                          <SelectItem value="dispatched">
+                            Delivery: Dispatched
+                          </SelectItem>
+                          <SelectItem value="delivered">
+                            Delivery: Delivered
+                          </SelectItem>
                         </>
                       ) : (
                         <>

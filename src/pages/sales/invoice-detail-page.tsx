@@ -13,6 +13,7 @@ import {
 } from "@/lib/invoice-document-utils";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { InvoiceDocumentPreview } from "@/components/invoice/invoice-document-preview";
+import { getApiErrorMessage } from "@/lib/api-error-message";
 import { printInvoiceElement } from "@/lib/print-invoice";
 import { regenerateInvoicePdf } from "@/service/invoiceService";
 import { toast } from "sonner";
@@ -129,12 +130,19 @@ export default function InvoiceDetailPage() {
       } else {
         await apiClient.post(`/invoices/${invoice.id}/email`);
       }
-      await alert(
+      toast.success(
         `${isReceiptView ? "Receipt" : "Invoice"} email sent to customer`,
       );
     } catch (error) {
       console.error("Email sending failed", error);
-      await alert("Unable to send email");
+      await alert(
+        getApiErrorMessage(
+          error,
+          isReceiptView
+            ? "Unable to send receipt email"
+            : "Unable to send invoice email",
+        ),
+      );
     }
   };
 
@@ -167,15 +175,13 @@ export default function InvoiceDetailPage() {
         )}
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            {isReceiptView && (
-              <button
-                type="button"
-                onClick={handlePrint}
-                className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100"
-              >
-                Print
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="rounded-md border border-white/40 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 hover:bg-slate-100"
+            >
+              {isReceiptView ? "Print Receipt" : "Print Invoice"}
+            </button>
             <button
               type="button"
               onClick={handleDownloadPdf}

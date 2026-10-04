@@ -168,6 +168,8 @@ export type Dispatch = {
   order?: SalesOrder;
   picklistId: string;
   picklist?: Picklist;
+  /** True when the linked picklist has been archived (history). */
+  archived?: boolean;
   vehicleId?: string;
   vehicleNumber?: string;
   driverName?: string;

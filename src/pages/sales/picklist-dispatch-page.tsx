@@ -79,7 +79,7 @@ export default function PicklistDispatchPage() {
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
-  const [archivingPicklistId, setArchivingPicklistId] = useState<string | null>(
+  const [archivingDispatchId, setArchivingDispatchId] = useState<string | null>(
     null,
   );
   const navigate = useNavigate();
@@ -135,43 +135,61 @@ export default function PicklistDispatchPage() {
     void loadData();
   }, [loadData]);
 
-  const handleArchivePicklist = useCallback(
+  const handleArchiveDispatch = useCallback(
     async (id: string) => {
-      const picklist = picklists.find((p) => p.id === id);
-      const label = picklist?.picklistNo || id;
-      if (!(await confirm(`Archive picklist ${label}?`))) return;
-      setArchivingPicklistId(id);
+      const dispatch = dispatches.find((d) => d.id === id);
+      if (!dispatch?.picklistId) {
+        return toast.error("No linked picklist to archive for this dispatch.");
+      }
+      if (dispatch.status !== "delivered") {
+        return toast.error("Only delivered dispatches can be archived.");
+      }
+      if (dispatch.archived) {
+        return toast.error("Dispatch is already archived.");
+      }
+      const label = dispatch.dispatchNo || id;
+      if (!(await confirm(`Archive dispatch ${label}?`))) return;
+      setArchivingDispatchId(id);
       try {
-        await archivePicklist(id);
-        toast.success("Picklist archived successfully");
+        await archivePicklist(dispatch.picklistId);
+        toast.success("Dispatch archived successfully");
         await loadData();
       } catch (e: any) {
         toast.error(
           e?.response?.data?.message ||
             e?.message ||
-            "Failed to archive picklist",
+            "Failed to archive dispatch",
         );
       } finally {
-        setArchivingPicklistId(null);
+        setArchivingDispatchId(null);
       }
     },
-    [picklists, confirm, loadData],
+    [dispatches, confirm, loadData],
   );
 
-  const selectedPicklistIds = useMemo(
+  const selectedDispatchIds = useMemo(
     () =>
       Object.entries(rowSelection)
         .filter(([, selected]) => selected)
-        .map(([id]) => Number(id))
-        .filter((id) => !Number.isNaN(id)),
+        .map(([id]) => id),
     [rowSelection],
   );
 
-  const handleBulkArchivePicklists = useCallback(async () => {
-    if (selectedPicklistIds.length === 0) return;
+  const selectedPicklistIdsForArchive = useMemo(() => {
+    const ids = selectedDispatchIds
+      .map((dispatchId) => {
+        const dispatch = dispatches.find((d) => d.id === dispatchId);
+        return dispatch?.picklistId ? Number(dispatch.picklistId) : NaN;
+      })
+      .filter((id) => !Number.isNaN(id));
+    return Array.from(new Set(ids));
+  }, [selectedDispatchIds, dispatches]);
+
+  const handleBulkArchiveDispatches = useCallback(async () => {
+    if (selectedPicklistIdsForArchive.length === 0) return;
     if (
       !(await confirm(
-        `Archive ${selectedPicklistIds.length} selected picklist(s)? They will move to Operations and management Reports → History.`,
+        `Archive ${selectedPicklistIdsForArchive.length} selected dispatch(es)? They will move to Operations and management Reports → History.`,
       ))
     ) {
       return;
@@ -180,7 +198,7 @@ export default function PicklistDispatchPage() {
     try {
       const result = await bulkArchiveHistoryRecords(
         "PICKLIST",
-        selectedPicklistIds,
+        selectedPicklistIdsForArchive,
       );
       toast.success(summarizeBulkActionResult(result));
       setRowSelection({});
@@ -189,12 +207,12 @@ export default function PicklistDispatchPage() {
       toast.error(
         e?.response?.data?.message ||
           e?.message ||
-          "Failed to archive selected picklists.",
+          "Failed to archive selected dispatches.",
       );
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, loadData, selectedPicklistIds]);
+  }, [confirm, loadData, selectedPicklistIdsForArchive]);
 
   const dispatchedPicklistIds = useMemo(() => {
     const ids = new Set<string>();
@@ -235,24 +253,9 @@ export default function PicklistDispatchPage() {
             toast.error(e?.message || "Failed to cancel picklist");
           }
         },
-        (id) => {
-          setInitialPicklistId(id);
-          setShowCreateDispatch(true);
-        },
-        handleArchivePicklist,
-        archivingPicklistId,
         (id) => navigate(`/inventory/sales/picklist/${id}`),
-        dispatchedPicklistIds,
       ),
-    [
-      loadData,
-      picklists,
-      confirmCancel,
-      handleArchivePicklist,
-      archivingPicklistId,
-      navigate,
-      dispatchedPicklistIds,
-    ],
+    [loadData, picklists, confirmCancel, navigate],
   );
 
   const dispatchColumns = useMemo(
@@ -303,8 +306,17 @@ export default function PicklistDispatchPage() {
             `/inventory/sales/tracking?dispatchId=${id}&action=tracking`,
           );
         },
+        handleArchiveDispatch,
+        archivingDispatchId,
       ),
-    [loadData, navigate, dispatches, confirmCancel],
+    [
+      loadData,
+      navigate,
+      dispatches,
+      confirmCancel,
+      handleArchiveDispatch,
+      archivingDispatchId,
+    ],
   );
 
   const filteredPicklists = useMemo(() => {
@@ -337,13 +349,14 @@ export default function PicklistDispatchPage() {
   const hasDispatchablePicklists = eligiblePicklistsForDispatch.length > 0;
 
   const filteredDispatches = useMemo(() => {
+    const active = excludeArchived(dispatches);
     if (dispatchStatusFilter === "active") {
-      return dispatches.filter(
+      return active.filter(
         (d) =>
           !["delivered", "cancelled", "failed_delivery"].includes(d.status),
       );
     }
-    return dispatches;
+    return active;
   }, [dispatches, dispatchStatusFilter]);
 
   const applyKpiFilter = useCallback((key: string) => {
@@ -380,16 +393,24 @@ export default function PicklistDispatchPage() {
     const pickedReady = activePicklists.filter(
       (p) => p.status === "picked",
     ).length;
-    const shipmentsTotal = dispatches.length;
-    const activeShipments = dispatches.filter(
-      (d) => !["delivered", "cancelled", "failed_delivery"].includes(d.status),
+    const visibleDispatches = excludeArchived(dispatches);
+    const shipmentsTotal = visibleDispatches.length;
+    const closedShipments = visibleDispatches.filter((d) =>
+      ["delivered", "cancelled", "failed_delivery"].includes(d.status),
     ).length;
+    const activeShipments = shipmentsTotal - closedShipments;
+    const activeShipmentsHint =
+      shipmentsTotal === 0
+        ? "No shipments yet"
+        : activeShipments === 0
+          ? `${closedShipments} closed · none in flight`
+          : `${activeShipments} in flight · ${shipmentsTotal} total`;
     return [
       kpiFilterItem(
         {
           label: "Picklists",
           value: activePicklists.length,
-          hint: "Non-archived warehouse documents awaiting dispatch",
+          hint: "Warehouse documents awaiting dispatch",
           accent: "sky",
           icon: ClipboardList,
         },
@@ -425,7 +446,7 @@ export default function PicklistDispatchPage() {
         {
           label: "Active shipments",
           value: activeShipments,
-          hint: `${shipmentsTotal} total · in-flight logistics`,
+          hint: activeShipmentsHint,
           accent: "violet",
           icon: Radar,
         },
@@ -527,23 +548,12 @@ export default function PicklistDispatchPage() {
                   Create Dispatch
                 </Button>
               </div>
-              <BulkActionBar
-                selectedCount={selectedPicklistIds.length}
-                onArchive={handleBulkArchivePicklists}
-                onClear={() => setRowSelection({})}
-                archiving={bulkArchiving}
-              />
-              <SelectableDataTable
+              <DataTable
                 columns={picklistColumns}
                 data={filteredPicklists}
                 onRowClick={(row) =>
                   navigate(`/inventory/sales/picklist/${row.original.id}`)
                 }
-                enableRowSelection
-                rowSelection={rowSelection}
-                onRowSelectionChange={setRowSelection}
-                getRowId={(row) => row.id}
-                isRowSelectable={(row) => !row.archived}
               />
             </div>
           )}
@@ -570,7 +580,28 @@ export default function PicklistDispatchPage() {
                   Create Dispatch
                 </Button>
               </div>
-              <DataTable columns={dispatchColumns} data={filteredDispatches} />
+              <BulkActionBar
+                selectedCount={selectedDispatchIds.length}
+                onArchive={handleBulkArchiveDispatches}
+                onClear={() => setRowSelection({})}
+                archiving={bulkArchiving}
+              />
+              <SelectableDataTable
+                columns={dispatchColumns}
+                data={filteredDispatches}
+                onRowClick={(row) =>
+                  navigate(
+                    `/inventory/sales/tracking?dispatchId=${row.original.id}`,
+                  )
+                }
+                enableRowSelection
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+                getRowId={(row) => row.id}
+                isRowSelectable={(row) =>
+                  row.status === "delivered" && !row.archived
+                }
+              />
             </div>
           )}
         </TabsContent>

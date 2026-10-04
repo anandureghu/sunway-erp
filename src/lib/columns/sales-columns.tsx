@@ -60,7 +60,28 @@ function formatSnakeStatusLabel(status: string): string {
 export type SalesOrderActivePicklist = {
   id: string;
   status: string;
+  /** Linked shipment status when a dispatch exists (e.g. delivered). */
+  shipmentStatus?: string;
 };
+
+/** Fulfillment stage used by the orders list delivery-status filter. */
+export function salesOrderDeliveryStatus(
+  order: Pick<SalesOrder, "status" | "id">,
+  picklist?: SalesOrderActivePicklist | null,
+): string {
+  const orderStatus = (order.status || "").toLowerCase();
+  if (orderStatus === "cancelled") return "cancelled";
+  if (orderStatus === "quotation") return "quotation";
+
+  const ship = (picklist?.shipmentStatus || "").toLowerCase();
+  if (ship === "delivered") return "delivered";
+  if (["dispatched", "in_transit", "out_for_delivery"].includes(ship)) {
+    return "dispatched";
+  }
+  if ((picklist?.status || "").toLowerCase() === "picked") return "picked";
+  if (orderStatus === "completed") return "completed";
+  return "confirmed";
+}
 
 export type SalesOrderColumnActions = {
   onOpenOrder?: (id: string) => void;
@@ -463,12 +484,7 @@ export const CUSTOMER_COLUMNS: ColumnDef<Customer>[] = [
 export function createPicklistColumns(
   onMarkPicked?: (id: string) => void,
   onCancel?: (id: string) => void,
-  _onCreateDispatch?: (id: string) => void,
-  onArchive?: (id: string) => void,
-  processingPicklistId?: string | null,
   onViewDetails?: (id: string) => void,
-  /** @deprecated Create Dispatch moved to page toolbar; kept for call-site compat. */
-  _dispatchedPicklistIds?: Set<string>,
 ): ColumnDef<Picklist>[] {
   return [
     {
@@ -522,12 +538,6 @@ export function createPicklistColumns(
         const picklist = row.original;
         const canMarkPicked = picklist.status === "created";
         const canCancel = picklist.status === "created";
-        const canArchive =
-          !picklist.archived &&
-          (picklist.status === "cancelled" ||
-            (picklist.status === "picked" &&
-              picklist.shipmentStatus === "delivered"));
-        const isProcessing = processingPicklistId === picklist.id;
 
         return (
           <div onClick={(e) => e.stopPropagation()}>
@@ -569,22 +579,6 @@ export function createPicklistColumns(
                     </DropdownMenuItem>
                   </>
                 )}
-                {canArchive && onArchive && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      disabled={isProcessing}
-                      onClick={() => onArchive(picklist.id)}
-                    >
-                      {isProcessing ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Archive className="mr-2 h-4 w-4" />
-                      )}
-                      {isProcessing ? "Archiving..." : "Archive"}
-                    </DropdownMenuItem>
-                  </>
-                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -607,6 +601,8 @@ export function createDispatchColumns(
   onMarkFailedDelivery?: (id: string) => void,
   onCancel?: (id: string) => void,
   onUpdateTracking?: (id: string) => void,
+  onArchive?: (id: string) => void,
+  processingDispatchId?: string | null,
 ): ColumnDef<Dispatch>[] {
   return [
     {
@@ -683,77 +679,99 @@ export function createDispatchColumns(
           dispatch.status !== "delivered" && dispatch.status !== "cancelled";
         const canUpdateTracking =
           dispatch.status !== "delivered" && dispatch.status !== "cancelled";
+        // Backend archives the linked picklist once the shipment is delivered.
+        const canArchive =
+          !dispatch.archived && dispatch.status === "delivered";
+        const isProcessing = processingDispatchId === dispatch.id;
 
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {onViewDetails && (
-                <DropdownMenuItem onClick={() => onViewDetails(dispatch.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-              )}
-              {canDispatch && onDispatch && (
-                <DropdownMenuItem onClick={() => onDispatch(dispatch.id)}>
-                  <Truck className="mr-2 h-4 w-4" />
-                  Dispatch Shipment
-                </DropdownMenuItem>
-              )}
-              {canMarkInTransit && onMarkInTransit && (
-                <DropdownMenuItem onClick={() => onMarkInTransit(dispatch.id)}>
-                  <Truck className="mr-2 h-4 w-4" />
-                  Mark In Transit
-                </DropdownMenuItem>
-              )}
-              {canMarkOutForDelivery && onMarkOutForDelivery && (
-                <DropdownMenuItem
-                  onClick={() => onMarkOutForDelivery(dispatch.id)}
-                >
-                  <Truck className="mr-2 h-4 w-4" />
-                  Mark Out for Delivery
-                </DropdownMenuItem>
-              )}
-              {canMarkDelivered && onMarkDelivered && (
-                <DropdownMenuItem onClick={() => onMarkDelivered(dispatch.id)}>
-                  <Package className="mr-2 h-4 w-4" />
-                  Mark Delivered
-                </DropdownMenuItem>
-              )}
-              {canMarkFailed && onMarkFailedDelivery && (
-                <DropdownMenuItem
-                  onClick={() => onMarkFailedDelivery(dispatch.id)}
-                >
-                  <Package className="mr-2 h-4 w-4" />
-                  Mark Failed Delivery
-                </DropdownMenuItem>
-              )}
-              {canCancel && onCancel && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-red-600"
-                    onClick={() => onCancel(dispatch.id)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Cancel Shipment
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {onViewDetails && (
+                  <DropdownMenuItem onClick={() => onViewDetails(dispatch.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
                   </DropdownMenuItem>
-                </>
-              )}
-              {canUpdateTracking && onUpdateTracking && (
-                <DropdownMenuItem onClick={() => onUpdateTracking(dispatch.id)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  Update Tracking
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+                )}
+                {canDispatch && onDispatch && (
+                  <DropdownMenuItem onClick={() => onDispatch(dispatch.id)}>
+                    <Truck className="mr-2 h-4 w-4" />
+                    Dispatch Shipment
+                  </DropdownMenuItem>
+                )}
+                {canMarkInTransit && onMarkInTransit && (
+                  <DropdownMenuItem onClick={() => onMarkInTransit(dispatch.id)}>
+                    <Truck className="mr-2 h-4 w-4" />
+                    Mark In Transit
+                  </DropdownMenuItem>
+                )}
+                {canMarkOutForDelivery && onMarkOutForDelivery && (
+                  <DropdownMenuItem
+                    onClick={() => onMarkOutForDelivery(dispatch.id)}
+                  >
+                    <Truck className="mr-2 h-4 w-4" />
+                    Mark Out for Delivery
+                  </DropdownMenuItem>
+                )}
+                {canMarkDelivered && onMarkDelivered && (
+                  <DropdownMenuItem onClick={() => onMarkDelivered(dispatch.id)}>
+                    <Package className="mr-2 h-4 w-4" />
+                    Mark Delivered
+                  </DropdownMenuItem>
+                )}
+                {canMarkFailed && onMarkFailedDelivery && (
+                  <DropdownMenuItem
+                    onClick={() => onMarkFailedDelivery(dispatch.id)}
+                  >
+                    <Package className="mr-2 h-4 w-4" />
+                    Mark Failed Delivery
+                  </DropdownMenuItem>
+                )}
+                {canCancel && onCancel && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-red-600"
+                      onClick={() => onCancel(dispatch.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Cancel Shipment
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {canUpdateTracking && onUpdateTracking && (
+                  <DropdownMenuItem onClick={() => onUpdateTracking(dispatch.id)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Update Tracking
+                  </DropdownMenuItem>
+                )}
+                {canArchive && onArchive && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      disabled={isProcessing}
+                      onClick={() => onArchive(dispatch.id)}
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Archive className="mr-2 h-4 w-4" />
+                      )}
+                      {isProcessing ? "Archiving..." : "Archive"}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },
