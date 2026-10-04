@@ -129,6 +129,7 @@ export default function BudgetPage({ companyId }: { companyId: number }) {
     if (!q) return list;
     return list.filter((budget) =>
       [
+        budget.budgetCode,
         budget.budgetName,
         budget.status,
         budget.fiscalYear,

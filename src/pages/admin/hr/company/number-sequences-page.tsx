@@ -36,7 +36,8 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 
 const DEFAULT_CONFIGS: NumberingConfig[] = [
   { docType: "JE",     prefix: "JE",     startNumber: 1000 },
-  { docType: "BUDGET", prefix: "BUD",    startNumber: 1000 },
+  // Prefix unused — codes are {fiscalYear}-{TYPE}-{####}
+  { docType: "BUDGET", prefix: "",       startNumber: 1000 },
   { docType: "CN",     prefix: "CN",     startNumber: 1000 },
   { docType: "CUST",   prefix: "CUST",   startNumber: 1000 },
   { docType: "CTR",    prefix: "CTR",    startNumber: 1000 },
@@ -96,6 +97,10 @@ export default function NumberSequencesPage({ hrSettings }: { hrSettings?: boole
 
   const preview = (c: NumberingConfig) => {
     const n = c.startNumber ?? 1000;
+    if (c.docType === "BUDGET") {
+      const padded = String(n).padStart(4, "0");
+      return `2026-OPEX-${padded}`;
+    }
     if (!c.prefix) return String(n);
     return `${c.prefix}-${n}`;
   };
@@ -138,12 +143,20 @@ export default function NumberSequencesPage({ hrSettings }: { hrSettings?: boole
                     <span className="ml-2 text-xs text-slate-400 font-mono">{c.docType}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <Input
-                      className="h-8 w-28 font-mono text-sm"
-                      placeholder="e.g. EMP"
-                      value={c.prefix}
-                      onChange={(e) => update(c.docType, "prefix", e.target.value.toUpperCase())}
-                    />
+                    {c.docType === "BUDGET" ? (
+                      <span className="text-xs text-muted-foreground">
+                        FY + type (auto)
+                      </span>
+                    ) : (
+                      <Input
+                        className="h-8 w-28 font-mono text-sm"
+                        placeholder="e.g. EMP"
+                        value={c.prefix}
+                        onChange={(e) =>
+                          update(c.docType, "prefix", e.target.value.toUpperCase())
+                        }
+                      />
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Input
@@ -165,6 +178,7 @@ export default function NumberSequencesPage({ hrSettings }: { hrSettings?: boole
           </table>
           <p className="px-4 py-2.5 text-xs text-muted-foreground border-t bg-slate-50">
             Start number applies when a sequence is first created. Existing sequences continue from their current counter.
+            Budget codes use fiscal year and type automatically (e.g. 2026-OPEX-1000); start number only sets the numeric suffix.
           </p>
         </div>
       )}

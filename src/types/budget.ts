@@ -26,6 +26,8 @@ export type BudgetType = "OPEX" | "CAPEX" | "PROJECT";
 export interface BudgetResponseDTO {
   id: number;
   budgetName: string;
+  /** Auto code: {fiscalYear}-{type}-{####}, e.g. 2026-OPEX-1000 */
+  budgetCode?: string | null;
   fiscalYear: string;
   budgetType?: BudgetType;
   projectId?: string | null;

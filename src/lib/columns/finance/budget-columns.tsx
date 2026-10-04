@@ -41,6 +41,15 @@ export const BUDGET_COLUMNS = ({
   canEdit?: boolean;
 }): ColumnDef<BudgetResponseDTO>[] => [
   {
+    header: "Budget code",
+    accessorKey: "budgetCode",
+    cell: ({ row }) => (
+      <span className="font-mono text-xs text-slate-700">
+        {row.original.budgetCode || "—"}
+      </span>
+    ),
+  },
+  {
     header: "Name",
     accessorKey: "budgetName",
   },

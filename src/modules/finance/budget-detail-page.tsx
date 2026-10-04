@@ -139,7 +139,11 @@ export default function BudgetDetailPage() {
     <div className="space-y-6 p-6">
       <SecondaryPageHeader
         title={data.budgetName}
-        description="Budget distribution history"
+        description={
+          data.budgetCode
+            ? `${data.budgetCode} · Budget distribution history`
+            : "Budget distribution history"
+        }
         backHref="/finance/ledger"
         icon={<Calculator className="h-5 w-5" />}
         variant="amber"
