@@ -169,6 +169,30 @@ function uniqueItemIds(rows: ItemResponseDTO[]): number[] {
   return [...new Set(rows.map((r) => r.id).filter((id) => id != null))];
 }
 
+/** True when any selected item still has on-hand, reserved, or on-order quantity. */
+function selectionHasOpenInventory(rows: ItemResponseDTO[]): boolean {
+  const totals = new Map<
+    number,
+    { onHand: number; reserved: number; onOrder: number }
+  >();
+  for (const row of rows) {
+    if (row.id == null) continue;
+    const prev = totals.get(row.id) ?? { onHand: 0, reserved: 0, onOrder: 0 };
+    // Warehouse-split rows: sum on-hand/reserved; on-order is item-level so take max.
+    totals.set(row.id, {
+      onHand: prev.onHand + (row.quantity ?? 0),
+      reserved: prev.reserved + (row.reserved ?? 0),
+      onOrder: Math.max(prev.onOrder, row.quantityOnOrder ?? 0),
+    });
+  }
+  return [...totals.values()].some(
+    (t) => t.onHand > 0 || t.reserved > 0 || t.onOrder > 0,
+  );
+}
+
+const OPEN_INVENTORY_BLOCK_MSG =
+  "Selected product(s) still have on-hand, reserved, or on-order quantity. Clear stock before archiving or discontinuing.";
+
 export function StockListTab({
   searchQuery,
   onSearchQueryChange,
@@ -209,6 +233,11 @@ export function StockListTab({
     [selectedRows],
   );
 
+  const hasOpenInventory = useMemo(
+    () => selectionHasOpenInventory(selectedRows),
+    [selectedRows],
+  );
+
   const clearSelection = useCallback(() => setRowSelection({}), []);
 
   const handleCatalogViewChange = (value: string) => {
@@ -239,6 +268,10 @@ export function StockListTab({
 
   const handleArchive = async () => {
     if (selectedItemIds.length === 0) return;
+    if (hasOpenInventory) {
+      toast.error(OPEN_INVENTORY_BLOCK_MSG);
+      return;
+    }
     if (
       !(await confirm({
         title: "Archive products",
@@ -287,10 +320,14 @@ export function StockListTab({
 
   const handleMarkDiscontinued = async () => {
     if (selectedItemIds.length === 0) return;
+    if (hasOpenInventory) {
+      toast.error(OPEN_INVENTORY_BLOCK_MSG);
+      return;
+    }
     if (
       !(await confirm({
         title: "Mark discontinued",
-        description: `Mark ${selectedItemIds.length} selected product(s) as discontinued? They will remain in the active catalog.`,
+        description: `Mark ${selectedItemIds.length} selected product(s) as discontinued? They will remain in the active catalog. They must have zero stock, no reservations, and no open purchase orders.`,
       }))
     ) {
       return;
@@ -395,6 +432,8 @@ export function StockListTab({
         onMarkDiscontinued={
           catalogView === "active" && canEdit ? handleMarkDiscontinued : undefined
         }
+        stockActionsBlocked={hasOpenInventory}
+        stockActionsBlockedReason={OPEN_INVENTORY_BLOCK_MSG}
         onExportSelected={
           selectedRows.length > 0
             ? () => exportToCsv(selectedRows)

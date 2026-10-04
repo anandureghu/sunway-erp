@@ -18,6 +18,9 @@ type Props = {
   restoring?: boolean;
   deleting?: boolean;
   updatingStatus?: boolean;
+  /** When true, archive / discontinue stay disabled (open inventory). */
+  stockActionsBlocked?: boolean;
+  stockActionsBlockedReason?: string;
   onArchive?: () => void;
   onRestore?: () => void;
   onDelete?: () => void;
@@ -36,6 +39,8 @@ export function StockBulkActionBar({
   restoring = false,
   deleting = false,
   updatingStatus = false,
+  stockActionsBlocked = false,
+  stockActionsBlockedReason,
   onArchive,
   onRestore,
   onDelete,
@@ -46,6 +51,7 @@ export function StockBulkActionBar({
   if (selectedCount <= 0) return null;
 
   const busy = archiving || restoring || deleting || updatingStatus;
+  const stockBusy = busy || stockActionsBlocked;
   const label =
     uniqueItemCount !== selectedCount
       ? `${uniqueItemCount} product${uniqueItemCount === 1 ? "" : "s"} selected (${selectedCount} rows)`
@@ -53,7 +59,12 @@ export function StockBulkActionBar({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-      <p className="text-sm font-medium">{label}</p>
+      <div className="min-w-0 space-y-0.5">
+        <p className="text-sm font-medium">{label}</p>
+        {stockActionsBlocked && stockActionsBlockedReason ? (
+          <p className="text-xs text-amber-700">{stockActionsBlockedReason}</p>
+        ) : null}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         {onExportSelected ? (
           <Button
@@ -76,7 +87,8 @@ export function StockBulkActionBar({
                 size="sm"
                 variant="outline"
                 onClick={onMarkDiscontinued}
-                disabled={busy}
+                disabled={stockBusy}
+                title={stockActionsBlocked ? stockActionsBlockedReason : undefined}
               >
                 <Ban className="mr-2 h-4 w-4" />
                 Mark discontinued
@@ -88,7 +100,8 @@ export function StockBulkActionBar({
                 size="sm"
                 variant="outline"
                 onClick={onArchive}
-                disabled={busy}
+                disabled={stockBusy}
+                title={stockActionsBlocked ? stockActionsBlockedReason : undefined}
               >
                 <Archive className="mr-2 h-4 w-4" />
                 {archiving ? "Archiving…" : "Archive"}
