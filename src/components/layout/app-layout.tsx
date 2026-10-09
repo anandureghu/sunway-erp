@@ -11,6 +11,7 @@ import { SubscriptionHardLock } from "@/components/subscription/subscription-har
 import { MaxShiftCheckoutGuard } from "@/components/max-shift-checkout-guard";
 import { SessionIdleTimeoutGuard } from "@/components/session-idle-timeout-guard";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import { RecentPageTracker } from "@/components/recent-page-tracker";
 
 const LayoutBody = () => {
   const { company } = useAuth();
@@ -18,6 +19,7 @@ const LayoutBody = () => {
   return (
     <>
       <ScrollToTop />
+      <RecentPageTracker />
       <MaxShiftCheckoutGuard />
       <SessionIdleTimeoutGuard />
       <AppSidebar />
