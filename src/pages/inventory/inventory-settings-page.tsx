@@ -110,7 +110,7 @@ const InventorySettingsPage = () => {
     if (partnerChildren.length > 0) {
       list.push({
         value: "partners",
-        label: "Partners",
+        label: "CRM",
         icon: <Handshake className="w-4 h-4" />,
         children: partnerChildren,
       });

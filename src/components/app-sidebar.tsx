@@ -46,6 +46,7 @@ import {
 } from "@/service/companyService";
 import { toggleGlobalSettingsView } from "@/store/uiSlice";
 import { SidebarNavHoverLink } from "@/components/sidebar-nav-hover-link";
+import { KNOWLEDGE_BASE_UPDATED_EVENT } from "@/service/knowledgeBaseService";
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
 
@@ -237,29 +238,41 @@ export function AppSidebar() {
   useEffect(() => {
     if (!activeCompanyId) return;
 
-    if (isPrivileged) {
-      getSidebarItems(String(activeCompanyId), {
-        skipPermissions: true,
-        company:
-          company?.id != null && Number(company.id) === activeCompanyId
-            ? company
-            : undefined,
-      }).then(setSidebarItems);
-      setPermissions(null as any);
-    } else {
-      // Use permissions from AuthContext directly
-      getSidebarItems(String(activeCompanyId), {
-        permissions: authPermissions,
-        company:
-          company?.id != null && Number(company.id) === activeCompanyId
-            ? company
-            : undefined,
-      }).then((items) => {
-        setSidebarItems(items);
-        setPermissions(authPermissions as any);
-      });
-    }
-  }, [activeCompanyId, company, isPrivileged, authPermissions]);
+    const canManageKnowledgeBase =
+      (user?.role ?? "").toString().toUpperCase() === "SUPER_ADMIN";
+
+    const loadSidebar = () => {
+      if (isPrivileged) {
+        getSidebarItems(String(activeCompanyId), {
+          skipPermissions: true,
+          canManageKnowledgeBase,
+          company:
+            company?.id != null && Number(company.id) === activeCompanyId
+              ? company
+              : undefined,
+        }).then(setSidebarItems);
+        setPermissions(null as any);
+      } else {
+        getSidebarItems(String(activeCompanyId), {
+          permissions: authPermissions,
+          canManageKnowledgeBase,
+          company:
+            company?.id != null && Number(company.id) === activeCompanyId
+              ? company
+              : undefined,
+        }).then((items) => {
+          setSidebarItems(items);
+          setPermissions(authPermissions as any);
+        });
+      }
+    };
+
+    loadSidebar();
+    window.addEventListener(KNOWLEDGE_BASE_UPDATED_EVENT, loadSidebar);
+    return () => {
+      window.removeEventListener(KNOWLEDGE_BASE_UPDATED_EVENT, loadSidebar);
+    };
+  }, [activeCompanyId, company, isPrivileged, authPermissions, user?.role]);
 
   // Close the mobile sidebar sheet after route navigation.
   useEffect(() => {

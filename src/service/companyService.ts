@@ -26,7 +26,13 @@ import {
   Star,
   Shield,
   LogOut,
+  Handshake,
+  BookOpen,
+  Video,
+  FileText,
+  Upload,
 } from "lucide-react";
+import { listKnowledgeBaseItems } from "@/service/knowledgeBaseService";
 
 /** Assign (or clear, with null id) the company head (CEO / Chairperson). */
 export const assignCompanyCeo = async (
@@ -223,6 +229,7 @@ export const getSidebarItems = async (
     skipPermissions?: boolean;
     permissions?: Record<string, any> | null;
     permissionsLoading?: boolean;
+    canManageKnowledgeBase?: boolean;
     company?: {
       hrEnabled?: boolean;
       inventoryEnabled?: boolean;
@@ -259,11 +266,11 @@ export const getSidebarItems = async (
   });
 
   return [
-    // ── HR and Payroll ────────────────────────────────────────────────────────
+    // ── HRMS and Payroll ──────────────────────────────────────────────────────
     ...(company.hrEnabled
       ? [
           {
-            title: "HR and Payroll",
+            title: "HRMS and Payroll",
             icon: Users,
             color: "text-yellow-500",
             image: "/assets/images/hr.svg",
@@ -358,9 +365,19 @@ export const getSidebarItems = async (
             ...(canView(permissions, "INVENTORY_SALES")
               ? [{ title: "Sales", url: "/inventory/sales", icon: ShoppingCart }]
               : []),
+            ...(canView(permissions, "INVENTORY_SALES") ||
+            canView(permissions, "INVENTORY_PURCHASE")
+              ? [{ title: "CRM", url: "/inventory/crm", icon: Handshake }]
+              : []),
             ...(canView(permissions, "INVENTORY_PURCHASE") ||
             canView(permissions, "INVENTORY_RECEIPT")
-              ? [{ title: "Purchase", url: "/inventory/purchase", icon: Receipt }]
+              ? [
+                  {
+                    title: "Procurement Inventory",
+                    url: "/inventory/purchase",
+                    icon: Receipt,
+                  },
+                ]
               : []),
             ...(canView(permissions, "INVENTORY_STOCK")
               ? [
@@ -407,7 +424,7 @@ export const getSidebarItems = async (
 
           return [
             {
-              title: "Inventory",
+              title: "Inventory (Supply Chain)",
               icon: Package,
               color: "text-amber-700",
               image: "/assets/images/inventory.svg",
@@ -511,6 +528,54 @@ export const getSidebarItems = async (
           ];
         })()
       : []),
+
+    // ── Knowledge Base (all authenticated users) ──────────────────────────────
+    ...(await (async () => {
+      let kbItems: Awaited<ReturnType<typeof listKnowledgeBaseItems>> = [];
+      try {
+        kbItems = await listKnowledgeBaseItems();
+      } catch {
+        kbItems = [];
+      }
+
+      const children = [
+        ...(options?.canManageKnowledgeBase
+          ? [
+              {
+                title: "Manage uploads",
+                url: "/knowledge-base/manage",
+                icon: Upload,
+              },
+            ]
+          : []),
+        ...kbItems.map((item) => ({
+          title: item.title,
+          url: `/knowledge-base/${item.id}`,
+          icon: item.contentType === "VIDEO" ? Video : FileText,
+        })),
+      ];
+
+      // Always expose the parent so every user can open the library.
+      return [
+        {
+          title: "Knowledge Base",
+          icon: BookOpen,
+          color: "text-teal-600",
+          image: "/assets/images/hr.svg",
+          url: "/knowledge-base",
+          items:
+            children.length > 0
+              ? children
+              : [
+                  {
+                    title: "Library",
+                    url: "/knowledge-base",
+                    icon: BookOpen,
+                  },
+                ],
+        },
+      ];
+    })()),
   ] as SidebarItem[];
 };
 

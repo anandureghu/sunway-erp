@@ -42,6 +42,10 @@ const getModuleIcon = (title: string, defaultIcon: any) => {
     "Inventory (Stocks)": BarChart3,
     Sales: DollarSign,
     Purchase: ShoppingCart,
+    "Procurement Inventory": ShoppingCart,
+    CRM: Users,
+    "Manage uploads": Settings,
+    Library: FileText,
     "Inventory Settings": Settings,
     "Finance Reports": BarChart3,
     "Finance Report": BarChart3,
@@ -73,6 +77,13 @@ const getModuleDescription = (title: string): string => {
       "Handle Sales transactions, manage sales invoices and maintain customer information. Perform order fulfillment and track shipments",
     Purchase:
       "Execute the procurement workflow, including purchase requisitions, purchase orders, goods receipt inspection, receiving into stock, viewing and matching invoices, and processing payment receipts.",
+    "Procurement Inventory":
+      "Execute the procurement workflow, including purchase requisitions, purchase orders, goods receipt inspection, receiving into stock, viewing and matching invoices, and processing payment receipts.",
+    CRM:
+      "Manage customers and suppliers in one place for sales and purchasing relationships.",
+    "Manage uploads":
+      "Upload and remove training videos and documents for end users.",
+    Library: "Browse all training videos and documents.",
     "Operations Reports":
       "Day-to-day stock health — movements, batches, low stock, and expiry alerts",
     "Management Reports":
@@ -110,7 +121,10 @@ const getSystemTheme = (title: string) => {
       borderColor: "border-blue-200",
       hoverBorderColor: "hover:border-blue-300",
     };
-  } else if (title.toLowerCase().includes("inventory")) {
+  } else if (
+    title.toLowerCase().includes("inventory") ||
+    title.toLowerCase().includes("supply chain")
+  ) {
     return {
       bgColor: "bg-green-50",
       iconBg: "bg-gradient-to-br from-green-500 to-green-600",
@@ -130,6 +144,16 @@ const getSystemTheme = (title: string) => {
       borderColor: "border-purple-200",
       hoverBorderColor: "hover:border-purple-300",
     };
+  } else if (title.toLowerCase().includes("knowledge")) {
+    return {
+      bgColor: "bg-teal-50",
+      iconBg: "bg-gradient-to-br from-teal-500 to-teal-600",
+      textColor: "text-teal-700",
+      buttonBg: "bg-teal-50",
+      buttonText: "text-teal-700",
+      borderColor: "border-teal-200",
+      hoverBorderColor: "hover:border-teal-300",
+    };
   }
   return {
     bgColor: "bg-gray-50",
@@ -145,11 +169,16 @@ const getSystemTheme = (title: string) => {
 // System subtitle mapping
 const getSystemSubtitle = (title: string): string => {
   if (title.toLowerCase().includes("hr")) {
-    return "Human resource and payroll management";
-  } else if (title.toLowerCase().includes("inventory")) {
+    return "HRMS and payroll management";
+  } else if (
+    title.toLowerCase().includes("inventory") ||
+    title.toLowerCase().includes("supply chain")
+  ) {
     return "Inventory and supply chain management";
   } else if (title.toLowerCase().includes("finance")) {
     return "Financial management and accounting";
+  } else if (title.toLowerCase().includes("knowledge")) {
+    return "Training videos and documents for end users";
   }
   return "Business management solutions";
 };
@@ -196,6 +225,7 @@ const Dashboard = () => {
       skipPermissions: isAdmin,
       permissions: authPermissions,
       permissionsLoading,
+      canManageKnowledgeBase: (user?.role ?? "").toUpperCase() === "SUPER_ADMIN",
       company:
         company?.id != null && Number(company.id) === activeCompanyId
           ? company

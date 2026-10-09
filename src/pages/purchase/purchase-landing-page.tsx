@@ -228,7 +228,7 @@ export default function PurchaseLandingPage() {
   return (
     <div className="mx-auto w-full space-y-6 p-4 sm:p-6 py-2">
       <PageHeader
-        title="Purchase & Suppliers"
+        title="Procurement Inventory"
         description="Requisition, Orders, Payables, Receipts - Procurement workflow"
         icon={<ShoppingCart className="w-6 h-6" />}
         variant="darkGreen"

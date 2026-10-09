@@ -115,6 +115,10 @@ import SubscriptionsPage from "./pages/admin/subscriptions/subscriptions-page";
 import SubscriptionDetailPage from "./pages/admin/subscriptions/subscription-detail-page";
 import CompanyBillingPage from "./pages/admin/subscriptions/company-billing-page";
 import PlatformSettingsPage from "./pages/admin/platform-settings/platform-settings-page";
+import KnowledgeBaseLibraryPage from "./pages/knowledge-base/knowledge-base-library-page";
+import KnowledgeBaseItemPage from "./pages/knowledge-base/knowledge-base-item-page";
+import KnowledgeBaseManagePage from "./pages/knowledge-base/knowledge-base-manage-page";
+import CrmPage from "./pages/inventory/crm-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -233,6 +237,13 @@ export default function App() {
             path="settings/roles/:id"
             element={<Navigate to="/hr/settings?tab=roles" replace />}
           />
+
+          {/* Knowledge Base — available to all authenticated users */}
+          <Route path="knowledge-base">
+            <Route index element={<KnowledgeBaseLibraryPage />} />
+            <Route path="manage" element={<KnowledgeBaseManagePage />} />
+            <Route path=":id" element={<KnowledgeBaseItemPage />} />
+          </Route>
 
           {/* Admin */}
           <Route path="admin">
@@ -466,6 +477,17 @@ export default function App() {
                   title="Invoice access denied"
                 >
                   <InvoicesPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="crm"
+              element={
+                <ModuleAccessGate
+                  modules={[InventoryModule.SALES, InventoryModule.PURCHASE]}
+                  title="CRM access denied"
+                >
+                  <CrmPage />
                 </ModuleAccessGate>
               }
             />
