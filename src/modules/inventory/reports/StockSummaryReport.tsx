@@ -273,22 +273,31 @@ export default function StockSummaryReport({
     k: SortKey;
     label: string;
     className?: string;
-  }) => (
-    <th
-      onClick={() => toggleSort(k)}
-      className={cn(
-        "cursor-pointer select-none whitespace-nowrap border-b border-slate-300 bg-slate-50 px-2.5 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider",
-        sortKey === k ? "text-[#1F3A6E]" : "text-slate-400 hover:text-[#1F3A6E]",
-        className,
-      )}
-    >
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {sortKey === k &&
-          (sortDir === 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
-      </span>
-    </th>
-  );
+  }) => {
+    const right = className?.includes("text-right");
+    return (
+      <th
+        onClick={() => toggleSort(k)}
+        className={cn(
+          "cursor-pointer select-none whitespace-nowrap border-b border-slate-300 bg-slate-50 px-2.5 py-2 font-mono text-[10px] font-semibold uppercase tracking-wider",
+          right ? "text-right" : "text-left",
+          sortKey === k ? "text-[#1F3A6E]" : "text-slate-400 hover:text-[#1F3A6E]",
+          className,
+        )}
+      >
+        <span
+          className={cn(
+            "inline-flex items-center gap-1",
+            right && "w-full justify-end",
+          )}
+        >
+          {label}
+          {sortKey === k &&
+            (sortDir === 1 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)}
+        </span>
+      </th>
+    );
+  };
 
   const exceptions = [
     {
@@ -644,9 +653,16 @@ export default function StockSummaryReport({
                   <SortTh k="tracking" label="Tracking" />
                   <SortTh k="onHand" label="On hand" className="text-right" />
                   <SortTh k="reorderLevel" label="Reorder" className="text-right" />
-                  <SortTh k="avgCost" label="Avg cost" className="text-right" />
-                  <SortTh k="stockValue" label="Value" className="text-right" />
-                  <SortTh k="lastIssueDays" label="Last issue" />
+                  <SortTh
+                    k="avgCost"
+                    label={currency ? `Avg cost (${currency})` : "Avg cost"}
+                    className="text-right"
+                  />
+                  <SortTh
+                    k="stockValue"
+                    label={currency ? `Value (${currency})` : "Value"}
+                    className="text-right"
+                  />
                   <SortTh k="abc" label="ABC" />
                   <th className="border-b border-slate-300 bg-slate-50 px-2.5 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400">
                     Status
@@ -656,7 +672,7 @@ export default function StockSummaryReport({
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="px-2.5 py-8 text-center text-slate-400">
+                    <td colSpan={11} className="px-2.5 py-8 text-center text-slate-400">
                       <Package className="mx-auto mb-1 h-5 w-5 opacity-40" />
                       No items match the current filters.
                     </td>
@@ -697,28 +713,20 @@ export default function StockSummaryReport({
                         </td>
                         <td
                           className={cn(
-                            "px-2.5 py-2 text-right font-mono text-xs",
+                            "px-2.5 py-2 text-right font-mono text-xs tabular-nums",
                             below && "font-semibold text-rose-700",
                           )}
                         >
                           {qty(r.onHand)}
                         </td>
-                        <td className="px-2.5 py-2 text-right font-mono text-xs text-slate-400">
+                        <td className="px-2.5 py-2 text-right font-mono text-xs tabular-nums text-slate-400">
                           {r.reorderLevel != null ? qty(r.reorderLevel) : "—"}
                         </td>
-                        <td className="px-2.5 py-2 text-right font-mono text-xs">{mask(r.avgCost)}</td>
-                        <td className="px-2.5 py-2 text-right font-mono text-xs">
-                          {mask(r.stockValue)}
+                        <td className="px-2.5 py-2 text-right font-mono text-xs tabular-nums whitespace-nowrap">
+                          {mask(r.avgCost)}
                         </td>
-                        <td
-                          className={cn(
-                            "px-2.5 py-2 text-right font-mono text-xs",
-                            r.lastIssueDays != null && r.lastIssueDays >= NON_MOVING
-                              ? "text-amber-700"
-                              : "text-slate-400",
-                          )}
-                        >
-                          {r.lastIssueDays != null ? `${r.lastIssueDays}d` : "—"}
+                        <td className="px-2.5 py-2 text-right font-mono text-xs tabular-nums whitespace-nowrap">
+                          {mask(r.stockValue)}
                         </td>
                         <td className="px-2.5 py-2">
                           <span
@@ -749,8 +757,10 @@ export default function StockSummaryReport({
                   <td className="px-2.5 py-2" colSpan={8}>
                     Total — {filtered.length} items shown
                   </td>
-                  <td className="px-2.5 py-2 text-right font-mono text-xs">{mask(shownValue)}</td>
-                  <td colSpan={3} />
+                  <td className="px-2.5 py-2 text-right font-mono text-xs tabular-nums whitespace-nowrap">
+                    {mask(shownValue)}
+                  </td>
+                  <td colSpan={2} />
                 </tr>
               </tfoot>
             </table>
