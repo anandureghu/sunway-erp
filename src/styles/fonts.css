@@ -1,0 +1,47 @@
+/*
+ * =============================================================================
+ * SITE FONTS — change typography for the whole app here
+ * =============================================================================
+ *
+ * Roles (same pattern as Stock Summary / sheet reports):
+ *
+ *   Utility        Role                                      Example
+ *   ─────────────  ────────────────────────────────────────  ──────────────────
+ *   font-sans      UI, body, sidebar, forms (default)        sidebar, buttons
+ *   font-serif     Page / report titles                      "Stock Summary"
+ *   font-mono      Labels, breadcrumbs, table chrome         RPT-INV-001, th
+ *   font-display   Brand / auth hero headings (= serif)      login title
+ *
+ * Applied site-wide via:
+ *   • body / UI          → font-sans  (index.css @layer base)
+ *   • h1, h2             → font-serif (index.css @layer base)
+ *   • table thead th     → font-mono  (index.css @layer components)
+ *   • PageHeader, dialogs, sheets, sidebar labels → shared components
+ *
+ * To swap a font later:
+ *   1. Update the Google Fonts @import in index.css (top of file)
+ *   2. Change the matching --font-* stack below
+ *   3. Done — utilities and body pick it up automatically
+ * =============================================================================
+ */
+
+@theme inline {
+  /* UI / body */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Titles (reports use font-serif on the main heading) */
+  --font-serif: "Gilda Display", ui-serif, Georgia, Cambria, "Times New Roman", Times,
+    serif;
+
+  /* Labels, breadcrumbs, numeric chrome (reports use font-mono) */
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+
+  /* Brand / auth headings — keep in sync with serif for one title voice */
+  --font-display: var(--font-serif);
+
+  /* ── Previous theme tokens (commented — restore if needed) ───────────────── */
+  /* --font-display: "Gilda Display", serif; */
+  /* --font-sans: "Inter", "Poppins", "Roboto", sans-serif; */
+  /* --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; */
+}

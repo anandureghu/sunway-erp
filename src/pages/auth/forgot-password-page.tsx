@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
           />
         </div>
         <p className="text-sm font-medium text-white/90">Account recovery</p>
-        <h1 className="font-display mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
+        <h1 className="font-serif mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
           Forgot password?
         </h1>
       </div>

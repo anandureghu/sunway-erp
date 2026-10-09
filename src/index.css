@@ -1,8 +1,18 @@
+/*
+ * Google Fonts for active stacks defined in ./styles/fonts.css
+ * (Inter = sans, Gilda Display = serif / display)
+ */
+@import url("https://fonts.googleapis.com/css2?family=Gilda+Display&family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+/* Previous Google Fonts bundle (commented — restore with fonts.css previous tokens if needed)
 @import url("https://fonts.googleapis.com/css2?family=Gilda+Display&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Poppins:wght@100;200;300;400;500;600;700;800;900&family=Roboto:wght@100;300;400;500;700;900&display=swap");
+*/
 
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Central font roles: font-sans / font-serif / font-mono / font-display */
+@import "./styles/fonts.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -42,8 +52,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  --font-display: "Gilda Display", serif;
 }
 :root {
   --radius: 0.65rem;
@@ -119,8 +127,14 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: "Inter", "Poppins", "Roboto", sans-serif;
+    /* font-sans → Inter (see styles/fonts.css) */
+    @apply bg-background font-sans text-foreground;
+    /* Previous: font-family: "Inter", "Poppins", "Roboto", sans-serif; */
+  }
+  /* Page / section titles site-wide (Stock Summary pattern) */
+  h1,
+  h2 {
+    @apply font-serif;
   }
 }
 
@@ -134,7 +148,8 @@
   }
 
   table thead th {
-    @apply px-4 py-3 text-left align-middle font-bold text-slate-700 dark:text-slate-200 text-sm whitespace-nowrap;
+    /* font-mono → report-style column chrome */
+    @apply px-4 py-3 text-left align-middle font-mono text-sm font-bold whitespace-nowrap text-slate-700 dark:text-slate-200;
   }
 }
 

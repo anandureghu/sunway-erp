@@ -129,7 +129,7 @@ function ForgotPasswordResetForm({ email }: { email: string }) {
             className="h-9 w-9 object-contain"
           />
         </div>
-        <h1 className="font-display text-2xl font-bold text-white">
+        <h1 className="font-serif text-2xl font-bold text-white">
           Set new password
         </h1>
         <p className="mt-1 text-sm text-white/80">

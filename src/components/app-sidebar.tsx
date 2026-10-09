@@ -308,10 +308,10 @@ export function AppSidebar() {
                 />
               </div>
               <div className="min-w-0">
-                <span className="block truncate text-sm font-bold tracking-tight text-slate-800">
+                <span className="block truncate font-serif text-sm font-bold tracking-tight text-slate-800">
                   Sunway
                 </span>
-                <span className="block text-[10px] font-medium text-slate-400 uppercase tracking-widest">
+                <span className="block font-mono text-[10px] font-medium uppercase tracking-widest text-slate-400">
                   ERP Platform
                 </span>
               </div>
@@ -379,7 +379,7 @@ export function AppSidebar() {
                     <section.icon
                       className={cn("h-3.5 w-3.5", section.color)}
                     />
-                    <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <span className="flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {section.title}
                     </span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform group-data-[state=open]/collapsible:rotate-180" />
@@ -553,7 +553,7 @@ export function AppSidebar() {
                       <section.icon
                         className={cn("h-3.5 w-3.5", section.color)}
                       />
-                      <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      <span className="flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
                         {section.title}
                       </span>
                       <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform group-data-[state=open]/collapsible:rotate-180" />
@@ -598,7 +598,7 @@ export function AppSidebar() {
                     <adminBillingNav.icon
                       className={cn("h-3.5 w-3.5", adminBillingNav.color)}
                     />
-                    <span className="flex-1 truncate text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    <span className="flex-1 truncate font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
                       {adminBillingNav.title}
                     </span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-300 transition-transform group-data-[state=open]/collapsible:rotate-180" />

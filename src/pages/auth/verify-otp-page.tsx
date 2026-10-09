@@ -194,7 +194,7 @@ function VerifyOtpForm({ pending }: { pending: PendingAuth }) {
           <p className="text-sm font-medium text-white/90">
             {isForgotFlow ? "Password recovery" : "Secure sign-in"}
           </p>
-          <h1 className="font-display mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
+          <h1 className="font-serif mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
             Verify your identity
           </h1>
         </div>

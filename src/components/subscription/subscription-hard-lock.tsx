@@ -52,7 +52,7 @@ export function SubscriptionHardLock() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
             Sunway ERP
           </p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
+          <h1 className="mt-2 font-serif text-2xl font-bold tracking-tight text-white">
             Sunway
           </h1>
           <p className="mt-1 text-sm text-white/75">Platform access suspended</p>

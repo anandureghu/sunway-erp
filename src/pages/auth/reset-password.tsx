@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm ring-1 ring-white/30">
           <ShieldAlert className="h-7 w-7 text-white" strokeWidth={1.5} />
         </div>
-        <h1 className="font-display text-2xl font-bold text-white">Set New Password</h1>
+        <h1 className="font-serif text-2xl font-bold text-white">Set New Password</h1>
         <p className="mt-1 text-sm text-white/80">
           Your account requires a password update before continuing.
         </p>

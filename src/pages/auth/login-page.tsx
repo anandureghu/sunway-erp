@@ -143,7 +143,7 @@ export default function LoginPage() {
             />
           </div>
           <p className="text-sm font-medium text-white/90">Welcome to</p>
-          <h1 className="font-display mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
+          <h1 className="font-serif mt-1 text-2xl font-bold leading-tight text-white sm:text-[1.65rem]">
             Sunway ERP &amp; E-COM System
           </h1>
         </div>
@@ -152,7 +152,7 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground">
             Please enter your username and password:
           </p>
-          <h2 className="font-display mt-1 text-xl font-bold text-purple-700">
+          <h2 className="font-serif mt-1 text-xl font-bold text-purple-700">
             Sunway ERP
           </h2>
 

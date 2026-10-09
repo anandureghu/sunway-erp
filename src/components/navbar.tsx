@@ -48,7 +48,7 @@ const Navbar = () => {
                 className="dark:invert"
               />
             </div>
-            <span className="truncate font-display text-sm font-semibold tracking-tight">
+            <span className="truncate font-serif text-sm font-semibold tracking-tight">
               Sunway
             </span>
           </div>

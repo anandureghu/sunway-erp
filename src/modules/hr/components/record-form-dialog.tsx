@@ -304,7 +304,7 @@ export function RecordViewDialog({
               {badge}
             </div>
             <div className="min-w-0">
-              <DialogTitle className="truncate text-[17px] font-semibold leading-tight text-white">
+              <DialogTitle className="truncate font-serif text-[17px] font-semibold leading-tight text-white">
                 {title}
               </DialogTitle>
               {subtitle && (
@@ -425,7 +425,7 @@ export function RecordFormDialog({
               {badge}
             </div>
             <div className="min-w-0">
-              <DialogTitle className="truncate text-[15px] font-semibold leading-tight text-white">
+              <DialogTitle className="truncate font-serif text-[15px] font-semibold leading-tight text-white">
                 {title}
               </DialogTitle>
               {subtitle && (
