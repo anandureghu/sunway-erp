@@ -1920,7 +1920,7 @@ function EmployeePayrollTab() {
   );
 }
 
-// ── Bank Payroll CSV Tab ───────────────────────────────────────────────────────
+// ── Bank Payroll SIF Tab ───────────────────────────────────────────────────────
 
 function BankPayrollCsvTab() {
   const { user } = useAuth();
@@ -2053,7 +2053,7 @@ function BankPayrollCsvTab() {
         ) : (
           <Download className="h-4 w-4" />
         )}
-        Download bank payroll CSV
+        Download bank payroll SIF
       </Button>
     </div>
   );
@@ -2071,7 +2071,7 @@ const Payroll = () => {
     },
     {
       value: "bank-csv",
-      label: "Bank Payroll CSV",
+      label: "Bank Payroll SIF",
       icon: <Download className="w-6 h-6" />,
       element: () => <BankPayrollCsvTab />,
     },

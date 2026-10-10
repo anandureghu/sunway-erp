@@ -9,7 +9,6 @@ import {
   ShoppingCart,
   Receipt,
   ClipboardList,
-  LineChart,
   FileBarChart2,
   Boxes,
   DollarSign,
@@ -266,11 +265,11 @@ export const getSidebarItems = async (
   });
 
   return [
-    // ── HRMS and Payroll ──────────────────────────────────────────────────────
+    // ── SHRS and Payroll ──────────────────────────────────────────────────────
     ...(company.hrEnabled
       ? [
           {
-            title: "HRMS and Payroll",
+            title: "SHRS and Payroll",
             icon: Users,
             color: "text-yellow-500",
             image: "/assets/images/hr.svg",
@@ -356,7 +355,7 @@ export const getSidebarItems = async (
             canView(permissions, "INVENTORY_ITEM")
               ? [
                   {
-                    title: "Inventory (Stocks)",
+                    title: "Item Master(stock)",
                     url: "/inventory/stocks",
                     icon: Package,
                   },
@@ -365,42 +364,44 @@ export const getSidebarItems = async (
             ...(canView(permissions, "INVENTORY_SALES")
               ? [{ title: "Sales", url: "/inventory/sales", icon: ShoppingCart }]
               : []),
-            ...(canView(permissions, "INVENTORY_SALES") ||
-            canView(permissions, "INVENTORY_PURCHASE")
-              ? [{ title: "CRM", url: "/inventory/crm", icon: Handshake }]
-              : []),
             ...(canView(permissions, "INVENTORY_PURCHASE") ||
             canView(permissions, "INVENTORY_RECEIPT")
               ? [
                   {
-                    title: "Procurement Inventory",
+                    title: "Procurement",
                     url: "/inventory/purchase",
                     icon: Receipt,
                   },
                 ]
               : []),
+            ...(canView(permissions, "INVENTORY_SALES") ||
+            canView(permissions, "INVENTORY_PURCHASE")
+              ? [{ title: "CRM", url: "/inventory/crm", icon: Handshake }]
+              : []),
             ...(canView(permissions, "INVENTORY_STOCK")
               ? [
                   {
-                    title: "Operations Reports",
-                    url: "/inventory/reports/operations",
+                    title: "Inventory Reports",
+                    url: "/inventory/reports",
                     icon: ClipboardList,
-                  },
-                  {
-                    title: "Management Reports",
-                    url: "/inventory/reports/management",
-                    icon: LineChart,
-                  },
-                  // STOCK_SHEET_REPORTS — remove with Stock/Item Summary pages + backend.
-                  {
-                    title: "Stock Summary",
-                    url: "/inventory/reports/stock-summary",
-                    icon: Boxes,
-                  },
-                  {
-                    title: "Item Summary",
-                    url: "/inventory/reports/item-summary",
-                    icon: FileBarChart2,
+                    items: [
+                      // STOCK_SHEET_REPORTS — remove with Stock/Item Summary pages + backend.
+                      {
+                        title: "Stock Summary",
+                        url: "/inventory/reports/stock-summary",
+                        icon: Boxes,
+                      },
+                      {
+                        title: "Item Summary",
+                        url: "/inventory/reports/item-summary",
+                        icon: FileBarChart2,
+                      },
+                      {
+                        title: "Operations Reports",
+                        url: "/inventory/reports/operations",
+                        icon: ClipboardList,
+                      },
+                    ],
                   },
                 ]
               : []),
@@ -529,7 +530,7 @@ export const getSidebarItems = async (
         })()
       : []),
 
-    // ── Knowledge Base (all authenticated users) ──────────────────────────────
+    // ── Help (all authenticated users) ───────────────────────────────────────
     ...(await (async () => {
       let kbItems: Awaited<ReturnType<typeof listKnowledgeBaseItems>> = [];
       try {
@@ -539,6 +540,11 @@ export const getSidebarItems = async (
       }
 
       const children = [
+        {
+          title: "Knowledge base",
+          url: "/knowledge-base",
+          icon: BookOpen,
+        },
         ...(options?.canManageKnowledgeBase
           ? [
               {
@@ -555,24 +561,15 @@ export const getSidebarItems = async (
         })),
       ];
 
-      // Always expose the parent so every user can open the library.
+      // Always expose Help so every user can open the knowledge base.
       return [
         {
-          title: "Knowledge Base",
+          title: "Help",
           icon: BookOpen,
           color: "text-teal-600",
           image: "/assets/images/hr.svg",
           url: "/knowledge-base",
-          items:
-            children.length > 0
-              ? children
-              : [
-                  {
-                    title: "Library",
-                    url: "/knowledge-base",
-                    icon: BookOpen,
-                  },
-                ],
+          items: children,
         },
       ];
     })()),

@@ -10,12 +10,12 @@ import {
 } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
-import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart3,
+  Boxes,
   ClipboardList,
-  LineChart,
+  FileBarChart2,
   Users,
   FileText,
   Settings,
@@ -25,7 +25,6 @@ import {
   Loader2,
   ShieldAlert,
   LayoutGrid,
-  Activity,
   BookOpen,
   Clock,
   ArrowRight,
@@ -72,11 +71,18 @@ function sectionAccent(section: string): {
       bar: "from-amber-500 to-orange-600",
     };
   }
-  if (t.includes("knowledge")) {
+  if (t.includes("help") || t.includes("knowledge")) {
     return {
       chip: "bg-cyan-50 text-cyan-900 ring-cyan-100",
       icon: "bg-cyan-100 text-cyan-700",
       bar: "from-cyan-500 to-teal-600",
+    };
+  }
+  if (t.includes("shrs")) {
+    return {
+      chip: "bg-sky-50 text-sky-800 ring-sky-100",
+      icon: "bg-sky-100 text-sky-700",
+      bar: "from-sky-500 to-blue-600",
     };
   }
   return {
@@ -93,16 +99,19 @@ const getModuleIcon = (title: string, defaultIcon: LucideIcon): LucideIcon => {
     "Immigration Expiry": ShieldAlert,
     "HR Settings": Settings,
     "Operations Reports": ClipboardList,
-    "Management Reports": LineChart,
-    "Operations and management Reports": FileText,
+    "Stock Summary": Boxes,
+    "Item Summary": FileBarChart2,
     "Inventory Reports": FileText,
     "Inventory Report": FileText,
+    "Item Master(stock)": BarChart3,
     "Inventory (Stocks)": BarChart3,
     Sales: DollarSign,
     Purchase: ShoppingCart,
+    Procurement: ShoppingCart,
     "Procurement Inventory": ShoppingCart,
     CRM: Users,
     "Manage uploads": Settings,
+    "Knowledge base": FileText,
     Library: FileText,
     "Inventory Settings": Settings,
     "Finance Reports": BarChart3,
@@ -129,24 +138,29 @@ const getModuleDescription = (title: string): string => {
       "Passports and residence permits that are expired or expiring soon",
     "HR Settings":
       "Configure leave types, HR policies, job codes, roles, appraisals, and permissions",
+    "Item Master(stock)":
+      "Manage stock levels, adjustments, and goods receipt",
     "Inventory (Stocks)":
       "Manage stock levels, adjustments, and goods receipt",
     Sales:
       "Orders, invoices, customers, fulfillment, and shipments",
     Purchase:
       "Requisitions, POs, receipts, invoices, and payments",
+    Procurement:
+      "Requisitions, POs, receipts, invoices, and payments",
     "Procurement Inventory":
       "Requisitions, POs, receipts, invoices, and payments",
     CRM: "Customers and suppliers in one place",
     "Manage uploads": "Upload and remove training materials",
+    "Knowledge base": "Browse training videos and documents",
     Library: "Browse training videos and documents",
+    "Stock Summary": "Stock levels and inventory sheet summary",
+    "Item Summary": "Per-item stock and movement summary",
     "Operations Reports":
       "Movements, batches, low stock, and expiry alerts",
-    "Management Reports":
-      "Valuation, turnover, and capital concentration",
-    "Operations and management Reports": "Operations and management reports",
-    "Inventory Reports": "Operations and management reports",
-    "Inventory Report": "Operations and management reports",
+    "Inventory Reports":
+      "Stock, item, and operations inventory reports",
+    "Inventory Report": "Stock, item, and operations inventory reports",
     "Inventory Settings":
       "Categories, warehouses, partners, and permissions",
     "Accounts Receivable": "Sales invoices and customer payments",
@@ -162,7 +176,8 @@ const getModuleDescription = (title: string): string => {
 };
 
 const getSystemTheme = (title: string) => {
-  if (title.toLowerCase().includes("hr")) {
+  const t = title.toLowerCase();
+  if (t.includes("shrs") || t.includes("hr")) {
     return {
       bgColor: "bg-blue-50",
       iconBg: "bg-gradient-to-br from-blue-500 to-blue-600",
@@ -171,10 +186,7 @@ const getSystemTheme = (title: string) => {
       hoverBorderColor: "hover:border-blue-300",
     };
   }
-  if (
-    title.toLowerCase().includes("inventory") ||
-    title.toLowerCase().includes("supply chain")
-  ) {
+  if (t.includes("inventory") || t.includes("supply chain")) {
     return {
       bgColor: "bg-green-50",
       iconBg: "bg-gradient-to-br from-green-500 to-green-600",
@@ -183,7 +195,7 @@ const getSystemTheme = (title: string) => {
       hoverBorderColor: "hover:border-green-300",
     };
   }
-  if (title.toLowerCase().includes("finance")) {
+  if (t.includes("finance")) {
     return {
       bgColor: "bg-purple-50",
       iconBg: "bg-gradient-to-br from-purple-500 to-purple-600",
@@ -192,7 +204,7 @@ const getSystemTheme = (title: string) => {
       hoverBorderColor: "hover:border-purple-300",
     };
   }
-  if (title.toLowerCase().includes("knowledge")) {
+  if (t.includes("help") || t.includes("knowledge")) {
     return {
       bgColor: "bg-teal-50",
       iconBg: "bg-gradient-to-br from-teal-500 to-teal-600",
@@ -211,17 +223,17 @@ const getSystemTheme = (title: string) => {
 };
 
 const getSystemSubtitle = (title: string): string => {
-  if (title.toLowerCase().includes("hr")) return "HRMS and payroll management";
-  if (
-    title.toLowerCase().includes("inventory") ||
-    title.toLowerCase().includes("supply chain")
-  ) {
+  const t = title.toLowerCase();
+  if (t.includes("shrs") || t.includes("hr")) {
+    return "Sunway HR System and payroll management";
+  }
+  if (t.includes("inventory") || t.includes("supply chain")) {
     return "Inventory and supply chain management";
   }
-  if (title.toLowerCase().includes("finance")) {
+  if (t.includes("finance")) {
     return "Financial management and accounting";
   }
-  if (title.toLowerCase().includes("knowledge")) {
+  if (t.includes("help") || t.includes("knowledge")) {
     return "Training videos and documents for end users";
   }
   return "Business management solutions";
@@ -254,12 +266,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tab =
-    searchParams.get("tab") === "modules" ? "modules" : "overview";
+  // Modules is the only home view for now (Overview tab hidden).
+  const tab = "modules";
 
   const setTab = (value: string) => {
     const next = new URLSearchParams(searchParams);
-    if (value === "overview") next.delete("tab");
+    if (value === "modules") next.delete("tab");
     else next.set("tab", value);
     setSearchParams(next, { replace: true });
   };
@@ -314,10 +326,10 @@ const Dashboard = () => {
 
   const enabledModules = useMemo(() => {
     const flags = [
-      company?.hrEnabled && "HRMS",
+      company?.hrEnabled && "SHRS",
       company?.inventoryEnabled && "Inventory",
       company?.financeEnabled && "Finance",
-      "Knowledge Base",
+      "Help",
     ].filter(Boolean) as string[];
     return flags;
   }, [company]);
@@ -368,19 +380,10 @@ const Dashboard = () => {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="relative z-[1] gap-5">
-        <TabsList className="h-auto w-full justify-start gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm sm:w-fit">
-          <StyledTabsTrigger value="overview" className="gap-2">
-            <Activity className="h-4 w-4" />
-            Overview
-          </StyledTabsTrigger>
-          <StyledTabsTrigger value="modules" className="gap-2">
-            <LayoutGrid className="h-4 w-4" />
-            Modules
-          </StyledTabsTrigger>
-        </TabsList>
+        {/* Overview tab hidden — Modules is the default home view. */}
 
-        {/* ── Overview: KPIs + recent activity ─────────────────────────────── */}
-        <TabsContent value="overview" className="mt-0 space-y-6">
+        {/* ── Overview: KPIs + recent activity (kept for later restore) ───── */}
+        <TabsContent value="overview" className="mt-0 hidden space-y-6">
           <WorkspaceHero
             eyebrow="Workspace overview"
             title={`${greetingForNow()}, ${displayName}`}
@@ -632,52 +635,56 @@ const Dashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {item.items.map((subItem) => {
-                    const ModuleIcon = getModuleIcon(
-                      subItem.title,
-                      subItem.icon,
-                    );
-                    const description = getModuleDescription(subItem.title);
+                  {item.items
+                    .flatMap((subItem) =>
+                      subItem.items?.length ? subItem.items : [subItem],
+                    )
+                    .map((subItem) => {
+                      const ModuleIcon = getModuleIcon(
+                        subItem.title,
+                        subItem.icon,
+                      );
+                      const description = getModuleDescription(subItem.title);
 
-                    return (
-                      <button
-                        key={subItem.title}
-                        type="button"
-                        onClick={() => navigate(subItem.url)}
-                        className={cn(
-                          "flex items-start gap-3 rounded-xl border bg-white p-3.5 text-left transition",
-                          "hover:shadow-md active:scale-[0.99]",
-                          theme.borderColor,
-                          theme.hoverBorderColor,
-                        )}
-                      >
-                        <div
+                      return (
+                        <button
+                          key={subItem.title}
+                          type="button"
+                          onClick={() => navigate(subItem.url)}
                           className={cn(
-                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-                            theme.bgColor,
+                            "flex items-start gap-3 rounded-xl border bg-white p-3.5 text-left transition",
+                            "hover:shadow-md active:scale-[0.99]",
+                            theme.borderColor,
+                            theme.hoverBorderColor,
                           )}
                         >
-                          <ModuleIcon
-                            className={cn("h-4 w-4", theme.textColor)}
+                          <div
+                            className={cn(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                              theme.bgColor,
+                            )}
+                          >
+                            <ModuleIcon
+                              className={cn("h-4 w-4", theme.textColor)}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-800">
+                              {subItem.title}
+                            </p>
+                            <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
+                              {description}
+                            </p>
+                          </div>
+                          <ArrowRight
+                            className={cn(
+                              "mt-1 h-4 w-4 shrink-0 opacity-40",
+                              theme.textColor,
+                            )}
                           />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-slate-800">
-                            {subItem.title}
-                          </p>
-                          <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
-                            {description}
-                          </p>
-                        </div>
-                        <ArrowRight
-                          className={cn(
-                            "mt-1 h-4 w-4 shrink-0 opacity-40",
-                            theme.textColor,
-                          )}
-                        />
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
                 </div>
               </div>
             );

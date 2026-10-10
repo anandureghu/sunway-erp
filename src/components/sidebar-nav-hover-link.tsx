@@ -22,14 +22,27 @@ export const SIDEBAR_DESCRIPTIONS: Record<string, string> = {
     "Generate and review HR reports including headcount, attendance, and immigration expiry.",
   "HR Settings":
     "Configure HR policies, leave types, payroll rules, and related company settings.",
+  "Item Master(stock)":
+    "Track stock levels, manage warehouse quantities, and monitor item availability.",
   "Inventory (Stocks)":
     "Track stock levels, manage warehouse quantities, and monitor item availability.",
   Sales:
     "Handle Sales transactions, manage sales invoices and maintain customer information. Perform order fulfillment and track shipments.",
   Purchase:
     "Manage purchase requests and orders, receive goods, and track supplier transactions.",
-  "Operations and management Reports":
-    "View operations and inventory reports for stock movement, valuations, and performance.",
+  Procurement:
+    "Manage purchase requests and orders, receive goods, and track supplier transactions.",
+  "Inventory Reports":
+    "Stock summary, item summary, and operations inventory reports.",
+  "Stock Summary":
+    "Stock levels and inventory sheet summary.",
+  "Item Summary":
+    "Per-item stock and movement summary.",
+  "Operations Reports":
+    "View operations inventory reports for stock movement and performance.",
+  "Knowledge base":
+    "Browse training videos and documents for end users.",
+  Help: "Help center and knowledge base for training materials.",
   "Inventory Settings":
     "Configure inventory categories, warehouses, and related inventory preferences.",
   Dashboard:

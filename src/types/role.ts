@@ -117,7 +117,7 @@ export const moduleDisplayNames: Record<string, string> = {
   INVENTORY_WAREHOUSE: "Warehouse",
   INVENTORY_STOCK: "Stock Management",
   INVENTORY_ITEM: "Items",
-  INVENTORY_PURCHASE: "Procurement Inventory",
+  INVENTORY_PURCHASE: "Procurement",
   INVENTORY_RECEIPT: "Goods Receipt",
   INVENTORY_SALES: "Sales",
 };

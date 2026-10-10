@@ -90,8 +90,8 @@ export const INVENTORY_PERMISSION_MODULES: PermissionModuleRow[] = [
   // Sales  (/inventory/sales)
   { id: "INVENTORY_SALES", label: "Sales", group: "Sales", description: "Orders, customers, picklist & dispatch (invoices need Finance → Invoices)" },
   // Purchase  (/inventory/purchase)
-  { id: "INVENTORY_PURCHASE", label: "Procurement Inventory", group: "Procurement Inventory", description: "Requisitions, POs & suppliers (invoices need Finance → Invoices)" },
-  { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Procurement Inventory", description: "Inspect receipts, confirm inspection, post stock & archive" },
+  { id: "INVENTORY_PURCHASE", label: "Procurement", group: "Procurement", description: "Requisitions, POs & suppliers (invoices need Finance → Invoices)" },
+  { id: "INVENTORY_RECEIPT", label: "Goods Receipt", group: "Procurement", description: "Inspect receipts, confirm inspection, post stock & archive" },
   // Inventory Settings  (/inventory/settings)
   { id: "INVENTORY_CATEGORY", label: "Categories", group: "Inventory Settings", description: "Item categories" },
   { id: "INVENTORY_WAREHOUSE", label: "Warehouse", group: "Inventory Settings", description: "Warehouses, locations & dispatch carriers" },

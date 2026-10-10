@@ -65,6 +65,8 @@ export interface SidebarSubItem {
   title: string;
   url: string;
   icon: LucideIcon;
+  /** Optional nested links (e.g. Inventory Reports → Stock Summary). */
+  items?: SidebarSubItem[];
 }
 
 export interface SidebarItem {

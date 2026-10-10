@@ -898,7 +898,7 @@ function StartInspectionForm({
             <p className="mb-4 text-sm text-slate-500">
               Enter the quantity that physically arrived per line. Warehouse,
               batch, lot and cost are entered later, once inspection is
-              confirmed, from Inventory (Stocks) → Receive.
+              confirmed, from Item Master(stock) → Receive.
             </p>
             {orderDetailsLoading ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
