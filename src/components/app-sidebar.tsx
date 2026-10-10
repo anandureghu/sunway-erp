@@ -390,20 +390,25 @@ export function AppSidebar() {
                   <SidebarGroupContent>
                     <SidebarMenu className="gap-0.5 mt-0.5">
                       {section.items.map((item) => {
-                        const nested = item.items ?? [];
+                        const nested =
+                          "items" in item && Array.isArray(item.items)
+                            ? item.items
+                            : [];
+                        const itemUrl = item.url;
                         const active =
-                          item.url != null &&
+                          itemUrl != null &&
                           (nested.length > 0
-                            ? nested.some((child) => path.startsWith(child.url)) ||
-                              path.startsWith(item.url)
-                            : path.startsWith(item.url));
+                            ? nested.some((child) =>
+                                path.startsWith(child.url),
+                              ) || path.startsWith(itemUrl)
+                            : path.startsWith(itemUrl));
                         return (
                           <SidebarMenuSub
                             key={item.title}
                             className="mx-0 translate-x-0 border-none px-0"
                           >
                             <SidebarMenuItem>
-                              {nested.length > 0 ? (
+                              {nested.length > 0 && itemUrl != null ? (
                                 <Collapsible
                                   defaultOpen={active}
                                   className="group/nested"
@@ -412,7 +417,7 @@ export function AppSidebar() {
                                     <div className="min-w-0 flex-1">
                                       <SidebarNavHoverLink
                                         title={item.title}
-                                        url={item.url}
+                                        url={itemUrl}
                                         icon={item.icon}
                                         active={active}
                                       />
@@ -443,7 +448,7 @@ export function AppSidebar() {
                                     </div>
                                   </CollapsibleContent>
                                 </Collapsible>
-                              ) : item.url == null ? (
+                              ) : itemUrl == null ? (
                                 <div
                                   className="flex min-w-0 cursor-not-allowed items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium text-slate-400 opacity-50 select-none"
                                   title="Company context not loaded yet"
@@ -458,14 +463,14 @@ export function AppSidebar() {
                               ) : (
                                 <SidebarNavHoverLink
                                   title={item.title}
-                                  url={item.url}
+                                  url={itemUrl}
                                   icon={item.icon}
                                   active={active}
                                 />
                               )}
 
                               {/* ── Employee submodules ─────────────────── */}
-                              {item.url === "/hr/employees" && selected && (
+                              {itemUrl === "/hr/employees" && selected && (
                                 <div className="mt-2 mb-1 mx-1">
                                   {/* Employee card */}
                                   <div className="mb-2 rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 via-purple-50 to-blue-50 px-3 py-2.5">
