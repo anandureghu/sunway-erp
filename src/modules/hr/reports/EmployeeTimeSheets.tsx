@@ -28,6 +28,7 @@ import { formatPunchTime, parseTimesheetDateTime, resolveCompanyTimezone } from 
 import { fetchHrPolicies } from "@/service/companyService";
 import { hrService } from "@/service/hr.service";
 import { useAuth } from "@/context/AuthContext";
+import { onTimesheetChanged } from "@/lib/timesheet-sync";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtTime = (iso: string | null, timeZone: string) =>
@@ -166,8 +167,10 @@ export default function EmployeeTimeSheets() {
 
   const monthValue = `${year}-${String(month).padStart(2, "0")}`;
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  // `silent` refreshes (after a check-in elsewhere, or on returning to the tab)
+  // update the rows without flashing the loading state.
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     setError(null);
     try {
       // Attendance can still contain an archived employee's historical punches.
@@ -200,6 +203,23 @@ export default function EmployeeTimeSheets() {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Live board: refetch when anyone checks in / out (header widget, Timesheet tab,
+  // or another browser tab) and when the user comes back to this view.
+  useEffect(() => {
+    const reload = () => void load(true);
+    const off = onTimesheetChanged(reload);
+    const onVisible = () => {
+      if (!document.hidden) reload();
+    };
+    window.addEventListener("focus", reload);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      off();
+      window.removeEventListener("focus", reload);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [load]);
 
   useEffect(() => {
@@ -667,6 +687,14 @@ export default function EmployeeTimeSheets() {
                               (r.totalHours || 0) - (r.overtimeHours || 0),
                             ) * 10,
                           ) / 10}
+                          {(r.restDayHours ?? 0) > 0 && (
+                            <p
+                              className="text-[10px] font-normal text-violet-600"
+                              title="Regular hours on Fri / Sat / public holidays — paid extra at the Friday/holiday rate, not counted as worked days"
+                            >
+                              incl. {r.restDayHours}h rest-day
+                            </p>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-semibold text-amber-700">
                           {otEditId === r.employeeId ? (

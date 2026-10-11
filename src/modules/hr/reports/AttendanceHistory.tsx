@@ -17,6 +17,7 @@ import {
 } from "@/service/timesheetService";
 import { cn, initialsFrom } from "@/lib/utils";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import { AttendanceProfileDialog } from "./AttendanceProfileDialog";
 
 const PAGE_SIZE = 10;
 
@@ -44,6 +45,8 @@ export default function AttendanceHistory() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Clicked employee → their attendance profile (calendar + trend).
+  const [profile, setProfile] = useState<EmployeeMonthlyAttendance | null>(null);
 
   const monthValue = `${year}-${String(month).padStart(2, "0")}`;
   const monthLabel = new Date(year, month - 1, 1).toLocaleDateString("en-GB", {
@@ -155,6 +158,13 @@ export default function AttendanceHistory() {
 
   return (
     <div className="space-y-5">
+      <AttendanceProfileDialog
+        employee={profile}
+        initialYear={year}
+        initialMonth={month}
+        onClose={() => setProfile(null)}
+      />
+
       {/* Filters + archive action */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -203,7 +213,7 @@ export default function AttendanceHistory() {
       <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs text-slate-400">
-            Days worked per employee for {monthLabel}.
+            Days worked per employee for {monthLabel}. Click an employee to see their full attendance history.
           </p>
           {archived && (
             <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700">
@@ -240,6 +250,7 @@ export default function AttendanceHistory() {
                         "Days Worked",
                         "Regular Hours",
                         "Overtime",
+                        "",
                       ].map((h, i) => (
                         <th
                           key={h}
@@ -257,8 +268,10 @@ export default function AttendanceHistory() {
                     {rows.map((r, i) => (
                       <tr
                         key={r.employeeId}
+                        onClick={() => setProfile(r)}
+                        title="View attendance history"
                         className={cn(
-                          "border-b border-slate-100 transition-colors hover:bg-slate-50/60",
+                          "group cursor-pointer border-b border-slate-100 transition-colors hover:bg-violet-50/40",
                           i % 2 === 0 ? "bg-white" : "bg-slate-50/30",
                         )}
                       >
@@ -296,6 +309,9 @@ export default function AttendanceHistory() {
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums font-semibold text-amber-700">
                           {r.overtimeHours ? `${r.overtimeHours} h` : "—"}
+                        </td>
+                        <td className="w-10 px-2 py-3 text-right">
+                          <ChevronRight className="ml-auto h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-violet-500" />
                         </td>
                       </tr>
                     ))}

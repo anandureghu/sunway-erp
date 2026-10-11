@@ -1686,6 +1686,41 @@ function EmployeePayrollTab() {
                           {payrollPreview.workedDays} / {payrollPreview.workingDays}
                         </span>
                       </div>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-slate-600">
+                          Regular hours{" "}
+                          <span className="text-[11px] text-slate-400">
+                            (Sun–Thu, up to the standard day)
+                          </span>
+                        </span>
+                        <span className="font-medium text-slate-700 tabular-nums">
+                          {Number(payrollPreview.workedHours ?? 0).toFixed(2)} h
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <span className="text-slate-600">
+                          Overtime hours{" "}
+                          <span className="text-[11px] text-slate-400">
+                            (after the standard day, up to auto check-out)
+                          </span>
+                        </span>
+                        <span className="font-medium text-slate-700 tabular-nums">
+                          {Number(payrollPreview.overtimeHours ?? 0).toFixed(2)} h
+                        </span>
+                      </div>
+                      {(payrollPreview.restDayHours ?? 0) > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">
+                            Rest-day / holiday hours{" "}
+                            <span className="text-[11px] text-slate-400">
+                              (Fri, Sat, public holidays — paid extra)
+                            </span>
+                          </span>
+                          <span className="font-medium text-slate-700 tabular-nums">
+                            {Number(payrollPreview.restDayHours ?? 0).toFixed(2)} h
+                          </span>
+                        </div>
+                      )}
                       {(payrollPreview.publicHolidayDays ?? 0) > 0 && (
                         <div className="flex items-center justify-between px-3 py-2">
                           <span className="text-slate-600">
@@ -1731,6 +1766,19 @@ function EmployeePayrollTab() {
                           <span className="text-slate-600">Overtime pay</span>
                           <span className="font-semibold text-emerald-700 tabular-nums">
                             + {formatMoney(payrollPreview.overtimePay, currencySymbol)}
+                          </span>
+                        </div>
+                      )}
+                      {(payrollPreview.restDayPay ?? 0) > 0 && (
+                        <div className="flex items-center justify-between px-3 py-2">
+                          <span className="text-slate-600">
+                            Rest-day / holiday work{" "}
+                            <span className="text-[11px] text-slate-400">
+                              ({Number(payrollPreview.restDayHours ?? 0).toFixed(2)} h at the Friday/holiday rate)
+                            </span>
+                          </span>
+                          <span className="font-semibold text-emerald-700 tabular-nums">
+                            + {formatMoney(payrollPreview.restDayPay ?? 0, currencySymbol)}
                           </span>
                         </div>
                       )}
@@ -1808,7 +1856,7 @@ function EmployeePayrollTab() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-sm [&_td]:whitespace-nowrap [&_td]:align-middle [&_th]:whitespace-nowrap">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-100">
                           <th className="px-5 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
@@ -1820,10 +1868,10 @@ function EmployeePayrollTab() {
                           <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
                             Period
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
+                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">
                             Gross Pay
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
+                          <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase tracking-wide">
                             Deductions
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wide">
@@ -1833,7 +1881,7 @@ function EmployeePayrollTab() {
                             Net Pay
                           </th>
                           <th className="px-4 py-3 text-center text-xs font-bold text-slate-500 uppercase tracking-wide">
-                            PDF
+                            Payslip PDF
                           </th>
                         </tr>
                       </thead>
@@ -1860,24 +1908,23 @@ function EmployeePayrollTab() {
                                   : "Regular"}
                               </span>
                             </td>
-                            <td className="px-4 py-3.5 text-slate-600 text-xs">
+                            <td className="px-4 py-3.5 tabular-nums text-slate-600 text-xs">
                               {row.payPeriodStart}
                               {row.payPeriodEnd ? ` → ${row.payPeriodEnd}` : ""}
                             </td>
-                            <td className="px-4 py-3.5 text-slate-700 font-medium">
+                            <td className="px-4 py-3.5 text-right tabular-nums text-slate-700 font-medium">
                               {formatMoney(row.grossPay, currencySymbol)}
                             </td>
-                            <td className="px-4 py-3.5 text-red-500 font-medium">
-                              -
-                              {formatMoney(
+                            <td className="px-4 py-3.5 text-right tabular-nums text-red-500 font-medium">
+                              − {formatMoney(
                                 String(row.totalDeductions ?? 0),
                                 currencySymbol,
                               )}
                             </td>
-                            <td className="px-4 py-3.5 text-slate-500 text-xs">
+                            <td className="px-4 py-3.5 tabular-nums text-slate-500 text-xs">
                               {row.payDate}
                             </td>
-                            <td className="px-4 py-3.5 text-right font-bold text-emerald-600">
+                            <td className="px-4 py-3.5 text-right tabular-nums font-bold text-emerald-600">
                               {formatMoney(row.netPayable, currencySymbol)}
                             </td>
                             <td className="px-4 py-3.5 text-center">

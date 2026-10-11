@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { hrService } from "@/service/hr.service";
-import { parsePayrollApiError, payrollService } from "@/service/payrollService";
-import { salaryService } from "@/service/salaryService";
+import {
+  fetchPayrollSummary,
+  parsePayrollApiError,
+  payrollService,
+  type PayrollSummaryRow,
+} from "@/service/payrollService";
 import { downloadPayslipPdf } from "@/service/payslipService";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -43,12 +47,20 @@ interface PayrollRow {
   bankAccount?: string;
 }
 
-interface EmployeePayrollSummary {
-  employee: Employee;
-  salary: number;
-  latestPayroll: PayrollRow | null;
-  totalPayrolls: number;
-}
+/** yyyy-MM of a yyyy-MM-dd date (or of today). */
+const monthKeyOf = (iso?: string) => {
+  if (iso && /^\d{4}-\d{2}/.test(iso)) return iso.slice(0, 7);
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+const monthLabelOf = (key: string) => {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-GB", {
+    month: "short",
+    year: "numeric",
+  });
+};
 
 export default function PayrollSettings() {
   const { user, company } = useAuth();
@@ -77,8 +89,11 @@ export default function PayrollSettings() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
 
-  // Summary stats across all employees
-  const [summaries, setSummaries] = useState<EmployeePayrollSummary[]>([]);
+  // Every payroll paid in the report month (the pay date's month, or this month),
+  // for ALL employees — the KPI cards and the month list read only from this, so
+  // they never mix different months.
+  const reportMonth = monthKeyOf(payInput.payDate);
+  const [monthRows, setMonthRows] = useState<PayrollSummaryRow[]>([]);
   const [loadingSummaries, setLoadingSummaries] = useState(false);
 
   // Load employee list
@@ -102,50 +117,24 @@ export default function PayrollSettings() {
       .finally(() => setLoadingEmps(false));
   }, []);
 
-  const loadSummaries = useCallback(async (list: Employee[]) => {
-    if (list.length === 0) {
-      setSummaries([]);
-      return;
-    }
+  const loadSummaries = useCallback(async () => {
     setLoadingSummaries(true);
-    const subset = list.slice(0, 20);
     try {
-      const results = await Promise.allSettled(
-        subset.map(async (emp) => {
-          const empId = Number(emp.id);
-          const [salRes, payRes] = await Promise.allSettled([
-            salaryService.get(empId),
-            payrollService.getPayrollHistory(empId),
-          ]);
-          const salary =
-            salRes.status === "fulfilled"
-              ? Number(salRes.value?.data?.basicSalary ?? 0)
-              : 0;
-          const histData: PayrollRow[] =
-            payRes.status === "fulfilled" ? (payRes.value?.data ?? []) : [];
-          return {
-            employee: emp,
-            salary,
-            latestPayroll: histData[histData.length - 1] ?? null,
-            totalPayrolls: histData.length,
-          } as EmployeePayrollSummary;
-        }),
-      );
-      setSummaries(
-        results
-          .filter((r) => r.status === "fulfilled")
-          .map(
-            (r) => (r as PromiseFulfilledResult<EmployeePayrollSummary>).value,
-          ),
-      );
+      const [y, m] = reportMonth.split("-").map(Number);
+      const last = new Date(y, m, 0).getDate();
+      const rows = await fetchPayrollSummary({
+        from: `${reportMonth}-01`,
+        to: `${reportMonth}-${String(last).padStart(2, "0")}`,
+      });
+      setMonthRows(rows);
     } finally {
       setLoadingSummaries(false);
     }
-  }, []);
+  }, [reportMonth]);
 
   useEffect(() => {
-    void loadSummaries(employees);
-  }, [employees, loadSummaries]);
+    void loadSummaries();
+  }, [loadSummaries]);
 
   // Load history for selected employee
   const loadHistory = useCallback(async (empId: number) => {
@@ -189,7 +178,7 @@ export default function PayrollSettings() {
       await payrollService.generatePayroll(Number(selectedEmp.id), payInput);
       toast.success("Payroll generated");
       await loadHistory(Number(selectedEmp.id));
-      await loadSummaries(employees);
+      await loadSummaries();
     } catch (err: unknown) {
       const { message, details } = parsePayrollApiError(err);
       setPayrollErrorBanner({ message, details });
@@ -224,7 +213,7 @@ export default function PayrollSettings() {
       toast.success(
         `Payroll generated for ${n} employee${n === 1 ? "" : "s"} (${ym})`,
       );
-      await loadSummaries(employees);
+      await loadSummaries();
       if (selectedEmp) await loadHistory(Number(selectedEmp.id));
     } catch (err: unknown) {
       const { message, details } = parsePayrollApiError(err);
@@ -256,18 +245,22 @@ export default function PayrollSettings() {
       )
     : employees;
 
-  // KPI totals
-  const totalGross = summaries.reduce(
-    (s, x) => s + Number(x.latestPayroll?.grossPay ?? 0),
+  // KPI totals — one month, every employee.
+  const monthLabel = monthLabelOf(reportMonth);
+  const totalGross = monthRows.reduce((s, x) => s + Number(x.grossPay ?? 0), 0);
+  const totalNet = monthRows.reduce((s, x) => s + Number(x.netPayable ?? 0), 0);
+  const processedCount = new Set(monthRows.map((x) => x.employeeId)).size;
+  const totalOvertime = monthRows.reduce(
+    (s, x) => s + Number(x.overtimeHours ?? 0),
     0,
   );
-  const totalNet = summaries.reduce(
-    (s, x) => s + Number(x.latestPayroll?.netPayable ?? 0),
+  // Overtime + rest-day / holiday work: everything paid for extra hours.
+  const totalOvertimePay = monthRows.reduce(
+    (s, x) => s + Number(x.overtimePay ?? 0) + Number(x.restDayPay ?? 0),
     0,
   );
-  const processedCount = summaries.filter((x) => x.latestPayroll).length;
-  const totalOvertime = summaries.reduce(
-    (s, x) => s + Number(x.latestPayroll?.overtimeHours ?? 0),
+  const totalRestDayHours = monthRows.reduce(
+    (s, x) => s + Number(x.restDayHours ?? 0),
     0,
   );
 
@@ -318,35 +311,38 @@ export default function PayrollSettings() {
             {
               label: "Total Employees",
               value: employees.length,
-              hint: "Total workforce",
+              hint: "On payroll (active & exiting)",
               accent: "violet",
               icon: Users,
             },
             {
               label: "Payroll Processed",
-              value: processedCount,
-              hint: "Payrolls this period",
+              value: `${processedCount} / ${employees.length}`,
+              hint: `Employees paid · ${monthLabel}`,
               accent: "emerald",
               icon: CheckCircle2,
             },
             {
               label: "Total Gross Pay",
               value: formatMoney(String(totalGross), currencySymbol),
-              hint: "Total before deductions",
+              hint: `Before deductions · ${monthLabel}`,
               accent: "sky",
               icon: TrendingUp,
             },
             {
               label: "Total Net Pay",
               value: formatMoney(String(totalNet), currencySymbol),
-              hint: "Total disbursed amount",
+              hint: `Disbursed · ${monthLabel}`,
               accent: "amber",
               icon: Banknote,
             },
             {
               label: "Total Overtime",
-              value: `${totalOvertime.toFixed(1)} hrs`,
-              hint: "Beyond standard hours",
+              value:
+                totalRestDayHours > 0
+                  ? `${totalOvertime.toFixed(1)} + ${totalRestDayHours.toFixed(1)} rest-day hrs`
+                  : `${totalOvertime.toFixed(1)} hrs`,
+              hint: `${formatMoney(String(totalOvertimePay), currencySymbol)} paid · ${monthLabel}`,
               accent: "rose",
               icon: Clock,
             },
@@ -555,7 +551,10 @@ export default function PayrollSettings() {
                   <Clock className="h-3.5 w-3.5 text-white" />
                 </div>
                 <span className="text-sm font-bold text-slate-700">
-                  Current Month Payrolls
+                  Payrolls · {monthLabel}
+                </span>
+                <span className="ml-auto text-[11px] text-slate-400">
+                  by pay date
                 </span>
               </div>
               {loadingSummaries ? (
@@ -564,39 +563,40 @@ export default function PayrollSettings() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-50 max-h-[300px] overflow-y-auto">
-                  {summaries
-                    .filter((s) => s.latestPayroll)
-                    .slice(0, 10)
-                    .map((s) => (
+                  {monthRows.map((r) => {
+                    const emp = employees.find((e) => Number(e.id) === r.employeeId);
+                    const name = r.employeeName ?? (emp ? `${emp.firstName} ${emp.lastName}` : "—");
+                    return (
                       <div
-                        key={String(s.employee.id)}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50/60 cursor-pointer transition-colors"
-                        onClick={() => selectEmployee(s.employee)}
+                        key={r.payrollCode ?? `${r.employeeId}-${r.payDate}`}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 transition-colors",
+                          emp && "cursor-pointer hover:bg-slate-50/60",
+                        )}
+                        onClick={() => emp && selectEmployee(emp)}
                       >
                         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-700 text-xs font-bold">
-                          {(s.employee.firstName?.[0] ?? "?").toUpperCase()}
+                          {(name?.[0] ?? "?").toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-slate-800 truncate">
-                            {s.employee.firstName} {s.employee.lastName}
+                            {name}
                           </p>
                           <p className="text-[10px] text-slate-400">
-                            {s.latestPayroll?.payDate
-                              ? fmt(s.latestPayroll.payDate)
-                              : "—"}
+                            {r.payDate ? fmt(r.payDate) : "—"}
+                            {Number(r.overtimeHours ?? 0) > 0 &&
+                              ` · OT ${Number(r.overtimeHours).toFixed(1)}h`}
                           </p>
                         </div>
                         <span className="text-xs font-bold text-emerald-700 shrink-0">
-                          {formatMoney(
-                            s.latestPayroll?.netPayable ?? "0",
-                            currencySymbol,
-                          )}
+                          {formatMoney(String(r.netPayable ?? 0), currencySymbol)}
                         </span>
                       </div>
-                    ))}
-                  {summaries.filter((s) => s.latestPayroll).length === 0 && (
+                    );
+                  })}
+                  {monthRows.length === 0 && (
                     <div className="py-6 text-center text-sm text-slate-400">
-                      No payrolls processed yet
+                      No payrolls paid in {monthLabel} yet
                     </div>
                   )}
                 </div>

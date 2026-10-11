@@ -45,6 +45,8 @@ export interface EmployeeMonthlyAttendance {
   daysPresent: number; // worked days (>= 6h) that feed payroll
   totalHours: number;
   overtimeHours: number; // month overtime — hours beyond the standard day, daily-capped
+  /** Regular hours worked on rest days / public holidays (paid extra, not worked days). */
+  restDayHours?: number;
   // True for no-punch companies: overtime can't be derived, so HR keys it manually.
   editableOvertime?: boolean;
   // Today's live status (meaningful only when viewing the current month).

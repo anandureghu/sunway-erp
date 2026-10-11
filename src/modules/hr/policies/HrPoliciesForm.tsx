@@ -776,24 +776,23 @@ export default function HrPoliciesForm() {
               <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                 Max OT hours per day
               </label>
-              <Input
-                type="number"
-                step="0.25"
-                min="0"
-                max="24"
-                value={hrPolicies.otMaxHoursPerDay ?? 2}
-                onChange={(e) =>
-                  updateHrPolicyField(
-                    "otMaxHoursPerDay",
-                    parseFloat(e.target.value) || 0,
-                  )
-                }
-                disabled={hrPoliciesLoading}
-                className="mt-1 h-9 text-sm"
-              />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Qatar default: 2 hours / day
-              </p>
+              {(() => {
+                const std = Number(hrPolicies.standardWorkingHoursPerDay ?? 6);
+                const auto = Number(hrPolicies.autoCheckoutAfterHours ?? 10);
+                const cap = Math.max(0, auto - std);
+                return (
+                  <>
+                    <div className="mt-1 flex h-9 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 tabular-nums">
+                      {cap} h
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Auto check-out ({auto}h) − standard day ({std}h). A shift is{" "}
+                      {std}h regular + up to {cap}h overtime. On Fri / Sat / public
+                      holidays the whole shift is paid extra at the Friday/holiday rate.
+                    </p>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

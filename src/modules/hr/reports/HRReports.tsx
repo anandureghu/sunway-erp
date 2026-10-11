@@ -30,7 +30,6 @@ import {
   ArchiveRestore,
   Trash2,
   LogOut,
-  Umbrella,
   Shield,
   UserRoundCog,
   Receipt,
@@ -281,12 +280,15 @@ const legacyTabMap: Record<string, { tab: string; sub: TabId }> = {
   appraisal: { tab: "workforce-analytics", sub: "appraisal" },
   attendance: { tab: "time-attendance", sub: "attendance" },
   "attendance-history": { tab: "time-attendance", sub: "attendance-history" },
-  leaves: { tab: "leave-loans", sub: "leaves" },
-  loans: { tab: "leave-loans", sub: "loans" },
+  leaves: { tab: "employee-master", sub: "leaves" },
+  loans: { tab: "employee-master", sub: "loans" },
+  // Former groups merged into Employee Master.
+  "leave-loans": { tab: "employee-master", sub: "leaves" },
+  lifecycle: { tab: "employee-master", sub: "exit-interviews" },
   immigration: { tab: "compliance", sub: "immigration" },
   "payroll-summary": { tab: "payroll", sub: "payroll-summary" },
-  "exit-interviews": { tab: "lifecycle", sub: "exit-interviews" },
-  archive: { tab: "lifecycle", sub: "archive" },
+  "exit-interviews": { tab: "employee-master", sub: "exit-interviews" },
+  archive: { tab: "employee-master", sub: "archive" },
   history: { tab: "audit", sub: "history" },
 };
 
@@ -446,16 +448,20 @@ export default function HRReports() {
       });
     }
 
-    const leaveLoans = [
+    // Employee Master: leave & loan history plus the employee lifecycle
+    // (exit interviews, archive) — one place for each employee's records.
+    const employeeMaster = [
       ...(canRpt("HRR_LEAVE_HISTORY") || canLeaves ? [LEAVES_TAB] : []),
       ...(canRpt("HRR_LOAN_HISTORY") || canLoans ? [LOANS_TAB] : []),
+      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
+      ...(canRpt("HRR_ARCHIVE") ? [ARCHIVE_TAB] : []),
     ];
-    if (leaveLoans.length) {
+    if (employeeMaster.length) {
       list.push({
-        value: "leave-loans",
-        label: "Leave & loans",
-        icon: <Umbrella className="h-4 w-4" />,
-        children: leaveLoans,
+        value: "employee-master",
+        label: "Employee Master",
+        icon: <UserRoundCog className="h-4 w-4" />,
+        children: employeeMaster,
       });
     }
 
@@ -474,19 +480,6 @@ export default function HRReports() {
         label: "Payroll",
         icon: <Banknote className="h-4 w-4" />,
         children: [PAYROLL_SUMMARY_TAB],
-      });
-    }
-
-    const lifecycle = [
-      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
-      ...(canRpt("HRR_ARCHIVE") ? [ARCHIVE_TAB] : []),
-    ];
-    if (lifecycle.length) {
-      list.push({
-        value: "lifecycle",
-        label: "Employee lifecycle",
-        icon: <UserRoundCog className="h-4 w-4" />,
-        children: lifecycle,
       });
     }
 

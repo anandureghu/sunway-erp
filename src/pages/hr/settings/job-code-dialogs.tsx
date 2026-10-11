@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Briefcase,
   Building2,
@@ -8,6 +8,9 @@ import {
   X,
   DollarSign,
   TrendingUp,
+  ThumbsUp,
+  ThumbsDown,
+  Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +26,10 @@ import {
   type JobCode,
   JcSection,
   JcSelectField,
+  JobCodeStatusBadge,
+  HOLD_REASON_LABEL,
+  HOLD_DECISION_LABEL,
+  type JobCodeHoldReason,
   jcInputCls,
   jcLabelCls,
   LEVELS,
@@ -108,7 +115,9 @@ export function JobCodeFormDialog({
   existingCodes = [],
   departments = [],
   divisions = [],
+  pendingLocked = false,
 }: {
+  pendingLocked?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
   form: Partial<JobCode>;
@@ -425,6 +434,148 @@ export function JobCodeFormDialog({
             iconBg="bg-amber-50"
             title="Status"
           >
+            <div className="mb-3">
+              <label className={jcLabelCls}>Position status</label>
+              {form.status === "OCCUPIED" ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50/60 px-4 py-3">
+                  <div>
+                    <JobCodeStatusBadge status="OCCUPIED" />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      {form.occupiedBy ? `Held by ${form.occupiedBy}. ` : ""}
+                      Becomes vacant automatically when the employee leaves or is made
+                      inactive.
+                    </p>
+                  </div>
+                </div>
+              ) : pendingLocked ? (
+                <div className="rounded-xl border border-orange-200 bg-orange-50/60 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <JobCodeStatusBadge status="ON_HOLD" />
+                    <span className="rounded bg-orange-100 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-orange-700">
+                      Pending approval
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    This hold is closed by an approver — use Approve or Reject position from
+                    the row menu. You can still update the comments below.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        {
+                          value: "VACANT",
+                          label: "Vacant",
+                          hint: "Open — can be assigned",
+                          on: "border-emerald-400 bg-emerald-50 ring-2 ring-emerald-100",
+                        },
+                        {
+                          value: "ON_HOLD",
+                          label: "On Hold",
+                          hint: "Awaiting approval or reserved",
+                          on: "border-amber-400 bg-amber-50 ring-2 ring-amber-100",
+                        },
+                      ] as const
+                    ).map((o) => {
+                      const selected = (form.status ?? "VACANT") === o.value;
+                      return (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() =>
+                            onField(
+                              o.value === "ON_HOLD"
+                                ? { status: o.value, holdReason: form.holdReason ?? "PENDING_APPROVAL" }
+                                : { status: o.value },
+                            )
+                          }
+                          className={`rounded-xl border px-4 py-2.5 text-left transition ${
+                            selected
+                              ? o.on
+                              : "border-slate-200 bg-white hover:bg-slate-50"
+                          }`}
+                        >
+                          <p className="text-[13px] font-semibold text-slate-800">
+                            {o.label}
+                          </p>
+                          <p className="text-[11px] text-slate-500">{o.hint}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+              {form.status === "ON_HOLD" && (
+                <>
+                  {!pendingLocked && (
+                    <div className="mt-3">
+                      <label className={jcLabelCls}>
+                        Reason <span className="text-rose-400">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(
+                          [
+                            {
+                              value: "PENDING_APPROVAL",
+                              hint: "Department needs approval — closed by Approve / Reject",
+                            },
+                            {
+                              value: "RESERVED",
+                              hint: "Kept for a specific person — closed by Release",
+                            },
+                          ] as const
+                        ).map((r) => {
+                          const selected = form.holdReason === r.value;
+                          return (
+                            <button
+                              key={r.value}
+                              type="button"
+                              onClick={() =>
+                                onField({ holdReason: r.value as JobCodeHoldReason })
+                              }
+                              className={`rounded-xl border px-3 py-2 text-left transition ${
+                                selected
+                                  ? "border-amber-400 bg-amber-50 ring-2 ring-amber-100"
+                                  : "border-slate-200 bg-white hover:bg-slate-50"
+                              }`}
+                            >
+                              <p className="text-[12px] font-semibold text-slate-800">
+                                {HOLD_REASON_LABEL[r.value]}
+                              </p>
+                              <p className="text-[10px] leading-snug text-slate-500">{r.hint}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-3">
+                    <label className={jcLabelCls}>
+                      Hold comments <span className="text-rose-400">*</span>
+                    </label>
+                    <textarea
+                      value={form.holdComment ?? ""}
+                      onChange={(e) => onField({ holdComment: e.target.value })}
+                      maxLength={500}
+                      rows={3}
+                      placeholder="e.g. Awaiting department head approval / Reserved for the candidate joining in November"
+                      className={`${jcInputCls} h-auto resize-none py-2`}
+                    />
+                    <p className="mt-1 text-right text-[10px] text-slate-400">
+                      {(form.holdComment ?? "").length}/500
+                    </p>
+                  </div>
+                </>
+              )}
+              {form.status !== "OCCUPIED" && !pendingLocked && (
+                <p className="mt-2 text-[11px] text-slate-400">
+                  The status changes to Occupied automatically when an employee is
+                  assigned this job code.
+                </p>
+              )}
+            </div>
             <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
               <div>
                 <p className="text-[13px] font-medium text-slate-700">
@@ -495,11 +646,20 @@ export function JobCodeViewDialog({
   view,
   onClose,
   onEdit,
+  onHoldAction,
+  canApproveHolds = false,
+  canEditHolds = false,
 }: {
   view: JobCode | null;
   onClose: () => void;
   onEdit: (jc: JobCode) => void;
+  onHoldAction?: (jc: JobCode, action: "approve" | "reject" | "release") => void;
+  canApproveHolds?: boolean;
+  canEditHolds?: boolean;
 }) {
+  const pendingApproval =
+    view?.status === "ON_HOLD" && (view.holdReason ?? "PENDING_APPROVAL") === "PENDING_APPROVAL";
+  const reserved = view?.status === "ON_HOLD" && view.holdReason === "RESERVED";
   const salaryRange =
     view && (view.minSalary != null || view.maxSalary != null)
       ? `${view.minSalary != null ? Number(view.minSalary).toLocaleString() : "—"} – ${view.maxSalary != null ? Number(view.maxSalary).toLocaleString() : "—"}`
@@ -559,6 +719,23 @@ export function JobCodeViewDialog({
                 }
               />
               <JcViewField
+                label="Position"
+                value={<JobCodeStatusBadge status={view.status} />}
+              />
+              {view.status === "OCCUPIED" && view.occupiedBy && (
+                <JcViewField label="Held By" value={view.occupiedBy} />
+              )}
+              {view.status === "ON_HOLD" && (
+                <>
+                  <JcViewField
+                    label="Hold Reason"
+                    value={HOLD_REASON_LABEL[view.holdReason ?? "PENDING_APPROVAL"]}
+                  />
+                  <JcViewField label="On Hold Since" value={view.holdSince ?? undefined} />
+                  <JcViewField label="Hold Comments" value={view.holdComment ?? undefined} />
+                </>
+              )}
+              <JcViewField
                 label="Status"
                 value={
                   view.active ? (
@@ -573,11 +750,64 @@ export function JobCodeViewDialog({
                 }
               />
             </div>
+
+            {view.holdDecision && (
+              <div
+                className={`rounded-xl border px-4 py-3 text-sm ${
+                  view.holdDecision === "REJECTED"
+                    ? "border-rose-200 bg-rose-50/60"
+                    : "border-emerald-200 bg-emerald-50/60"
+                }`}
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Last hold
+                </p>
+                <p className="mt-1 font-medium text-slate-800">
+                  {HOLD_DECISION_LABEL[view.holdDecision] ?? view.holdDecision}
+                  {view.holdDecidedBy ? ` by ${view.holdDecidedBy}` : ""}
+                  {view.holdDecidedAt
+                    ? ` on ${new Date(view.holdDecidedAt).toLocaleDateString()}`
+                    : ""}
+                </p>
+                {view.holdDecisionNote && (
+                  <p className="mt-0.5 text-xs text-slate-600">{view.holdDecisionNote}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
+          {view && pendingApproval && canApproveHolds && onHoldAction && (
+            <>
+              <Button
+                variant="outline"
+                className="mr-auto border-rose-200 text-rose-600 hover:bg-rose-50"
+                onClick={() => onHoldAction(view, "reject")}
+              >
+                <ThumbsDown className="mr-2 h-4 w-4" />
+                Reject
+              </Button>
+              <Button
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                onClick={() => onHoldAction(view, "approve")}
+              >
+                <ThumbsUp className="mr-2 h-4 w-4" />
+                Approve
+              </Button>
+            </>
+          )}
+          {view && reserved && canEditHolds && onHoldAction && (
+            <Button
+              variant="outline"
+              className="mr-auto border-blue-200 text-blue-600 hover:bg-blue-50"
+              onClick={() => onHoldAction(view, "release")}
+            >
+              <Unlock className="mr-2 h-4 w-4" />
+              Release hold
+            </Button>
+          )}
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -593,6 +823,105 @@ export function JobCodeViewDialog({
             Edit
           </Button>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const HOLD_ACTION_COPY = {
+  approve: {
+    title: "Approve position",
+    body: "The hold is closed and the position becomes Vacant, ready to be assigned.",
+    button: "Approve",
+    cls: "bg-emerald-600 hover:bg-emerald-700 text-white",
+    noteLabel: "Approval note (optional)",
+    required: false,
+  },
+  reject: {
+    title: "Reject position",
+    body: "The position is not approved. The hold is closed and the job code is deactivated, so it can't be assigned.",
+    button: "Reject",
+    cls: "bg-rose-600 hover:bg-rose-700 text-white",
+    noteLabel: "Reason for rejection",
+    required: true,
+  },
+  release: {
+    title: "Release hold",
+    body: "The reservation ends and the position becomes Vacant, so anyone can be assigned.",
+    button: "Release",
+    cls: "bg-blue-600 hover:bg-blue-700 text-white",
+    noteLabel: "Note (optional)",
+    required: false,
+  },
+} as const;
+
+/** Confirm closing a hold (approve / reject / release) with a note. */
+export function JobCodeHoldDecisionDialog({
+  target,
+  onClose,
+  onConfirm,
+}: {
+  target: { jc: JobCode; action: "approve" | "reject" | "release" } | null;
+  onClose: () => void;
+  onConfirm: (note: string) => Promise<void> | void;
+}) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setNote("");
+    setBusy(false);
+  }, [target]);
+  const copy = target ? HOLD_ACTION_COPY[target.action] : null;
+  const blocked = !!copy?.required && !note.trim();
+
+  return (
+    <Dialog open={!!target} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{copy?.title}</DialogTitle>
+          <DialogDescription>
+            <span className="font-mono">{target?.jc.code}</span> — {target?.jc.title}.{" "}
+            {copy?.body}
+          </DialogDescription>
+        </DialogHeader>
+        {target?.jc.holdComment && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs text-slate-600">
+            <span className="font-semibold text-amber-700">On hold: </span>
+            {target.jc.holdComment}
+          </div>
+        )}
+        <div>
+          <label className={jcLabelCls}>
+            {copy?.noteLabel}
+            {copy?.required && <span className="text-rose-400"> *</span>}
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={500}
+            rows={3}
+            className={`${jcInputCls} h-auto resize-none py-2`}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            className={copy?.cls}
+            disabled={blocked || busy}
+            onClick={async () => {
+              setBusy(true);
+              try {
+                await onConfirm(note);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {copy?.button}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -323,6 +323,30 @@ export const getSidebarItems = async (
               // Expiry (or /hr/reports?tab=immigration). The backend still
               // scopes the rows by the IMMIGRATION grant (all vs. own).
 
+              // HR Operations — lifecycle & approval queues (any of their permissions)
+              ...(canView(permissions, "HR_SETTINGS") ||
+              [
+                "HRS_CONFIRMATIONS",
+                "HRS_CONTRACT_RENEWALS",
+                "HRS_APPRAISAL_CONFIG",
+                "HRS_LEAVE_APPROVALS",
+                "HRS_LOAN_APPROVALS",
+              ].some((m) => canView(permissions, m)) ||
+              ["LEAVES", "LOANS", "EMPLOYEE_PROFILE", "HRS_JOB_CODES"].some(
+                (m) =>
+                  permissions == null ||
+                  !!(permissions as any)?.[m]?.approve ||
+                  !!(permissions as any)?.[m]?.APPROVE,
+              )
+                ? [
+                    {
+                      title: "HR Operations",
+                      url: "/hr/operations",
+                      icon: ClipboardList,
+                    },
+                  ]
+                : []),
+
               // HR Settings — gated by HR_SETTINGS
               ...(canView(permissions, "HR_SETTINGS")
                 ? [

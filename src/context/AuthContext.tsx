@@ -63,7 +63,7 @@ function remapCompanyScopedPath(
   if (payroll) return "/finance/payroll";
 
   const roles = pathname.match(/^\/settings\/roles\/(\d+)(\/.*)?$/);
-  if (roles) return "/hr/settings?tab=roles";
+  if (roles) return "/hr/settings?tab=administration&sub=roles";
 
   const settings = pathname.match(/^\/settings\/(\d+)(\/.*)?$/);
   if (settings) return `/settings/${companyId}${settings[2] ?? ""}`;

@@ -85,7 +85,7 @@ export function LeaveUtilizationCard({
     <DashboardSectionCard
       title={`Leave utilization — ${data.monthLabel}`}
       description="Approved leave days taken this month (share by type)"
-      viewAllTo="/hr/settings?tab=leave-approvals"
+      viewAllTo="/hr/operations?tab=leave-approvals"
     >
       {data.rows.length === 0 ? (
         <DashboardEmpty message="No approved leave recorded this month." />

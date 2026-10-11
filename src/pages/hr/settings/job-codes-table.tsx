@@ -6,6 +6,9 @@ import {
   Briefcase,
   CheckCircle2,
   XCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +28,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TablePagination } from "@/components/table-pagination";
-import { type JobCode } from "./shared";
+import { type JobCode, JobCodeStatusBadge, HOLD_REASON_LABEL } from "./shared";
+
+export type HoldAction = "approve" | "reject" | "release";
 
 export function JobCodesTable({
   rows,
@@ -40,8 +45,9 @@ export function JobCodesTable({
   onView,
   onEdit,
   onDelete,
-  onApprove,
-  onReject,
+  onHoldAction,
+  canApproveHolds = false,
+  canEditHolds = false,
 }: {
   rows: JobCode[];
   filteredCount: number;
@@ -55,8 +61,9 @@ export function JobCodesTable({
   onView: (jc: JobCode) => void;
   onEdit: (jc: JobCode) => void;
   onDelete: (jc: JobCode) => void;
-  onApprove?: (jc: JobCode) => void;
-  onReject?: (jc: JobCode) => void;
+  onHoldAction?: (jc: JobCode, action: HoldAction) => void;
+  canApproveHolds?: boolean;
+  canEditHolds?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -86,6 +93,9 @@ export function JobCodesTable({
             </TableHead>
             <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Salary Range
+            </TableHead>
+            <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Position
             </TableHead>
             <TableHead className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Status
@@ -139,6 +149,35 @@ export function JobCodesTable({
                   <span className="text-slate-400">—</span>
                 )}
               </TableCell>
+              <TableCell className="max-w-[220px]">
+                <div className="flex flex-col gap-1">
+                  <JobCodeStatusBadge status={j.status} />
+                  {j.status === "OCCUPIED" && j.occupiedBy && (
+                    <span className="truncate text-[11px] text-slate-500" title={j.occupiedBy}>
+                      {j.occupiedBy}
+                    </span>
+                  )}
+                  {j.status === "ON_HOLD" && (
+                    <span
+                      className={`w-fit rounded px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide ${
+                        (j.holdReason ?? "PENDING_APPROVAL") === "PENDING_APPROVAL"
+                          ? "bg-orange-100 text-orange-700"
+                          : "bg-violet-100 text-violet-700"
+                      }`}
+                    >
+                      {HOLD_REASON_LABEL[j.holdReason ?? "PENDING_APPROVAL"]}
+                    </span>
+                  )}
+                  {j.status === "ON_HOLD" && j.holdComment && (
+                    <span
+                      className="truncate text-[11px] text-amber-700/80"
+                      title={j.holdComment}
+                    >
+                      {j.holdComment}
+                    </span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell>
                 <div className="flex flex-col gap-1">
                   {j.active ? (
@@ -155,19 +194,6 @@ export function JobCodesTable({
                         Inactive
                       </span>
                     </div>
-                  )}
-                  {j.status && j.status !== "APPROVED" && (
-                    <span
-                      className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-                        j.status === "REJECTED"
-                          ? "border-rose-200 bg-rose-50 text-rose-600"
-                          : "border-amber-200 bg-amber-50 text-amber-700"
-                      }`}
-                    >
-                      {j.status === "REJECTED"
-                        ? "Rejected"
-                        : "Pending approval"}
-                    </span>
                   )}
                 </div>
               </TableCell>
@@ -189,24 +215,39 @@ export function JobCodesTable({
                       <Edit className="mr-2 h-4 w-4" />
                       Edit
                     </DropdownMenuItem>
-                    {j.status === "PENDING_APPROVAL" && onApprove && (
-                      <DropdownMenuItem
-                        className="text-green-600 focus:text-green-600"
-                        onClick={() => onApprove(j)}
-                      >
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Approve
-                      </DropdownMenuItem>
-                    )}
-                    {j.status === "PENDING_APPROVAL" && onReject && (
-                      <DropdownMenuItem
-                        className="text-amber-600 focus:text-amber-600"
-                        onClick={() => onReject(j)}
-                      >
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Reject
-                      </DropdownMenuItem>
-                    )}
+                    {j.status === "ON_HOLD" &&
+                      (j.holdReason ?? "PENDING_APPROVAL") === "PENDING_APPROVAL" &&
+                      canApproveHolds &&
+                      onHoldAction && (
+                        <>
+                          <DropdownMenuItem
+                            className="text-emerald-600 focus:text-emerald-600"
+                            onClick={() => onHoldAction(j, "approve")}
+                          >
+                            <ThumbsUp className="mr-2 h-4 w-4" />
+                            Approve position
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-rose-600 focus:text-rose-600"
+                            onClick={() => onHoldAction(j, "reject")}
+                          >
+                            <ThumbsDown className="mr-2 h-4 w-4" />
+                            Reject position
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    {j.status === "ON_HOLD" &&
+                      j.holdReason === "RESERVED" &&
+                      canEditHolds &&
+                      onHoldAction && (
+                        <DropdownMenuItem
+                          className="text-blue-600 focus:text-blue-600"
+                          onClick={() => onHoldAction(j, "release")}
+                        >
+                          <Unlock className="mr-2 h-4 w-4" />
+                          Release hold
+                        </DropdownMenuItem>
+                      )}
                     <DropdownMenuItem
                       className="text-red-600 focus:text-red-600"
                       onClick={() => onDelete(j)}
@@ -221,7 +262,7 @@ export function JobCodesTable({
           ))}
           {!filteredCount && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-12">
+              <TableCell colSpan={9} className="text-center py-12">
                 <div className="flex flex-col items-center gap-2">
                   <Briefcase className="h-12 w-12 text-slate-300" />
                   <p className="text-slate-500 font-medium">

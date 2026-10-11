@@ -71,6 +71,54 @@ export interface Role {
   active?: boolean;
 }
 
+export type JobCodeStatus = "VACANT" | "OCCUPIED" | "ON_HOLD";
+export type JobCodeHoldReason = "PENDING_APPROVAL" | "RESERVED";
+
+export const HOLD_REASON_LABEL: Record<JobCodeHoldReason, string> = {
+  PENDING_APPROVAL: "Pending approval",
+  RESERVED: "Reserved",
+};
+
+export const HOLD_DECISION_LABEL: Record<string, string> = {
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  RELEASED: "Released",
+};
+
+export const JOB_CODE_STATUS_META: Record<
+  JobCodeStatus,
+  { label: string; cls: string; dot: string }
+> = {
+  VACANT: {
+    label: "Vacant",
+    cls: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    dot: "bg-emerald-500",
+  },
+  OCCUPIED: {
+    label: "Occupied",
+    cls: "border-blue-200 bg-blue-50 text-blue-700",
+    dot: "bg-blue-500",
+  },
+  ON_HOLD: {
+    label: "On Hold",
+    cls: "border-amber-200 bg-amber-50 text-amber-700",
+    dot: "bg-amber-500",
+  },
+};
+
+/** Vacant / Occupied / On Hold pill. */
+export function JobCodeStatusBadge({ status }: { status?: JobCodeStatus | null }) {
+  const meta = JOB_CODE_STATUS_META[status ?? "VACANT"] ?? JOB_CODE_STATUS_META.VACANT;
+  return (
+    <span
+      className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+      {meta.label}
+    </span>
+  );
+}
+
 export interface JobCode {
   id: number;
   code: string;
@@ -80,8 +128,23 @@ export interface JobCode {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
-  /** Approval state: PENDING_APPROVAL | APPROVED | REJECTED. */
-  status?: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | string;
+  /**
+   * Position state: VACANT (new codes) · OCCUPIED (automatic while someone holds it)
+   * · ON_HOLD (set by HR, with `holdComment`).
+   */
+  status?: JobCodeStatus;
+  /** Why the position is on hold (only while ON_HOLD). */
+  holdComment?: string | null;
+  holdSince?: string | null;
+  /** Why it is on hold: PENDING_APPROVAL (closed by Approve / Reject) or RESERVED (closed by Release). */
+  holdReason?: JobCodeHoldReason | null;
+  /** How the last hold was closed: APPROVED | REJECTED | RELEASED. */
+  holdDecision?: "APPROVED" | "REJECTED" | "RELEASED" | null;
+  holdDecisionNote?: string | null;
+  holdDecidedBy?: string | null;
+  holdDecidedAt?: string | null;
+  /** Who holds the position (only while OCCUPIED). */
+  occupiedBy?: string | null;
   // Defaults copied onto the current job when this code is assigned.
   departmentId?: number | null;
   departmentName?: string | null;

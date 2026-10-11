@@ -44,7 +44,7 @@ export function AppraisalCycleCard({
   return (
     <DashboardSectionCard
       title={`Appraisal cycle — ${data.cycleLabel}`}
-      viewAllTo="/hr/settings?tab=appraisal"
+      viewAllTo="/hr/operations?tab=appraisals"
     >
       {total === 0 ? (
         <DashboardEmpty message="No appraisals assigned this year." />
@@ -108,7 +108,7 @@ export function ProbationTrackerCard({
   return (
     <DashboardSectionCard
       title="Probation tracker"
-      viewAllTo="/hr/settings?tab=lifecycle&sub=confirm-employees"
+      viewAllTo="/hr/operations?tab=confirmations"
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
