@@ -29,6 +29,14 @@ export type PayrollSummaryRow = {
   loanDeduction: number;
   lopAmount: number;
   overtimePay: number;
+  /** Overtime hours (beyond the standard day, up to auto check-out). */
+  overtimeHours?: number;
+  /** Regular hours worked on rest days / public holidays, and their extra pay. */
+  restDayHours?: number;
+  restDayPay?: number;
+  /** Regular hours (overtime excluded). */
+  workedHours?: number;
+  workedDays?: number;
   endOfServiceCompensation: number;
   netPayable: number;
   finalSettlement: boolean;
@@ -89,6 +97,11 @@ export type PayrollPreview = {
   periodMonths?: number;
   /** Paid public-holiday working days in the period. */
   publicHolidayDays?: number;
+  /** Overtime hours in the period; workedHours are the regular (Sun–Thu) hours. */
+  overtimeHours?: number;
+  /** Regular hours worked on rest days / public holidays — paid on top of salary. */
+  restDayHours?: number;
+  restDayPay?: number;
 };
 
 export function parsePayrollApiError(err: unknown): { message: string; details: string[] } {

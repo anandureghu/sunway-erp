@@ -1,5 +1,8 @@
 import { apiClient } from "./apiClient";
 
+export type JobCodeStatus = "VACANT" | "OCCUPIED" | "ON_HOLD";
+export type JobCodeHoldReason = "PENDING_APPROVAL" | "RESERVED";
+
 export interface JobCode {
   id: number;
   code: string;
@@ -9,8 +12,23 @@ export interface JobCode {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
-  /** Approval state: PENDING_APPROVAL | APPROVED | REJECTED. */
-  status?: "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | string;
+  /**
+   * Position state: VACANT (new codes) · OCCUPIED (automatic while someone holds it)
+   * · ON_HOLD (set by HR, with `holdComment`).
+   */
+  status?: JobCodeStatus;
+  /** Why the position is on hold (only while ON_HOLD). */
+  holdComment?: string | null;
+  holdSince?: string | null;
+  /** Why it is on hold: PENDING_APPROVAL (closed by Approve / Reject) or RESERVED (closed by Release). */
+  holdReason?: JobCodeHoldReason | null;
+  /** How the last hold was closed: APPROVED | REJECTED | RELEASED. */
+  holdDecision?: "APPROVED" | "REJECTED" | "RELEASED" | null;
+  holdDecisionNote?: string | null;
+  holdDecidedBy?: string | null;
+  holdDecidedAt?: string | null;
+  /** Who holds the position (only while OCCUPIED). */
+  occupiedBy?: string | null;
   // Defaults copied onto the current job when this code is assigned.
   departmentId?: number | null;
   departmentName?: string | null;
@@ -34,6 +52,10 @@ export interface JobCodePayload {
   minSalary?: number | null;
   maxSalary?: number | null;
   active: boolean;
+  /** VACANT or ON_HOLD — OCCUPIED is set automatically. */
+  status?: JobCodeStatus | null;
+  holdComment?: string | null;
+  holdReason?: JobCodeHoldReason | null;
   departmentId?: number | null;
   divisionId?: number | null;
   employmentCategory?: string | null;
@@ -80,18 +102,28 @@ async function update(id: number, payload: JobCodePayload): Promise<JobCode> {
   return res.data;
 }
 
+/** Close a hold: approve / reject (pending approval) or release (reserved). */
+async function decideHold(
+  id: number,
+  action: "approve" | "reject" | "release",
+  note?: string | null,
+): Promise<JobCode> {
+  const res = await apiClient.put<JobCode>(`/hr/job-codes/${id}/hold/${action}`, {
+    note: note?.trim() || null,
+  });
+  return res.data;
+}
+
+/** Position Approvals queue: pending-approval holds and the latest decisions. */
+async function getHoldQueue(): Promise<{ pending: JobCode[]; recent: JobCode[] }> {
+  const res = await apiClient.get<{ pending: JobCode[]; recent: JobCode[] }>(
+    "/hr/job-codes/holds",
+  );
+  return { pending: res.data?.pending ?? [], recent: res.data?.recent ?? [] };
+}
+
 async function remove(id: number): Promise<void> {
   await apiClient.delete(`/hr/job-codes/${id}`);
-}
-
-async function approve(id: number): Promise<JobCode> {
-  const res = await apiClient.put<JobCode>(`/hr/job-codes/${id}/approve`);
-  return res.data;
-}
-
-async function reject(id: number): Promise<JobCode> {
-  const res = await apiClient.put<JobCode>(`/hr/job-codes/${id}/reject`);
-  return res.data;
 }
 
 export const jobCodeService = {
@@ -101,8 +133,8 @@ export const jobCodeService = {
   getById,
   create,
   update,
-  approve,
-  reject,
+  decideHold,
+  getHoldQueue,
   delete: remove,
 };
 
