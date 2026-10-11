@@ -222,6 +222,14 @@ const getSystemTheme = (title: string) => {
   };
 };
 
+/** Home Modules launcher display titles only — sidebar keeps canonical names. */
+const getModuleSectionTitle = (title: string): string => {
+  if (title.toLowerCase().includes("inventory")) {
+    return "Inventory and Assets";
+  }
+  return title;
+};
+
 const getSystemSubtitle = (title: string): string => {
   const t = title.toLowerCase();
   if (t.includes("shrs") || t.includes("hr")) {
@@ -603,6 +611,7 @@ const Dashboard = () => {
 
           {sidebarItems.map((item) => {
             const theme = getSystemTheme(item.title);
+            const sectionTitle = getModuleSectionTitle(item.title);
             const systemSubtitle = getSystemSubtitle(item.title);
 
             return (
@@ -628,7 +637,7 @@ const Dashboard = () => {
                         theme.textColor,
                       )}
                     >
-                      {item.title}
+                      {sectionTitle}
                     </h2>
                     <p className="text-xs text-slate-600">{systemSubtitle}</p>
                   </div>
