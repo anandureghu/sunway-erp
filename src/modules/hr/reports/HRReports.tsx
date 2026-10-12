@@ -240,7 +240,7 @@ const ARCHIVE_TAB = {
 } as const;
 const HISTORY_TAB = {
   value: "history",
-  label: "History",
+  label: "Audit",
   icon: FileText,
 } as const;
 type TabId =
@@ -289,7 +289,8 @@ const legacyTabMap: Record<string, { tab: string; sub: TabId }> = {
   "payroll-summary": { tab: "payroll", sub: "payroll-summary" },
   "exit-interviews": { tab: "employee-master", sub: "exit-interviews" },
   archive: { tab: "employee-master", sub: "archive" },
-  history: { tab: "audit", sub: "history" },
+  history: { tab: "employee-master", sub: "history" },
+  audit: { tab: "employee-master", sub: "history" },
 };
 
 // One decided leave row from the company-wide approvals history.
@@ -448,7 +449,7 @@ export default function HRReports() {
       });
     }
 
-    // Employee Master: leave & loan history, lifecycle (exit/archive), and compliance.
+    // Employee Master: leave & loan history, lifecycle, compliance, and audit.
     const employeeMaster = [
       ...(canRpt("HRR_LEAVE_HISTORY") || canLeaves ? [LEAVES_TAB] : []),
       ...(canRpt("HRR_LOAN_HISTORY") || canLoans ? [LOANS_TAB] : []),
@@ -457,6 +458,7 @@ export default function HRReports() {
       ...(canRpt("HRR_IMMIGRATION_EXPIRY") || canImmigration
         ? [IMMIGRATION_TAB]
         : []),
+      ...(canRpt("HRR_HISTORY") ? [HISTORY_TAB] : []),
     ];
     if (employeeMaster.length) {
       list.push({
@@ -473,15 +475,6 @@ export default function HRReports() {
         label: "Payroll",
         icon: <Banknote className="h-4 w-4" />,
         children: [PAYROLL_SUMMARY_TAB],
-      });
-    }
-
-    if (canRpt("HRR_HISTORY")) {
-      list.push({
-        value: "audit",
-        label: "Audit",
-        icon: <FileText className="h-4 w-4" />,
-        children: [HISTORY_TAB],
       });
     }
 
@@ -508,7 +501,7 @@ export default function HRReports() {
   const activeGroup =
     requestedGroup && groupValues.includes(requestedGroup)
       ? requestedGroup
-      : (groups[0]?.value ?? "audit");
+      : (groups[0]?.value ?? "workforce-analytics");
 
   const activeGroupDef =
     groups.find((g) => g.value === activeGroup) ?? groups[0];

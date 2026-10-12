@@ -65,9 +65,9 @@ const legacyTabMap: Record<string, { tab: string; sub?: string }> = {
   jobs: { tab: "organizational", sub: "jobs" },
   department: { tab: "organizational", sub: "department" },
   "number-sequences": { tab: "organizational", sub: "number-sequences" },
-  administration: { tab: "permissions" },
-  permissions: { tab: "permissions" },
-  roles: { tab: "roles" },
+  administration: { tab: "administration", sub: "permissions" },
+  permissions: { tab: "administration", sub: "permissions" },
+  roles: { tab: "administration", sub: "roles" },
 };
 
 export default function HRSettingsPage() {
@@ -178,37 +178,36 @@ export default function HRSettingsPage() {
         ],
       },
       {
-        value: "permissions",
-        label: "Permissions",
+        value: "administration",
+        label: "Administration",
         icon: <KeyRound className="h-4 w-4" />,
-        element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
-      },
-      {
-        value: "roles",
-        label: "Roles",
-        icon: <Users className="h-4 w-4" />,
-        element: () => <SettingsRolesPage hrSettings />,
+        children: [
+          {
+            value: "permissions",
+            label: "Permissions",
+            icon: <KeyRound className="h-4 w-4" />,
+            element: () => (
+              <PermissionsTab roles={roles} setRoles={setRoles} />
+            ),
+            guard: isAdmin || canView(permissions, "HRS_PERMISSIONS"),
+          },
+          {
+            value: "roles",
+            label: "Roles",
+            icon: <Users className="h-4 w-4" />,
+            element: () => <SettingsRolesPage hrSettings />,
+            guard: canTab("HRS_ROLES"),
+          },
+        ],
       },
     ];
 
-    const withGuards = list
-      .map((g) => {
-        if (g.value === "permissions") {
-          return isAdmin || canView(permissions, "HRS_PERMISSIONS") ? g : null;
-        }
-        if (g.value === "roles") {
-          return canTab("HRS_ROLES") ? g : null;
-        }
-        return {
-          ...g,
-          children: g.children?.filter((c) => c.guard !== false),
-        };
-      })
-      .filter((g): g is GroupTab => g != null);
-
-    return withGuards.filter(
-      (g) => (g.children?.length ?? 0) > 0 || !!g.element,
-    );
+    return list
+      .map((g) => ({
+        ...g,
+        children: g.children?.filter((c) => c.guard !== false),
+      }))
+      .filter((g) => (g.children?.length ?? 0) > 0 || !!g.element);
   }, [permissions, isAdmin, jobs, roles, hasSettingsUmbrella]);
 
   if (permissionsLoading) {
@@ -349,7 +348,7 @@ export default function HRSettingsPage() {
     <div className="space-y-6 p-6 bg-slate-50/60 min-h-screen">
       <PageHeader
         title="HR Settings"
-        description="Organizational, policies and access, permissions, and roles"
+        description="Organizational, policies and access, and administration"
         variant="default"
         icon={<Building className="w-6 h-6" />}
       />
