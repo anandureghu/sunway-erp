@@ -19,9 +19,9 @@ export const SIDEBAR_DESCRIPTIONS: Record<string, string> = {
   "Employee Payroll":
     "Run payroll cycles, review salary details, and manage employee payment processing.",
   "HR Reports":
-    "Generate and review HR reports including headcount, attendance, and immigration expiry.",
+    "Generate and review HR reports including headcount, attendance, and payroll summaries.",
   "HR Settings":
-    "Configure HR policies, leave types, payroll rules, and related company settings.",
+    "Employee Master, organizational setup, policies and access, permissions, and roles.",
   "Item Master(stock)":
     "Track stock levels, manage warehouse quantities, and monitor item availability.",
   "Inventory (Stocks)":

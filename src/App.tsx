@@ -665,11 +665,15 @@ export default function App() {
             {/* HR Reports */}
             <Route path="reports" element={<HRReportsPage />} />
 
-            {/* Immigration expiry now lives as a tab inside HR Reports.
-                Keep the old path working by redirecting to that tab. */}
+            {/* Immigration expiry / Compliance lives under HR Settings → Employee Master. */}
             <Route
               path="immigration-expiry"
-              element={<Navigate to="/hr/reports?tab=immigration" replace />}
+              element={
+                <Navigate
+                  to="/hr/settings?tab=employee-master&sub=immigration"
+                  replace
+                />
+              }
             />
 
             {/* HR Settings */}

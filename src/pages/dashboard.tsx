@@ -97,6 +97,12 @@ const getModuleIcon = (title: string, defaultIcon: LucideIcon): LucideIcon => {
     "Employee Overview": Users,
     "HR Reports": FileText,
     "Immigration Expiry": ShieldAlert,
+    Compliance: ShieldAlert,
+    "Employee Master": Users,
+    Organizational: Settings,
+    "Policies and access Administration": Settings,
+    Permissions: Settings,
+    Roles: Users,
     "HR Settings": Settings,
     "Operations Reports": ClipboardList,
     "Stock Summary": Boxes,
@@ -136,8 +142,18 @@ const getModuleDescription = (title: string): string => {
       "Operations and management reports for workforce insights",
     "Immigration Expiry":
       "Passports and residence permits that are expired or expiring soon",
+    Compliance:
+      "Passports and residence permits that are expired or expiring soon",
+    "Employee Master":
+      "Lifecycle, leave and loans, and compliance",
+    Organizational:
+      "Org structure, departments, job codes, and number sequences",
+    "Policies and access Administration":
+      "HR policies, public holidays, and social settings",
+    Permissions: "Assign role permissions for HR modules",
+    Roles: "Manage company roles",
     "HR Settings":
-      "Configure leave types, HR policies, job codes, roles, appraisals, and permissions",
+      "Employee Master, organizational setup, policies and access, permissions, and roles",
     "Item Master(stock)":
       "Manage stock levels, adjustments, and goods receipt",
     "Inventory (Stocks)":

@@ -318,10 +318,9 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
-              // Immigration Expiry lives as a tab inside HR Reports — no
-              // separate sidebar entry. Reach it via HR Reports → Immigration
-              // Expiry (or /hr/reports?tab=immigration). The backend still
-              // scopes the rows by the IMMIGRATION grant (all vs. own).
+              // Compliance (Immigration Expiry) lives under HR Settings →
+              // Employee Master. Reach it via /hr/settings?tab=employee-master&sub=immigration.
+              // The backend still scopes rows by the IMMIGRATION grant (all vs. own).
 
               // HR Settings — gated by HR_SETTINGS
               ...(canView(permissions, "HR_SETTINGS")
