@@ -328,6 +328,9 @@ const DEFAULT_STANDARD_HOURS_PER_DAY = 6;
 function workedDayCount(entries: TimesheetEntry[], timeZone: string): number {
   return entries.reduce((n, e) => {
     if (!e.checkInTime || !e.checkOutTime) return n;
+    // Friday / Saturday shifts are extra (rest-day) work, not worked days.
+    const dow = e.date ? new Date(`${e.date}T12:00:00`).getDay() : -1;
+    if (dow === 5 || dow === 6) return n;
     const mins =
       e.workedMinutes ??
       Math.floor(diffMs(e.checkInTime, e.checkOutTime, timeZone) / 60000);

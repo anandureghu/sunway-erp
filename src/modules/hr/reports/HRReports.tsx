@@ -17,6 +17,7 @@ import {
   RefreshCw,
   BarChart3,
   ArrowUpRight,
+  ShieldAlert,
   CalendarCheck,
   CheckCircle2,
   XCircle,
@@ -29,14 +30,13 @@ import {
   ArchiveRestore,
   Trash2,
   LogOut,
-  Umbrella,
   UserRoundCog,
   Receipt,
   ClipboardList,
   IdCard,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Navigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { AppTab } from "@/components/app-tab";
@@ -53,6 +53,7 @@ import type { Employee } from "@/types/hr";
 import { PageHeader } from "@/components/PageHeader";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import ImmigrationExpiryReport from "./ImmigrationExpiryReport";
 import EmployeeTimeSheets from "./EmployeeTimeSheets";
 import AttendanceHistory from "./AttendanceHistory";
 import { ExitInterviewsPanel } from "./ExitInterviewsPanel";
@@ -214,6 +215,11 @@ const LOANS_TAB = {
   label: "Loan History",
   icon: Wallet,
 } as const;
+const IMMIGRATION_TAB = {
+  value: "immigration",
+  label: "Compliance",
+  icon: ShieldAlert,
+} as const;
 // Company-wide payroll history grouped by department.
 const PAYROLL_SUMMARY_TAB = {
   value: "payroll-summary",
@@ -246,6 +252,7 @@ type TabId =
   | "attendance-history"
   | "leaves"
   | "loans"
+  | "immigration"
   | "payroll-summary"
   | "exit-interviews"
   | "archive"
@@ -272,11 +279,16 @@ const legacyTabMap: Record<string, { tab: string; sub: TabId }> = {
   appraisal: { tab: "workforce-analytics", sub: "appraisal" },
   attendance: { tab: "time-attendance", sub: "attendance" },
   "attendance-history": { tab: "time-attendance", sub: "attendance-history" },
-  leaves: { tab: "leave-loans", sub: "leaves" },
-  loans: { tab: "leave-loans", sub: "loans" },
+  leaves: { tab: "employee-master", sub: "leaves" },
+  loans: { tab: "employee-master", sub: "loans" },
+  // Former groups merged into Employee Master.
+  "leave-loans": { tab: "employee-master", sub: "leaves" },
+  lifecycle: { tab: "employee-master", sub: "exit-interviews" },
+  immigration: { tab: "employee-master", sub: "immigration" },
+  compliance: { tab: "employee-master", sub: "immigration" },
   "payroll-summary": { tab: "payroll", sub: "payroll-summary" },
-  "exit-interviews": { tab: "lifecycle", sub: "exit-interviews" },
-  archive: { tab: "lifecycle", sub: "archive" },
+  "exit-interviews": { tab: "employee-master", sub: "exit-interviews" },
+  archive: { tab: "employee-master", sub: "archive" },
   history: { tab: "audit", sub: "history" },
 };
 
@@ -377,6 +389,7 @@ export default function HRReports() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const canHrReports = canView(permissions, "HR_REPORTS");
+  const canImmigration = canView(permissions, "IMMIGRATION");
   const canLeaves = canView(permissions, "LEAVES");
   const canLoans = canView(permissions, "LOANS");
   // Exit/termination forms list every departing employee company-wide, so it needs
@@ -400,15 +413,9 @@ export default function HRReports() {
     );
 
   // Each report tab has its own HRR_* permission; the HR_REPORTS umbrella (and admin)
-  // grants all of them. Tabs that also depend on a cross-module grant (Leaves, Loans,
-  // Payroll view-all, Employee view-all) keep that as an extra path.
+  // grants all of them. Tabs that also depend on a cross-module grant (Immigration,
+  // Leaves, Loans, Payroll view-all, Employee view-all) keep that as an extra path.
   const canRpt = (mod: string) => canHrReports || canView(permissions, mod);
-
-  // Compliance (Immigration Expiry) moved to HR Settings → Employee Master.
-  const redirectCompliance =
-    searchParams.get("tab") === "immigration" ||
-    searchParams.get("tab") === "compliance" ||
-    searchParams.get("sub") === "immigration";
 
   const groups = useMemo<GroupTab[]>(() => {
     const list: GroupTab[] = [];
@@ -441,16 +448,22 @@ export default function HRReports() {
       });
     }
 
-    const leaveLoans = [
+    // Employee Master: leave & loan history, lifecycle (exit/archive), and compliance.
+    const employeeMaster = [
       ...(canRpt("HRR_LEAVE_HISTORY") || canLeaves ? [LEAVES_TAB] : []),
       ...(canRpt("HRR_LOAN_HISTORY") || canLoans ? [LOANS_TAB] : []),
+      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
+      ...(canRpt("HRR_ARCHIVE") ? [ARCHIVE_TAB] : []),
+      ...(canRpt("HRR_IMMIGRATION_EXPIRY") || canImmigration
+        ? [IMMIGRATION_TAB]
+        : []),
     ];
-    if (leaveLoans.length) {
+    if (employeeMaster.length) {
       list.push({
-        value: "leave-loans",
-        label: "Leave & loans",
-        icon: <Umbrella className="h-4 w-4" />,
-        children: leaveLoans,
+        value: "employee-master",
+        label: "Employee Master",
+        icon: <UserRoundCog className="h-4 w-4" />,
+        children: employeeMaster,
       });
     }
 
@@ -460,19 +473,6 @@ export default function HRReports() {
         label: "Payroll",
         icon: <Banknote className="h-4 w-4" />,
         children: [PAYROLL_SUMMARY_TAB],
-      });
-    }
-
-    const lifecycle = [
-      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
-      ...(canRpt("HRR_ARCHIVE") ? [ARCHIVE_TAB] : []),
-    ];
-    if (lifecycle.length) {
-      list.push({
-        value: "lifecycle",
-        label: "Employee lifecycle",
-        icon: <UserRoundCog className="h-4 w-4" />,
-        children: lifecycle,
       });
     }
 
@@ -491,6 +491,7 @@ export default function HRReports() {
     permissions,
     canLeaves,
     canLoans,
+    canImmigration,
     canPayrollSummary,
     canExitInterviews,
   ]);
@@ -1739,6 +1740,10 @@ export default function HRReports() {
       {/* ── ATTENDANCE HISTORY TAB ── */}
       {activeSub === "attendance-history" && <AttendanceHistory />}
 
+      {/* ── IMMIGRATION EXPIRY TAB ── */}
+
+      {activeSub === "immigration" && <ImmigrationExpiryReport />}
+
       {activeSub === "payroll-summary" && <PayrollSummaryPanel />}
 
       {activeSub === "exit-interviews" && <ExitInterviewsPanel />}
@@ -1802,15 +1807,6 @@ export default function HRReports() {
       );
     },
   }));
-
-  if (redirectCompliance) {
-    return (
-      <Navigate
-        to="/hr/settings?tab=employee-master&sub=immigration"
-        replace
-      />
-    );
-  }
 
   return (
     <div className="space-y-6 p-6 bg-slate-50/60 min-h-screen">

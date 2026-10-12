@@ -132,6 +132,7 @@ import InvoiceDetailPage from "./pages/sales/invoice-detail-page";
 import SettingsPage from "./pages/settings/settings-page";
 import HRSettingsPage from "./pages/hr/settings-page";
 import HRReportsPage from "./pages/hr/hr-reports-page";
+import HROperationsPage from "./pages/hr/hr-operations-page";
 import HrDashboardPage from "./pages/hr/hr-dashboard";
 import LeaveCustomizationPage from "./pages/admin/hr/leaves/leave-customization-page";
 import { useEffect } from "react";
@@ -235,7 +236,7 @@ export default function App() {
           <Route path="billing" element={<CompanyBillingPage />} />
           <Route
             path="settings/roles/:id"
-            element={<Navigate to="/hr/settings?tab=roles" replace />}
+            element={<Navigate to="/hr/settings?tab=administration&sub=roles" replace />}
           />
 
           {/* Knowledge Base — available to all authenticated users */}
@@ -665,16 +666,19 @@ export default function App() {
             {/* HR Reports */}
             <Route path="reports" element={<HRReportsPage />} />
 
-            {/* Immigration expiry / Compliance lives under HR Settings → Employee Master. */}
+            {/* Compliance (Immigration Expiry) lives under HR Reports → Employee Master. */}
             <Route
               path="immigration-expiry"
               element={
                 <Navigate
-                  to="/hr/settings?tab=employee-master&sub=immigration"
+                  to="/hr/reports?tab=employee-master&sub=immigration"
                   replace
                 />
               }
             />
+
+            {/* HR Operations — lifecycle & approval queues */}
+            <Route path="operations" element={<HROperationsPage />} />
 
             {/* HR Settings */}
             <Route path="settings" element={<HRSettingsPage />} />

@@ -81,7 +81,7 @@ export function HrDashboardOverview({
             count: pendingApprovals?.leaveRequests ?? 0,
             icon: CalendarDays,
             color: "bg-amber-100 text-amber-800",
-            to: "/hr/settings?tab=leave-approvals",
+            to: "/hr/operations?tab=leave-approvals",
           },
           {
             key: "overtime",
@@ -89,7 +89,7 @@ export function HrDashboardOverview({
             count: pendingApprovals?.overtimeRequests ?? 0,
             icon: ClipboardList,
             color: "bg-violet-100 text-violet-700",
-            to: "/hr/settings?tab=leave-approvals",
+            to: "/hr/operations?tab=leave-approvals",
           },
           {
             key: "transfers",

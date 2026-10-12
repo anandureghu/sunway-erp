@@ -326,8 +326,9 @@ export default function PublicHolidaysPanel() {
         <p>
           A public holiday on a working day (Sun–Thu) is a <strong>paid day off</strong>: employees
           are <strong>not marked absent</strong>, the day is <strong>not deducted from leave</strong>,
-          and <strong>payroll pays it</strong>. Anyone who works on a holiday is paid holiday
-          overtime. Holidays on Friday or Saturday don't change anything.
+          and <strong>payroll pays it</strong>. A shift worked on a holiday shows like any other
+          day (regular hours, then overtime) and is paid on top of salary at the
+          Friday/holiday rate. Holidays on Friday or Saturday don't change anything.
         </p>
       </div>
 

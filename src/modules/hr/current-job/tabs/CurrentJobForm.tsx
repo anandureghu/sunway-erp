@@ -789,7 +789,9 @@ export default function CurrentJobForm() {
                             {jc.code} — {jc.title}
                             {taken && jc.assignedTo
                               ? ` · assigned to ${jc.assignedTo}`
-                              : ""}
+                              : taken && jc.status === "ON_HOLD"
+                                ? " · on hold"
+                                : ""}
                           </span>
                         </SelectItem>
                       );
