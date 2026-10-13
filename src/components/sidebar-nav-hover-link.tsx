@@ -63,6 +63,8 @@ export const SIDEBAR_DESCRIPTIONS: Record<string, string> = {
     "Review system activity logs for auditing and troubleshooting.",
   Company:
     "Edit company profile, modules, and organization-wide settings.",
+  "System Admin":
+    "Company administration — billing and subscription for your organization.",
 };
 
 type SidebarNavHoverLinkProps = {

@@ -209,7 +209,7 @@ export function AppSidebar() {
   ];
 
   const adminBillingNav = {
-    title: "Company",
+    title: "System Admin",
     icon: CreditCard,
     color: "text-sky-600 dark:text-sky-400",
     items: [{ title: "Billing", url: "/billing", icon: CreditCard }],
