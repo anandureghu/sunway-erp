@@ -6,7 +6,11 @@ import type {
   PurchaseRequisition,
   PurchaseRequisitionDocument,
   PurchaseRequisitionItem,
+  GoodsReceipt,
+  GoodsReceiptItem,
 } from "@/types/purchase";
+import type { PageResult } from "@/types/page";
+import { normalizePageResult } from "@/types/page";
 
 function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
@@ -359,6 +363,33 @@ export async function listPurchaseRequisitions(): Promise<
   return (res.data || []).map(toPurchaseRequisition);
 }
 
+export async function listPurchaseRequisitionsPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  tab?: string;
+  status?: string;
+}): Promise<PageResult<PurchaseRequisition>> {
+  const res = await apiClient.get<PageResult<PurchaseRequisitionResponseDTO>>(
+    "/purchase/requisitions",
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+        tab: params.tab || undefined,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+      },
+    },
+  );
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map(toPurchaseRequisition),
+  };
+}
+
 export async function archivePurchaseRequisition(
   id: string,
 ): Promise<PurchaseRequisition> {
@@ -514,6 +545,42 @@ export async function listPurchaseOrders(): Promise<PurchaseOrder[]> {
     }
     throw error;
   }
+}
+
+export async function listPurchaseOrdersPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  tab?: string;
+  status?: string;
+  paymentStatus?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<PageResult<PurchaseOrder>> {
+  const res = await apiClient.get<PageResult<PurchaseOrderResponseDTO>>(
+    "/purchase/orders",
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+        tab: params.tab || undefined,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+        paymentStatus:
+          params.paymentStatus && params.paymentStatus !== "all"
+            ? params.paymentStatus
+            : undefined,
+        dateFrom: params.dateFrom || undefined,
+        dateTo: params.dateTo || undefined,
+      },
+    },
+  );
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map(toPurchaseOrder),
+  };
 }
 
 export async function getPurchaseOrder(
@@ -784,8 +851,6 @@ export interface GoodsReceiptResponseDTO {
   }>;
 }
 
-import type { GoodsReceipt, GoodsReceiptItem } from "@/types/purchase";
-
 function toQualityStatus(
   status: GoodsReceiptResponseDTO["status"],
   acceptedQty?: number | null,
@@ -989,6 +1054,33 @@ export async function listGoodsReceipts(
     const order = orderById.get(String(dto.purchaseOrderId));
     return toGoodsReceipt(dto, order);
   });
+}
+
+export async function listGoodsReceiptsPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  tab?: string;
+  status?: string;
+}): Promise<PageResult<GoodsReceipt>> {
+  const res = await apiClient.get<PageResult<GoodsReceiptResponseDTO>>(
+    "/purchase/receipts",
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+        tab: params.tab || undefined,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+      },
+    },
+  );
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map((dto) => toGoodsReceipt(dto)),
+  };
 }
 
 export async function getGoodsReceiptsByPurchaseOrder(

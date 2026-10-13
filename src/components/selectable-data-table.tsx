@@ -16,21 +16,13 @@ import {
   TableBody,
   TableCell,
 } from "./ui/table";
-import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
+  TablePagination,
+  type ServerPaginationProps,
+} from "@/components/table-pagination";
+
+export type { ServerPaginationProps };
 
 type SelectableDataTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[];
@@ -43,6 +35,8 @@ type SelectableDataTableProps<TData, TValue> = {
   onRowSelectionChange?: (selection: RowSelectionState) => void;
   getRowId?: (row: TData) => string;
   isRowSelectable?: (row: TData) => boolean;
+  /** When set, pagination is server-driven (no client slicing). */
+  serverPagination?: ServerPaginationProps;
 };
 
 export function SelectableDataTable<TData, TValue>({
@@ -56,6 +50,7 @@ export function SelectableDataTable<TData, TValue>({
   onRowSelectionChange,
   getRowId,
   isRowSelectable,
+  serverPagination,
 }: SelectableDataTableProps<TData, TValue>) {
   const selectionColumn: ColumnDef<TData, unknown> = {
     id: "select",
@@ -83,12 +78,16 @@ export function SelectableDataTable<TData, TValue>({
     enableHiding: false,
   };
 
+  const slNoOffset = serverPagination
+    ? serverPagination.pageIndex * serverPagination.pageSize
+    : 0;
+
   const slNoColumn: ColumnDef<TData, unknown> = {
     id: "slNo",
     header: "SL No.",
     cell: ({ row }) => (
       <span className="text-muted-foreground text-sm font-medium tabular-nums">
-        {row.index + 1}
+        {slNoOffset + row.index + 1}
       </span>
     ),
   };
@@ -103,7 +102,11 @@ export function SelectableDataTable<TData, TValue>({
     data,
     columns: allColumns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: serverPagination
+      ? undefined
+      : getPaginationRowModel(),
+    manualPagination: !!serverPagination,
+    pageCount: serverPagination?.pageCount,
     enableRowSelection: enableRowSelection
       ? (row) => (isRowSelectable ? isRowSelectable(row.original) : true)
       : false,
@@ -122,10 +125,22 @@ export function SelectableDataTable<TData, TValue>({
     },
     initialState: {
       pagination: {
-        pageSize: defaultPageSize,
+        pageSize: serverPagination?.pageSize ?? defaultPageSize,
+        pageIndex: serverPagination?.pageIndex ?? 0,
       },
     },
   });
+
+  const pagination = serverPagination
+    ? serverPagination
+    : {
+        total: data.length,
+        pageIndex: table.getState().pagination.pageIndex,
+        pageSize: table.getState().pagination.pageSize,
+        pageCount: table.getPageCount() || 1,
+        onPageChange: (index: number) => table.setPageIndex(index),
+        onPageSizeChange: (size: number) => table.setPageSize(size),
+      };
 
   return (
     <div className="space-y-4">
@@ -193,71 +208,16 @@ export function SelectableDataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="flex items-center justify-between px-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {data.length} row(s) total
-        </div>
-        <div className="flex items-center space-x-6 lg:space-x-8">
-          <div className="flex items-center space-x-2">
-            <p className="text-sm font-medium">Rows per page</p>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue placeholder={table.getState().pagination.pageSize} />
-              </SelectTrigger>
-              <SelectContent side="top">
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount() || 1}
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="h-8 w-8 p-0"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              className="hidden h-8 w-8 p-0 lg:flex"
-              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      {(serverPagination || data.length > 0) && (
+        <TablePagination
+          total={pagination.total}
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          pageCount={pagination.pageCount}
+          onPageChange={pagination.onPageChange}
+          onPageSizeChange={pagination.onPageSizeChange}
+        />
+      )}
     </div>
   );
 }

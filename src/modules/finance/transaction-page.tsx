@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { apiClient } from "@/service/apiClient";
@@ -11,14 +11,16 @@ import { TRANSACTION_COLUMNS } from "@/lib/columns/finance/transaction-columns";
 import type { TransactionResponseDTO } from "@/types/transactions";
 import type { HistoryEntityType } from "@/types/history";
 import { GlTabPanel } from "@/components/finance/gl-tab-panel";
-import {
-  bulkArchiveHistoryRecords,
-} from "@/service/historyService";
+import { bulkArchiveHistoryRecords } from "@/service/historyService";
 import { ImportTransactionsCsvDialog } from "@/modules/finance/import-transactions-csv-dialog";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import type { PageResult } from "@/types/page";
 
 const BUDGET_DISTRIBUTION_TYPE = "BUDGET_DISTRIBUTION";
 
-function historyTypeForTransaction(tx: TransactionResponseDTO): HistoryEntityType {
+function historyTypeForTransaction(
+  tx: TransactionResponseDTO,
+): HistoryEntityType {
   return (tx.transactionType ?? "").toUpperCase() === BUDGET_DISTRIBUTION_TYPE
     ? "BUDGET_DISTRIBUTION"
     : "TRANSACTION";
@@ -26,37 +28,58 @@ function historyTypeForTransaction(tx: TransactionResponseDTO): HistoryEntityTyp
 
 export default function TransactionPage({ companyId }: { companyId: number }) {
   const { confirm } = useConfirmDialog();
-  const [txList, setTxList] = useState<TransactionResponseDTO[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const { data } = await apiClient.get<TransactionResponseDTO[]>(
+  const fetcher = useCallback(
+    async ({
+      page,
+      size,
+      search,
+    }: {
+      page: number;
+      size: number;
+      search: string;
+    }): Promise<PageResult<TransactionResponseDTO>> => {
+      const res = await apiClient.get<PageResult<TransactionResponseDTO>>(
         `/finance/transactions/company/${companyId}`,
+        {
+          params: {
+            search: search || undefined,
+            page,
+            size,
+          },
+        },
       );
-      setTxList(data);
-    } catch (error) {
-      console.error("Failed to load transactions:", error);
-      toast.error("Failed to load transactions");
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId]);
+      return res.data;
+    },
+    [companyId],
+  );
 
-  useEffect(() => {
-    setLoading(true);
-    load();
-  }, [load]);
+  const {
+    rows: txList,
+    loading,
+    searchInput,
+    setSearchInput,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<TransactionResponseDTO>({
+    fetcher,
+    enabled: !!companyId,
+    errorMessage: "Failed to load transactions",
+  });
 
   const handleSourceSave = async (id: number, source: string) => {
     try {
       await apiClient.patch(`/finance/transactions/${id}/source`, { source });
       toast.success("Source saved");
-      await load();
+      reload();
     } catch (err: unknown) {
       console.error(err);
       const msg =
@@ -86,24 +109,24 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
       if (!(await confirm(`Archive transaction ${label}?`))) return;
       setArchivingId(tx.id);
       try {
-        const res = await apiClient.post<TransactionResponseDTO>(
+        await apiClient.post<TransactionResponseDTO>(
           `/finance/transactions/${tx.id}/archive`,
         );
-        setTxList((prev) =>
-          prev.map((row) => (row.id === tx.id ? res.data : row)),
-        );
         toast.success("Transaction archived");
+        reload();
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { message?: string } } };
         toast.error(
           ax?.response?.data?.message ||
-            (err instanceof Error ? err.message : "Failed to archive transaction"),
+            (err instanceof Error
+              ? err.message
+              : "Failed to archive transaction"),
         );
       } finally {
         setArchivingId(null);
       }
     },
-    [confirm],
+    [confirm, reload],
   );
 
   const columns = useMemo(
@@ -113,37 +136,17 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
         onArchive: handleArchive,
         archivingId,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [archivingId, handleArchive],
   );
-
-  const filteredTx = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return txList.filter((tx) => {
-      if (tx.archived) return false;
-      if (!q) return true;
-      const haystack = [
-        tx.transactionCode,
-        tx.transactionType,
-        tx.transactionDescription,
-        tx.debitAccountCode,
-        tx.debitAccountName,
-        tx.creditAccountCode,
-        tx.creditAccountName,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [txList, searchQuery]);
 
   const selectedTransactions = useMemo(
     () =>
       Object.entries(rowSelection)
         .filter(([, selected]) => selected)
-        .map(([id]) => filteredTx.find((tx) => String(tx.id) === id))
+        .map(([id]) => txList.find((tx) => String(tx.id) === id))
         .filter((tx): tx is TransactionResponseDTO => tx != null),
-    [filteredTx, rowSelection],
+    [txList, rowSelection],
   );
 
   const handleBulkArchive = useCallback(async () => {
@@ -193,7 +196,7 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
       }
 
       setRowSelection({});
-      await load();
+      reload();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(
@@ -205,18 +208,18 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, load, selectedTransactions]);
+  }, [confirm, reload, selectedTransactions]);
 
   return (
     <GlTabPanel
       title="Transactions"
       icon={<ReceiptText className="h-5 w-5" />}
       searchPlaceholder="Search transactions..."
-      searchValue={searchQuery}
-      onSearchChange={setSearchQuery}
+      searchValue={searchInput}
+      onSearchChange={setSearchInput}
       loading={loading}
       loadingMessage="Loading transactions…"
-      actions={<ImportTransactionsCsvDialog onImported={load} />}
+      actions={<ImportTransactionsCsvDialog onImported={reload} />}
     >
       <div className="space-y-4">
         <BulkActionBar
@@ -226,13 +229,21 @@ export default function TransactionPage({ companyId }: { companyId: number }) {
           archiving={bulkArchiving}
         />
         <SelectableDataTable
-          data={filteredTx}
+          data={txList}
           columns={columns}
           enableRowSelection
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
           getRowId={(row) => String(row.id)}
           isRowSelectable={(row) => !row.archived}
+          serverPagination={{
+            total: totalElements,
+            pageIndex: page,
+            pageSize,
+            pageCount,
+            onPageChange: setPage,
+            onPageSizeChange: setPageSize,
+          }}
         />
       </div>
     </GlTabPanel>

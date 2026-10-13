@@ -1,11 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Package, Truck, Plus, ClipboardList, Radar } from "lucide-react";
+import {
+  Package,
+  Truck,
+  Plus,
+  ClipboardList,
+  Radar,
+  Search,
+} from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { toast } from "sonner";
@@ -17,14 +25,14 @@ import {
   createPicklistColumns,
 } from "@/lib/columns/sales-columns";
 import {
-  attachOrderAndItems,
   archivePicklist,
   cancelPicklist,
   cancelShipment,
   dispatchShipment,
   listPicklists,
+  listPicklistsPaged,
   listSalesOrders,
-  listShipmentsAsDispatches,
+  listShipmentsPaged,
   markPicklistPicked,
   markShipmentFailedDelivery,
   markShipmentInTransit,
@@ -34,7 +42,6 @@ import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
 } from "@/service/historyService";
-import { listItems } from "@/service/inventoryService";
 import { CreateDispatchForm } from "./components/create-dispatch-form";
 import { CreatePicklistForm } from "./components/create-picklist-form";
 import { PageHeader } from "@/components/PageHeader";
@@ -43,6 +50,7 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import { excludeArchived } from "@/lib/exclude-archived";
 
 export default function PicklistDispatchPage() {
@@ -65,11 +73,10 @@ export default function PicklistDispatchPage() {
   const [initialPicklistId, setInitialPicklistId] = useState(
     navState?.initialPicklistId || "",
   );
-  const [picklists, setPicklists] = useState<Picklist[]>([]);
-  const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [allPicklistsForForms, setAllPicklistsForForms] = useState<Picklist[]>(
+    [],
+  );
   const [picklistStatusFilter, setPicklistStatusFilter] = useState<
     "all" | "created" | "picked"
   >("all");
@@ -82,13 +89,17 @@ export default function PicklistDispatchPage() {
   const [archivingDispatchId, setArchivingDispatchId] = useState<string | null>(
     null,
   );
+  const [kpiCounts, setKpiCounts] = useState({
+    picklists: 0,
+    awaiting: 0,
+    picked: 0,
+    activeShipments: 0,
+  });
   const navigate = useNavigate();
   const initialSalesOrderId = navState?.salesOrderId || "";
 
   useEffect(() => {
-    if (navState?.activeTab) {
-      setActiveTab(navState.activeTab);
-    }
+    if (navState?.activeTab) setActiveTab(navState.activeTab);
     if (navState?.initialPicklistId) {
       setInitialPicklistId(navState.initialPicklistId);
     }
@@ -102,38 +113,153 @@ export default function PicklistDispatchPage() {
     navState?.openCreateDispatch,
   ]);
 
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setLoadError(null);
-      const [orders, pls, shps, items] = await Promise.all([
-        listSalesOrders(),
-        listPicklists(),
-        listShipmentsAsDispatches(),
-        listItems(),
-      ]);
-      const { picklistsEnriched, dispatchesEnriched } = attachOrderAndItems(
-        orders,
-        pls,
-        shps,
-        items,
-      );
-      setSalesOrders(orders);
-      setPicklists(picklistsEnriched);
-      setDispatches(dispatchesEnriched);
-    } catch (e: any) {
-      const message =
-        e?.response?.data?.message || e?.message || "Failed to load data";
-      setLoadError(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
+  const picklistFilters = useMemo(
+    () => ({
+      status: picklistStatusFilter,
+      excludeDispatched: true,
+    }),
+    [picklistStatusFilter],
+  );
+
+  const fetchPicklists = useCallback(
+    (params: {
+      page: number;
+      size: number;
+      search: string;
+      status: string;
+      excludeDispatched: boolean;
+    }) =>
+      listPicklistsPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        status: params.status,
+        excludeDispatched: params.excludeDispatched,
+      }),
+    [],
+  );
+
+  const {
+    rows: picklists,
+    loading: picklistsLoading,
+    searchInput: picklistSearch,
+    setSearchInput: setPicklistSearch,
+    page: picklistPage,
+    setPage: setPicklistPage,
+    pageSize: picklistPageSize,
+    setPageSize: setPicklistPageSize,
+    totalElements: picklistTotal,
+    pageCount: picklistPageCount,
+    reload: reloadPicklists,
+  } = useServerPagedList<
+    Picklist,
+    { status: string; excludeDispatched: boolean }
+  >({
+    fetcher: fetchPicklists,
+    filters: picklistFilters,
+    enabled: activeTab === "picklists" && !showCreatePicklist && !showCreateDispatch,
+    errorMessage: "Failed to load picklists",
+  });
+
+  const dispatchFilters = useMemo(
+    () => ({ status: dispatchStatusFilter }),
+    [dispatchStatusFilter],
+  );
+
+  const fetchDispatches = useCallback(
+    (params: {
+      page: number;
+      size: number;
+      search: string;
+      status: string;
+    }) =>
+      listShipmentsPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        status: params.status,
+      }),
+    [],
+  );
+
+  const {
+    rows: dispatches,
+    loading: dispatchesLoading,
+    searchInput: dispatchSearch,
+    setSearchInput: setDispatchSearch,
+    page: dispatchPage,
+    setPage: setDispatchPage,
+    pageSize: dispatchPageSize,
+    setPageSize: setDispatchPageSize,
+    totalElements: dispatchTotal,
+    pageCount: dispatchPageCount,
+    reload: reloadDispatches,
+  } = useServerPagedList<Dispatch, { status: string }>({
+    fetcher: fetchDispatches,
+    filters: dispatchFilters,
+    enabled: activeTab === "dispatches" && !showCreatePicklist && !showCreateDispatch,
+    errorMessage: "Failed to load shipments",
+  });
+
+  const reload = useCallback(() => {
+    reloadPicklists();
+    reloadDispatches();
+  }, [reloadPicklists, reloadDispatches]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [allPl, created, picked, activeShp] = await Promise.all([
+          listPicklistsPaged({
+            page: 0,
+            size: 1,
+            excludeDispatched: true,
+          }),
+          listPicklistsPaged({
+            page: 0,
+            size: 1,
+            status: "created",
+            excludeDispatched: true,
+          }),
+          listPicklistsPaged({
+            page: 0,
+            size: 1,
+            status: "picked",
+            excludeDispatched: true,
+          }),
+          listShipmentsPaged({ page: 0, size: 1, status: "active" }),
+        ]);
+        if (cancelled) return;
+        setKpiCounts({
+          picklists: allPl.totalElements,
+          awaiting: created.totalElements,
+          picked: picked.totalElements,
+          activeShipments: activeShp.totalElements,
+        });
+      } catch {
+        /* best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
+
+  const loadFormData = useCallback(async () => {
+    const [orders, pls] = await Promise.all([
+      listSalesOrders(),
+      listPicklists(),
+    ]);
+    setSalesOrders(orders);
+    setAllPicklistsForForms(pls);
   }, []);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    if (showCreatePicklist || showCreateDispatch) {
+      void loadFormData();
+    }
+  }, [showCreatePicklist, showCreateDispatch, loadFormData]);
 
   const handleArchiveDispatch = useCallback(
     async (id: string) => {
@@ -153,7 +279,7 @@ export default function PicklistDispatchPage() {
       try {
         await archivePicklist(dispatch.picklistId);
         toast.success("Dispatch archived successfully");
-        await loadData();
+        reload();
       } catch (e: any) {
         toast.error(
           e?.response?.data?.message ||
@@ -164,7 +290,7 @@ export default function PicklistDispatchPage() {
         setArchivingDispatchId(null);
       }
     },
-    [dispatches, confirm, loadData],
+    [dispatches, confirm, reload],
   );
 
   const selectedDispatchIds = useMemo(
@@ -202,7 +328,7 @@ export default function PicklistDispatchPage() {
       );
       toast.success(summarizeBulkActionResult(result));
       setRowSelection({});
-      await loadData();
+      reload();
     } catch (e: any) {
       toast.error(
         e?.response?.data?.message ||
@@ -212,22 +338,7 @@ export default function PicklistDispatchPage() {
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, loadData, selectedPicklistIdsForArchive]);
-
-  const dispatchedPicklistIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const dispatch of dispatches) {
-      if (dispatch.picklistId) {
-        ids.add(String(dispatch.picklistId));
-      }
-    }
-    for (const picklist of picklists) {
-      if (picklist.shipmentId) {
-        ids.add(String(picklist.id));
-      }
-    }
-    return ids;
-  }, [dispatches, picklists]);
+  }, [confirm, reload, selectedPicklistIdsForArchive]);
 
   const picklistColumns = useMemo(
     () =>
@@ -236,7 +347,7 @@ export default function PicklistDispatchPage() {
           try {
             await markPicklistPicked(id);
             toast.success("Picklist marked as picked");
-            await loadData();
+            reload();
           } catch (e: any) {
             toast.error(e?.message || "Failed to update picklist");
           }
@@ -248,14 +359,14 @@ export default function PicklistDispatchPage() {
           try {
             await cancelPicklist(id);
             toast.success("Picklist cancelled");
-            await loadData();
+            reload();
           } catch (e: any) {
             toast.error(e?.message || "Failed to cancel picklist");
           }
         },
         (id) => navigate(`/inventory/sales/picklist/${id}`),
       ),
-    [loadData, picklists, confirmCancel, navigate],
+    [reload, picklists, confirmCancel, navigate],
   );
 
   const dispatchColumns = useMemo(
@@ -266,18 +377,17 @@ export default function PicklistDispatchPage() {
         },
         async (id) => {
           await dispatchShipment(id);
-          await loadData();
+          reload();
         },
         async (id) => {
           await markShipmentInTransit(id);
-          await loadData();
+          reload();
         },
         async (id) => {
           await markShipmentOutForDelivery(id);
-          await loadData();
+          reload();
         },
         (id) => {
-          // Delivery requires customer signature (POD); open tracking deliver dialog.
           navigate(
             `/inventory/sales/tracking?dispatchId=${id}&action=deliver`,
           );
@@ -287,7 +397,7 @@ export default function PicklistDispatchPage() {
             id,
             "Marked failed from dispatch screen",
           );
-          await loadData();
+          reload();
         },
         async (id) => {
           const shipment = dispatches.find((d) => d.id === id);
@@ -296,7 +406,7 @@ export default function PicklistDispatchPage() {
           try {
             await cancelShipment(id);
             toast.success("Shipment cancelled");
-            await loadData();
+            reload();
           } catch (e: any) {
             toast.error(e?.message || "Failed to cancel shipment");
           }
@@ -310,7 +420,7 @@ export default function PicklistDispatchPage() {
         archivingDispatchId,
       ),
     [
-      loadData,
+      reload,
       navigate,
       dispatches,
       confirmCancel,
@@ -319,45 +429,18 @@ export default function PicklistDispatchPage() {
     ],
   );
 
-  const filteredPicklists = useMemo(() => {
-    const active = excludeArchived(picklists).filter(
-      (p) => !dispatchedPicklistIds.has(String(p.id)),
-    );
-    if (picklistStatusFilter === "created") {
-      return active.filter((p) => p.status === "created");
-    }
-    if (picklistStatusFilter === "picked") {
-      return active.filter((p) => p.status === "picked");
-    }
-    return active;
-  }, [picklists, picklistStatusFilter, dispatchedPicklistIds]);
-
   const eligiblePicklistsForDispatch = useMemo(
     () =>
-      excludeArchived(picklists).filter((p) => {
-        if (p.status !== "picked" || p.shipmentId || dispatchedPicklistIds.has(String(p.id))) {
-          return false;
-        }
+      excludeArchived(allPicklistsForForms).filter((p) => {
+        if (p.status !== "picked" || p.shipmentId) return false;
         const order = salesOrders.find((o) => String(o.id) === String(p.orderId));
         const orderStatus = (order?.status || "").toLowerCase();
-        // Delivered/completed orders must not get another dispatch.
         return orderStatus !== "completed" && orderStatus !== "cancelled";
       }),
-    [picklists, dispatchedPicklistIds, salesOrders],
+    [allPicklistsForForms, salesOrders],
   );
 
-  const hasDispatchablePicklists = eligiblePicklistsForDispatch.length > 0;
-
-  const filteredDispatches = useMemo(() => {
-    const active = excludeArchived(dispatches);
-    if (dispatchStatusFilter === "active") {
-      return active.filter(
-        (d) =>
-          !["delivered", "cancelled", "failed_delivery"].includes(d.status),
-      );
-    }
-    return active;
-  }, [dispatches, dispatchStatusFilter]);
+  const hasDispatchablePicklists = kpiCounts.picked > 0;
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -384,32 +467,11 @@ export default function PicklistDispatchPage() {
   }, []);
 
   const fulfillmentKpis = useMemo((): KpiSummaryStat[] => {
-    const activePicklists = excludeArchived(picklists).filter(
-      (p) => !dispatchedPicklistIds.has(String(p.id)),
-    );
-    const awaitingPick = activePicklists.filter(
-      (p) => p.status === "created",
-    ).length;
-    const pickedReady = activePicklists.filter(
-      (p) => p.status === "picked",
-    ).length;
-    const visibleDispatches = excludeArchived(dispatches);
-    const shipmentsTotal = visibleDispatches.length;
-    const closedShipments = visibleDispatches.filter((d) =>
-      ["delivered", "cancelled", "failed_delivery"].includes(d.status),
-    ).length;
-    const activeShipments = shipmentsTotal - closedShipments;
-    const activeShipmentsHint =
-      shipmentsTotal === 0
-        ? "No shipments yet"
-        : activeShipments === 0
-          ? `${closedShipments} closed · none in flight`
-          : `${activeShipments} in flight · ${shipmentsTotal} total`;
     return [
       kpiFilterItem(
         {
           label: "Picklists",
-          value: activePicklists.length,
+          value: kpiCounts.picklists,
           hint: "Warehouse documents awaiting dispatch",
           accent: "sky",
           icon: ClipboardList,
@@ -421,7 +483,7 @@ export default function PicklistDispatchPage() {
       kpiFilterItem(
         {
           label: "Awaiting pick",
-          value: awaitingPick,
+          value: kpiCounts.awaiting,
           hint: "Still in CREATED status",
           accent: "orange",
           icon: Package,
@@ -433,7 +495,7 @@ export default function PicklistDispatchPage() {
       kpiFilterItem(
         {
           label: "Picked ready",
-          value: pickedReady,
+          value: kpiCounts.picked,
           hint: "Eligible for shipment",
           accent: "emerald",
           icon: Truck,
@@ -445,8 +507,8 @@ export default function PicklistDispatchPage() {
       kpiFilterItem(
         {
           label: "Active shipments",
-          value: activeShipments,
-          hint: activeShipmentsHint,
+          value: kpiCounts.activeShipments,
+          hint: "In flight dispatches",
           accent: "violet",
           icon: Radar,
         },
@@ -455,16 +517,19 @@ export default function PicklistDispatchPage() {
         applyKpiFilter,
       ),
     ];
-  }, [picklists, dispatches, kpiFilter, applyKpiFilter, dispatchedPicklistIds]);
+  }, [kpiCounts, kpiFilter, applyKpiFilter]);
 
   if (showCreatePicklist) {
     return (
       <CreatePicklistForm
         salesOrders={salesOrders}
-        picklists={picklists}
+        picklists={allPicklistsForForms}
         initialSalesOrderId={initialSalesOrderId}
         onCancel={() => setShowCreatePicklist(false)}
-        onCreated={loadData}
+        onCreated={async () => {
+          setShowCreatePicklist(false);
+          reload();
+        }}
       />
     );
   }
@@ -478,10 +543,16 @@ export default function PicklistDispatchPage() {
           setShowCreateDispatch(false);
           setInitialPicklistId("");
         }}
-        onCreated={loadData}
+        onCreated={async () => {
+          setShowCreateDispatch(false);
+          reload();
+        }}
       />
     );
   }
+
+  const loading =
+    activeTab === "picklists" ? picklistsLoading : dispatchesLoading;
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -502,9 +573,7 @@ export default function PicklistDispatchPage() {
         }
       />
 
-      {!loading && !loadError ? (
-        <KpiSummaryStrip items={fulfillmentKpis} />
-      ) : null}
+      <KpiSummaryStrip items={fulfillmentKpis} />
 
       <Tabs
         value={activeTab}
@@ -532,11 +601,18 @@ export default function PicklistDispatchPage() {
             <div className="py-10 text-center text-muted-foreground">
               Loading picklists...
             </div>
-          ) : loadError ? (
-            <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-8"
+                    placeholder="Search picklist / order / customer..."
+                    value={picklistSearch}
+                    onChange={(e) => setPicklistSearch(e.target.value)}
+                  />
+                </div>
                 <Button
                   disabled={!hasDispatchablePicklists}
                   onClick={() => {
@@ -550,10 +626,18 @@ export default function PicklistDispatchPage() {
               </div>
               <DataTable
                 columns={picklistColumns}
-                data={filteredPicklists}
+                data={picklists}
                 onRowClick={(row) =>
                   navigate(`/inventory/sales/picklist/${row.original.id}`)
                 }
+                serverPagination={{
+                  total: picklistTotal,
+                  pageIndex: picklistPage,
+                  pageSize: picklistPageSize,
+                  pageCount: Math.max(picklistPageCount, 1),
+                  onPageChange: setPicklistPage,
+                  onPageSizeChange: setPicklistPageSize,
+                }}
               />
             </div>
           )}
@@ -564,11 +648,18 @@ export default function PicklistDispatchPage() {
             <div className="py-10 text-center text-muted-foreground">
               Loading shipments...
             </div>
-          ) : loadError ? (
-            <div className="py-10 text-center text-red-600">{loadError}</div>
           ) : (
             <div className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-8"
+                    placeholder="Search shipment / tracking / customer..."
+                    value={dispatchSearch}
+                    onChange={(e) => setDispatchSearch(e.target.value)}
+                  />
+                </div>
                 <Button
                   disabled={!hasDispatchablePicklists}
                   onClick={() => {
@@ -588,7 +679,7 @@ export default function PicklistDispatchPage() {
               />
               <SelectableDataTable
                 columns={dispatchColumns}
-                data={filteredDispatches}
+                data={dispatches}
                 onRowClick={(row) =>
                   navigate(
                     `/inventory/sales/tracking?dispatchId=${row.original.id}`,
@@ -601,6 +692,14 @@ export default function PicklistDispatchPage() {
                 isRowSelectable={(row) =>
                   row.status === "delivered" && !row.archived
                 }
+                serverPagination={{
+                  total: dispatchTotal,
+                  pageIndex: dispatchPage,
+                  pageSize: dispatchPageSize,
+                  pageCount: Math.max(dispatchPageCount, 1),
+                  onPageChange: setDispatchPage,
+                  onPageSizeChange: setDispatchPageSize,
+                }}
               />
             </div>
           )}

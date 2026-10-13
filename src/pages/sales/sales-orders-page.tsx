@@ -13,14 +13,13 @@ import {
   cancelSalesOrder,
   confirmSalesOrder,
   listPicklists,
-  listSalesOrders,
+  listSalesOrdersPaged,
 } from "@/service/salesFlowService";
 import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
 } from "@/service/historyService";
 import { CreateSalesOrderForm } from "./components/create-sales-order-form";
-
 import { SalesOrdersListView } from "./components/sales-orders-list-view";
 import type { KpiSummaryStat } from "@/components/kpi-summary-strip";
 import {
@@ -30,16 +29,14 @@ import {
   Wallet,
 } from "lucide-react";
 import { kpiFilterItem } from "@/lib/kpi-filter";
-import { excludeArchived } from "@/lib/exclude-archived";
-import { matchesDateRange } from "@/lib/date";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+
+const DELIVERY_STATUSES = new Set(["picked", "dispatched", "delivered"]);
 
 export default function SalesOrdersPage() {
   const { confirm, confirmCancel } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || "",
-  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
@@ -52,12 +49,18 @@ export default function SalesOrdersPage() {
     location.pathname.includes("/new"),
   );
   const [orderToEdit, setOrderToEdit] = useState<SalesOrder | null>(null);
-  const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activePicklistByOrderId, setActivePicklistByOrderId] = useState<
     Record<string, { id: string; status: string; shipmentStatus?: string }>
   >({});
+  const [kpiCounts, setKpiCounts] = useState({
+    total: 0,
+    confirmed: 0,
+    quotation: 0,
+    partiallyPaid: 0,
+    active: 0,
+    closed: 0,
+  });
 
   const [actionState, setActionState] = useState<{
     id: string;
@@ -68,40 +71,155 @@ export default function SalesOrdersPage() {
     setShowCreateForm(location.pathname.includes("/new"));
   }, [location.pathname]);
 
-  const refreshOrders = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [data, picklists] = await Promise.all([
-        listSalesOrders(),
-        listPicklists().catch(() => []),
-      ]);
-      setOrders(data);
-      const byOrder: Record<
-        string,
-        { id: string; status: string; shipmentStatus?: string }
-      > = {};
-      for (const pl of picklists) {
-        if (!pl.orderId || pl.status === "cancelled") continue;
-        byOrder[String(pl.orderId)] = {
-          id: pl.id,
-          status: pl.status,
-          shipmentStatus: pl.shipmentStatus,
-        };
-      }
-      setActivePicklistByOrderId(byOrder);
-    } catch (e: any) {
-      setLoadError(e?.message || "Failed to load sales orders");
-    } finally {
-      setLoading(false);
+  const orderStatusForApi = useMemo(() => {
+    if (kpiFilter === "confirmed") return undefined;
+    if (DELIVERY_STATUSES.has(statusFilter)) return undefined;
+    return statusFilter;
+  }, [statusFilter, kpiFilter]);
+
+  const listFilters = useMemo(
+    () => ({
+      tab: listTab,
+      status: orderStatusForApi ?? "all",
+      paymentStatus: paymentStatusFilter,
+      dateFrom,
+      dateTo,
+      confirmedOnly: kpiFilter === "confirmed",
+    }),
+    [
+      listTab,
+      orderStatusForApi,
+      paymentStatusFilter,
+      dateFrom,
+      dateTo,
+      kpiFilter,
+    ],
+  );
+
+  const fetchOrders = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: string;
+      status: string;
+      paymentStatus: string;
+      dateFrom: string;
+      dateTo: string;
+      confirmedOnly: boolean;
+    }) => {
+      const status = params.confirmedOnly
+        ? "NOT_QUOTATION"
+        : params.status !== "all"
+          ? params.status
+          : undefined;
+      return listSalesOrdersPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        tab: params.tab,
+        status,
+        paymentStatus: params.paymentStatus,
+        dateFrom: params.dateFrom || undefined,
+        dateTo: params.dateTo || undefined,
+      });
+    },
+    [],
+  );
+
+  const {
+    rows: orders,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    SalesOrder,
+    {
+      tab: string;
+      status: string;
+      paymentStatus: string;
+      dateFrom: string;
+      dateTo: string;
+      confirmedOnly: boolean;
     }
-  }, []);
+  >({
+    fetcher: fetchOrders,
+    filters: listFilters,
+    enabled: !showCreateForm,
+    errorMessage: "Failed to load sales orders",
+  });
 
   useEffect(() => {
     if (showCreateForm) return;
-    void refreshOrders();
-  }, [showCreateForm, location.pathname, refreshOrders]);
+    void listPicklists()
+      .then((picklists) => {
+        const byOrder: Record<
+          string,
+          { id: string; status: string; shipmentStatus?: string }
+        > = {};
+        for (const pl of picklists) {
+          if (!pl.orderId || pl.status === "cancelled") continue;
+          byOrder[String(pl.orderId)] = {
+            id: pl.id,
+            status: pl.status,
+            shipmentStatus: pl.shipmentStatus,
+          };
+        }
+        setActivePicklistByOrderId(byOrder);
+      })
+      .catch(() => setActivePicklistByOrderId({}));
+  }, [showCreateForm, reload]);
 
+  useEffect(() => {
+    if (showCreateForm) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [active, closed, quotation, partial] = await Promise.all([
+          listSalesOrdersPaged({ page: 0, size: 1, tab: "active" }),
+          listSalesOrdersPaged({ page: 0, size: 1, tab: "closed" }),
+          listSalesOrdersPaged({
+            page: 0,
+            size: 1,
+            tab: "active",
+            status: "quotation",
+          }),
+          listSalesOrdersPaged({
+            page: 0,
+            size: 1,
+            tab: "active",
+            paymentStatus: "PARTIALLY_PAID",
+          }),
+        ]);
+        if (cancelled) return;
+        const quotationCount = quotation.totalElements;
+        const activeTotal = active.totalElements;
+        setKpiCounts({
+          total: activeTotal,
+          confirmed: Math.max(0, activeTotal - quotationCount),
+          quotation: quotationCount,
+          partiallyPaid: partial.totalElements,
+          active: activeTotal,
+          closed: closed.totalElements,
+        });
+        setLoadError(null);
+      } catch (e: any) {
+        if (!cancelled) {
+          setLoadError(e?.message || "Failed to load sales order counts");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showCreateForm, reload]);
 
   useEffect(() => {
     setStatusFilter("all");
@@ -135,45 +253,23 @@ export default function SalesOrdersPage() {
     }
   }, []);
 
-  const normalizePaymentStatusKey = useCallback((status?: string) => {
-    const normalized = (status || "UNPAID").trim().toUpperCase().replace(/\s+/g, "_");
-    if (normalized === "PARTIAL") return "PARTIALLY_PAID";
-    if (normalized === "PENDING") return "UNPAID";
-    return normalized || "UNPAID";
-  }, []);
-
-  const isClosedOrder = useCallback(
-    (o: SalesOrder) =>
-      o.status === "cancelled" || o.status === "completed",
-    [],
-  );
-
-  const activeCount = useMemo(
-    () => excludeArchived(orders).filter((o) => !isClosedOrder(o)).length,
-    [orders, isClosedOrder],
-  );
-
-  const closedCount = useMemo(
-    () => excludeArchived(orders).filter((o) => isClosedOrder(o)).length,
-    [orders, isClosedOrder],
-  );
+  const displayedOrders = useMemo(() => {
+    if (!DELIVERY_STATUSES.has(statusFilter)) return orders;
+    return orders.filter(
+      (order) =>
+        salesOrderDeliveryStatus(
+          order,
+          activePicklistByOrderId[String(order.id)],
+        ) === statusFilter,
+    );
+  }, [orders, statusFilter, activePicklistByOrderId]);
 
   const salesOrderKpis = useMemo((): KpiSummaryStat[] => {
-    const activeOrders = excludeArchived(orders);
-    const draftCount = activeOrders.filter(
-      (o) => o.status === "quotation",
-    ).length;
-    const confirmedOrdersCount = activeOrders.filter(
-      (o) => !isClosedOrder(o) && o.status !== "quotation",
-    ).length;
-    const partiallyPaidCount = activeOrders.filter(
-      (o) => normalizePaymentStatusKey(o.paymentStatus) === "PARTIALLY_PAID",
-    ).length;
     return [
       kpiFilterItem(
         {
           label: "Total orders",
-          value: activeOrders.length,
+          value: kpiCounts.total,
           hint: "Non-archived sales orders",
           accent: "sky",
           icon: Package,
@@ -185,7 +281,7 @@ export default function SalesOrdersPage() {
       kpiFilterItem(
         {
           label: "Confirmed orders",
-          value: confirmedOrdersCount,
+          value: kpiCounts.confirmed,
           hint: "Confirmed and in fulfillment",
           accent: "emerald",
           icon: ShoppingBag,
@@ -197,7 +293,7 @@ export default function SalesOrdersPage() {
       kpiFilterItem(
         {
           label: "Quotation",
-          value: draftCount,
+          value: kpiCounts.quotation,
           hint: "Awaiting confirmation",
           accent: "amber",
           icon: ClipboardList,
@@ -209,7 +305,7 @@ export default function SalesOrdersPage() {
       kpiFilterItem(
         {
           label: "Partially paid",
-          value: partiallyPaidCount,
+          value: kpiCounts.partiallyPaid,
           hint: "Orders with partial payment",
           accent: "orange",
           icon: Wallet,
@@ -219,72 +315,15 @@ export default function SalesOrdersPage() {
         applyKpiFilter,
       ),
     ];
-  }, [orders, isClosedOrder, kpiFilter, applyKpiFilter, normalizePaymentStatusKey]);
-
-  const filteredOrders = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return orders.filter((order) => {
-      const inTab =
-        listTab === "closed" ? isClosedOrder(order) : !isClosedOrder(order);
-      if (!inTab) return false;
-      if (listTab === "closed" && order.archived) return false;
-      const matchesSearch =
-        !q ||
-        order.orderNo.toLowerCase().includes(q) ||
-        order.customerName.toLowerCase().includes(q);
-      const deliveryStatus = salesOrderDeliveryStatus(
-        order,
-        activePicklistByOrderId[String(order.id)],
-      );
-      const matchesStatus =
-        kpiFilter === "confirmed"
-          ? order.status !== "quotation"
-          : statusFilter === "all"
-            ? true
-            : ["picked", "dispatched", "delivered"].includes(statusFilter)
-              ? deliveryStatus === statusFilter
-              : order.status === statusFilter;
-      const matchesPaymentStatus =
-        paymentStatusFilter === "all" ||
-        normalizePaymentStatusKey(order.paymentStatus) ===
-          paymentStatusFilter.toUpperCase();
-      const matchesDate = matchesDateRange(order.orderDate, dateFrom, dateTo);
-      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
-    });
-  }, [
-    orders,
-    searchQuery,
-    statusFilter,
-    paymentStatusFilter,
-    dateFrom,
-    dateTo,
-    listTab,
-    isClosedOrder,
-    normalizePaymentStatusKey,
-    kpiFilter,
-    activePicklistByOrderId,
-  ]);
+  }, [kpiCounts, kpiFilter, applyKpiFilter]);
 
   const handleConfirmOrder = useCallback(
     async (id: string) => {
       setActionState({ id, type: "confirm" });
       try {
-        const updated = await confirmSalesOrder(id);
-        // Optimistic UI update so status / due / invoice fields change immediately.
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.id === id
-              ? {
-                  ...order,
-                  ...updated,
-                  status: updated.status,
-                  paymentStatus: updated.paymentStatus ?? "UNPAID",
-                }
-              : order,
-          ),
-        );
+        await confirmSalesOrder(id);
         toast.success("Order confirmed successfully");
-        void refreshOrders();
+        reload();
       } catch (error: any) {
         toast.error(
           error?.response?.data?.message ||
@@ -296,17 +335,14 @@ export default function SalesOrdersPage() {
         setActionState(null);
       }
     },
-    [refreshOrders],
+    [reload],
   );
 
   const handleCancelOrder = useCallback(
     async (id: string) => {
       const order = orders.find((o) => o.id === id);
       if (!order) return toast.error("Order not found");
-      if (
-        order.status !== "quotation" &&
-        order.status !== "confirmed"
-      ) {
+      if (order.status !== "quotation" && order.status !== "confirmed") {
         return toast.error(
           `Cannot cancel order with status "${order.status}". Only quotation or confirmed orders can be cancelled.`,
         );
@@ -323,19 +359,9 @@ export default function SalesOrdersPage() {
 
       setActionState({ id, type: "cancel" });
       try {
-        const updated = await cancelSalesOrder(id);
-        setOrders((prev) =>
-          prev.map((so) =>
-            so.id === id
-              ? {
-                  ...so,
-                  status: updated.status,
-                }
-              : so,
-          ),
-        );
+        await cancelSalesOrder(id);
         toast.success("Order cancelled successfully");
-        void refreshOrders();
+        reload();
       } catch (error: any) {
         const backendMessage =
           error?.response?.data?.message ||
@@ -346,7 +372,7 @@ export default function SalesOrdersPage() {
         setActionState(null);
       }
     },
-    [orders, refreshOrders, confirmCancel],
+    [orders, reload, confirmCancel],
   );
 
   const handleGeneratePicklist = useCallback(
@@ -384,19 +410,9 @@ export default function SalesOrdersPage() {
       if (!(await confirm(`Archive order ${order.orderNo}?`))) return;
       setActionState({ id, type: "archive" });
       try {
-        const updated = await archiveSalesOrder(id);
-        setOrders((prev) =>
-          prev.map((so) =>
-            so.id === id
-              ? {
-                  ...so,
-                  archived: updated.archived ?? true,
-                }
-              : so,
-          ),
-        );
+        await archiveSalesOrder(id);
         toast.success("Order archived successfully");
-        void refreshOrders();
+        reload();
       } catch (error: any) {
         const backendMessage =
           error?.response?.data?.message ||
@@ -407,7 +423,7 @@ export default function SalesOrdersPage() {
         setActionState(null);
       }
     },
-    [orders, refreshOrders],
+    [orders, reload, confirm],
   );
 
   const selectedOrderIds = useMemo(
@@ -436,7 +452,7 @@ export default function SalesOrdersPage() {
       );
       toast.success(summarizeBulkActionResult(result));
       setRowSelection({});
-      await refreshOrders();
+      reload();
     } catch (error: any) {
       toast.error(
         error?.response?.data?.message ||
@@ -446,9 +462,7 @@ export default function SalesOrdersPage() {
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, refreshOrders, selectedOrderIds]);
-
-
+  }, [confirm, reload, selectedOrderIds]);
 
   const handleEdit = useCallback(
     (id: string) => {
@@ -504,7 +518,7 @@ export default function SalesOrdersPage() {
         onSuccess={() => {
           setOrderToEdit(null);
           setShowCreateForm(false);
-          void refreshOrders();
+          reload();
           navigate("/inventory/sales/orders", { replace: true });
         }}
         onCancel={() => {
@@ -520,14 +534,14 @@ export default function SalesOrdersPage() {
       <SalesOrdersListView
         loading={loading}
         error={loadError}
-        orders={filteredOrders}
+        orders={displayedOrders}
         listTab={listTab}
         onListTabChange={(tab) => {
           setListTab(tab);
           setKpiFilter(null);
         }}
-        activeCount={activeCount}
-        closedCount={closedCount}
+        activeCount={kpiCounts.active}
+        closedCount={kpiCounts.closed}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         paymentStatusFilter={paymentStatusFilter}
@@ -559,6 +573,14 @@ export default function SalesOrdersPage() {
         }}
         onRowClick={(id) => navigate(`/inventory/sales/orders/${id}`)}
         kpiItems={salesOrderKpis}
+        serverPagination={{
+          total: totalElements,
+          pageIndex: page,
+          pageSize,
+          pageCount: Math.max(pageCount, 1),
+          onPageChange: setPage,
+          onPageSizeChange: setPageSize,
+        }}
       />
     </>
   );

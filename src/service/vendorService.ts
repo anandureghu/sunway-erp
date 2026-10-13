@@ -4,6 +4,8 @@ import {
   isVendorEligibleForPurchase,
   normalizeVendorFromApi,
 } from "@/lib/vendor-api";
+import type { PageResult } from "@/types/page";
+import { normalizePageResult } from "@/types/page";
 
 function pageContent<T>(data: unknown): T[] {
   if (Array.isArray(data)) return data as T[];
@@ -14,9 +16,44 @@ function pageContent<T>(data: unknown): T[] {
   return [];
 }
 
+/** Legacy full list (capped). Prefer {@link listVendorsPaged} for growing lists. */
 export async function listVendors() {
   const res = await apiClient.get("/vendors", { params: { size: 500 } });
   return pageContent<unknown>(res.data).map(normalizeVendorFromApi);
+}
+
+/**
+ * Server-paged vendors.
+ * Name search uses `vendorName` (VendorFilterDTO); `search` is also accepted by the API as an alias.
+ */
+export async function listVendorsPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  city?: string;
+  approved?: boolean;
+  rejected?: boolean;
+  isActive?: boolean;
+}): Promise<PageResult<Vendor>> {
+  const res = await apiClient.get<PageResult<unknown>>("/vendors", {
+    params: {
+      page: params.page,
+      size: params.size,
+      // Prefer existing filter field; backend also accepts `search` as alias.
+      vendorName: params.search?.trim() || undefined,
+      city: params.city || undefined,
+      approved: params.approved,
+      rejected: params.rejected,
+      isActive: params.isActive,
+    },
+  });
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map((row) =>
+      normalizeVendorFromApi(row as Vendor),
+    ),
+  };
 }
 
 export async function fetchVendors(): Promise<Vendor[]> {

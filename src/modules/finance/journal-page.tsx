@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Search } from "lucide-react";
@@ -20,10 +20,11 @@ import {
   TooltipContent,
   Tooltip,
 } from "@/components/ui/tooltip";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import type { PageResult } from "@/types/page";
+
 export default function JournalPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
-  const [list, setList] = useState<JournalEntryResponseDTO[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<JournalEntryResponseDTO | null>(
     null,
   );
@@ -31,24 +32,53 @@ export default function JournalPage({ companyId }: { companyId: number }) {
 
   const { accountPeriodOpen, company } = useAuth();
 
-  const fetchAll = async () => {
-    apiClient
-      .get(`/finance/journal-entries`)
-      .then(({ data }) => {
-        setList(data);
-      })
-      .catch(() => toast.error("Failed to load manual journals"))
-      .finally(() => setLoading(false));
-  };
+  const fetcher = useCallback(
+    async ({
+      page,
+      size,
+      search,
+    }: {
+      page: number;
+      size: number;
+      search: string;
+    }): Promise<PageResult<JournalEntryResponseDTO>> => {
+      const res = await apiClient.get<PageResult<JournalEntryResponseDTO>>(
+        `/finance/journal-entries`,
+        {
+          params: {
+            archived: false,
+            search: search || undefined,
+            page,
+            size,
+          },
+        },
+      );
+      return res.data;
+    },
+    [],
+  );
+
+  const {
+    rows: list,
+    loading,
+    searchInput,
+    setSearchInput,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<JournalEntryResponseDTO>({
+    fetcher,
+    errorMessage: "Failed to load manual journals",
+  });
 
   const handleRowClick = (row: Row<JournalEntryResponseDTO>) => {
     const journal = row.original;
     navigate(`/finance/journals/${journal.id}`);
   };
-
-  useEffect(() => {
-    fetchAll();
-  }, []);
 
   const columns = JOURNAL_COLUMNS({
     accountOpen: accountPeriodOpen,
@@ -59,18 +89,18 @@ export default function JournalPage({ companyId }: { companyId: number }) {
     },
     onPost: async (row) => {
       try {
-        const res = await apiClient.post(
-          `/finance/journal-entries/${row.id}/post`,
-        );
+        await apiClient.post(`/finance/journal-entries/${row.id}/post`);
         toast.success("Journal posted");
-        setList((prev) => prev.map((x) => (x.id === row.id ? res.data : x)));
+        reload();
       } catch {
         toast.error("Failed to post journal");
       }
     },
   });
 
-  if (loading) return <div className="p-6 text-center">Loading...</div>;
+  if (loading && list.length === 0) {
+    return <div className="p-6 text-center">Loading...</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -86,7 +116,12 @@ export default function JournalPage({ companyId }: { companyId: number }) {
           <div className="flex justify-between items-center gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input placeholder="Search..." className="pl-10" />
+              <Input
+                placeholder="Search..."
+                className="pl-10"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
             </div>
 
             {!accountPeriodOpen ? (
@@ -123,6 +158,14 @@ export default function JournalPage({ companyId }: { companyId: number }) {
             data={list}
             columns={columns}
             onRowClick={handleRowClick}
+            serverPagination={{
+              total: totalElements,
+              pageIndex: page,
+              pageSize,
+              pageCount,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
           />
         </CardContent>
       </Card>
@@ -132,12 +175,9 @@ export default function JournalPage({ companyId }: { companyId: number }) {
         open={open}
         onOpenChange={setOpen}
         data={selected}
-        onSuccess={(updated, mode) => {
-          if (mode === "add") setList((prev) => [...prev, updated]);
-          else
-            setList((prev) =>
-              prev.map((x) => (x.id === updated.id ? updated : x)),
-            );
+        onSuccess={(_updated, _mode) => {
+          setSelected(null);
+          reload();
         }}
       />
     </div>

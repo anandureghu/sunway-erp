@@ -39,10 +39,8 @@ import {
   addShipmentTrackingEvent,
   cancelShipment,
   dispatchShipment,
-  listShipmentsAsDispatches,
-  attachOrderAndItems,
-  listSalesOrders,
-  listPicklists,
+  getShipmentAsDispatch,
+  listShipmentsPaged,
   markShipmentDelivered,
   markShipmentFailedDelivery,
   markShipmentInTransit,
@@ -50,8 +48,9 @@ import {
   updateShipmentDetails,
 } from "@/service/salesFlowService";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
-import { listItems } from "@/service/inventoryService";
 import { cn } from "@/lib/utils";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import { TablePagination } from "@/components/table-pagination";
 import {
   getDestination,
   getStatusDisplay,
@@ -124,7 +123,6 @@ export default function DeliveryTrackingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedDispatchId = searchParams.get("dispatchId");
   const deepLinkAction = searchParams.get("action");
-  const [searchQuery, setSearchQuery] = useState("");
   const [dispatchStatusFilter, setDispatchStatusFilter] = useState<
     "all" | "created" | "in_motion" | "delivered"
   >("all");
@@ -132,9 +130,12 @@ export default function DeliveryTrackingPage() {
   const [selectedDispatch, setSelectedDispatch] = useState<Dispatch | null>(
     null,
   );
-  const [dispatches, setDispatches] = useState<Dispatch[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [kpiCounts, setKpiCounts] = useState({
+    total: 0,
+    created: 0,
+    inMotion: 0,
+    delivered: 0,
+  });
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [trackingCarrierId, setTrackingCarrierId] = useState("");
@@ -152,69 +153,70 @@ export default function DeliveryTrackingPage() {
   const [podRemarks, setPodRemarks] = useState("");
   const [podError, setPodError] = useState<string | null>(null);
 
-  const loadDispatches = async () => {
-    const [shipments, orders, picklists, items] = await Promise.all([
-      listShipmentsAsDispatches(),
-      listSalesOrders(),
-      listPicklists(),
-      listItems(),
-    ]);
-    const { dispatchesEnriched } = attachOrderAndItems(
-      orders,
-      picklists,
-      shipments,
-      items,
-    );
-    setDispatches(dispatchesEnriched);
-    return dispatchesEnriched;
-  };
+  const dispatchFilters = useMemo(
+    () => ({ status: dispatchStatusFilter }),
+    [dispatchStatusFilter],
+  );
+
+  const fetchDispatches = useCallback(
+    (params: {
+      page: number;
+      size: number;
+      search: string;
+      status: string;
+    }) =>
+      listShipmentsPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        status: params.status,
+      }),
+    [],
+  );
+
+  const {
+    rows: dispatches,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<Dispatch, { status: string }>({
+    fetcher: fetchDispatches,
+    filters: dispatchFilters,
+    errorMessage: "Failed to load shipments",
+  });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        setLoading(true);
-        setLoadError(null);
-        const dispatchesEnriched = await loadDispatches();
-        if (cancelled || !selectedDispatchId) return;
-        const match = dispatchesEnriched.find(
-          (dispatch) => dispatch.id === selectedDispatchId,
-        );
-        if (match) setSelectedDispatch(match);
-      } catch (e: any) {
-        if (!cancelled) setLoadError(e?.message || "Failed to load shipments");
-      } finally {
-        if (!cancelled) setLoading(false);
+        const [all, created, inMotion, delivered] = await Promise.all([
+          listShipmentsPaged({ page: 0, size: 1 }),
+          listShipmentsPaged({ page: 0, size: 1, status: "created" }),
+          listShipmentsPaged({ page: 0, size: 1, status: "in_motion" }),
+          listShipmentsPaged({ page: 0, size: 1, status: "delivered" }),
+        ]);
+        if (cancelled) return;
+        setKpiCounts({
+          total: all.totalElements,
+          created: created.totalElements,
+          inMotion: inMotion.totalElements,
+          delivered: delivered.totalElements,
+        });
+      } catch {
+        /* best-effort */
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [selectedDispatchId]);
-
-  const filteredDispatches = useMemo(() => {
-    return dispatches.filter((dispatch) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        dispatch.dispatchNo.toLowerCase().includes(q) ||
-        dispatch.trackingNumber?.toLowerCase().includes(q) ||
-        dispatch.order?.orderNo.toLowerCase().includes(q) ||
-        dispatch.order?.customerName.toLowerCase().includes(q);
-      if (!matchesSearch) return false;
-      if (dispatchStatusFilter === "created") {
-        return dispatch.status === "created";
-      }
-      if (dispatchStatusFilter === "in_motion") {
-        return ["dispatched", "in_transit", "out_for_delivery"].includes(
-          dispatch.status,
-        );
-      }
-      if (dispatchStatusFilter === "delivered") {
-        return dispatch.status === "delivered";
-      }
-      return true;
-    });
-  }, [dispatches, searchQuery, dispatchStatusFilter]);
+  }, [reload]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -235,19 +237,11 @@ export default function DeliveryTrackingPage() {
   }, []);
 
   const trackingKpis = useMemo((): KpiSummaryStat[] => {
-    const total = dispatches.length;
-    const delivered = dispatches.filter((d) => d.status === "delivered").length;
-    const pendingDispatch = dispatches.filter(
-      (d) => d.status === "created",
-    ).length;
-    const inMotion = dispatches.filter((d) =>
-      ["dispatched", "in_transit", "out_for_delivery"].includes(d.status),
-    ).length;
     return [
       kpiFilterItem(
         {
           label: "Shipments",
-          value: total,
+          value: kpiCounts.total,
           hint: "All tracked dispatches",
           accent: "sky",
           icon: Truck,
@@ -259,7 +253,7 @@ export default function DeliveryTrackingPage() {
       kpiFilterItem(
         {
           label: "Pending dispatch",
-          value: pendingDispatch,
+          value: kpiCounts.created,
           hint: "Awaiting carrier release",
           accent: "amber",
           icon: Package,
@@ -271,7 +265,7 @@ export default function DeliveryTrackingPage() {
       kpiFilterItem(
         {
           label: "In motion",
-          value: inMotion,
+          value: kpiCounts.inMotion,
           hint: "On road or out for delivery",
           accent: "violet",
           icon: Navigation,
@@ -283,7 +277,7 @@ export default function DeliveryTrackingPage() {
       kpiFilterItem(
         {
           label: "Delivered",
-          value: delivered,
+          value: kpiCounts.delivered,
           hint: "Confirmed customer receipt",
           accent: "emerald",
           icon: CheckCircle2,
@@ -293,16 +287,20 @@ export default function DeliveryTrackingPage() {
         applyKpiFilter,
       ),
     ];
-  }, [dispatches, kpiFilter, applyKpiFilter]);
+  }, [kpiCounts, kpiFilter, applyKpiFilter]);
 
   useEffect(() => {
-    if (!selectedDispatchId || dispatches.length === 0) return;
+    if (!selectedDispatchId) return;
     const match = dispatches.find(
       (dispatch) => dispatch.id === selectedDispatchId,
     );
     if (match) {
       setSelectedDispatch(match);
+      return;
     }
+    void getShipmentAsDispatch(selectedDispatchId)
+      .then(setSelectedDispatch)
+      .catch(() => undefined);
   }, [dispatches, selectedDispatchId]);
 
   // Deep-links from Picklist & Dispatch actions (Mark Delivered / Update Tracking).
@@ -327,12 +325,14 @@ export default function DeliveryTrackingPage() {
   );
 
   const refreshSelectedDispatch = async () => {
-    const dispatchesEnriched = await loadDispatches();
+    reload();
     if (selectedDispatch) {
-      const updated = dispatchesEnriched.find(
-        (d) => d.id === selectedDispatch.id,
-      );
-      if (updated) setSelectedDispatch(updated);
+      try {
+        const updated = await getShipmentAsDispatch(selectedDispatch.id);
+        setSelectedDispatch(updated);
+      } catch {
+        /* keep current selection */
+      }
     }
   };
 
@@ -590,7 +590,7 @@ export default function DeliveryTrackingPage() {
         backHref="/inventory/sales"
       />
 
-      {!loading && !loadError ? <KpiSummaryStrip items={trackingKpis} /> : null}
+      {!loading ? <KpiSummaryStrip items={trackingKpis} /> : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
         {/* Left Sidebar - Active Dispatches */}
@@ -633,15 +633,13 @@ export default function DeliveryTrackingPage() {
               <div className="py-10 text-center text-muted-foreground">
                 Loading...
               </div>
-            ) : loadError ? (
-              <div className="py-10 text-center text-red-600">{loadError}</div>
-            ) : filteredDispatches.length === 0 ? (
+            ) : dispatches.length === 0 ? (
               <div className="py-10 text-center text-muted-foreground">
                 No dispatches found
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredDispatches.map((dispatch) => {
+                {dispatches.map((dispatch) => {
                   const statusDisplay = getStatusDisplay(dispatch.status);
                   const isSelected = selectedDispatch?.id === dispatch.id;
                   return (
@@ -692,6 +690,14 @@ export default function DeliveryTrackingPage() {
                     </div>
                   );
                 })}
+                <TablePagination
+                  total={totalElements}
+                  pageIndex={page}
+                  pageSize={pageSize}
+                  pageCount={Math.max(pageCount, 1)}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
               </div>
             )}
           </CardContent>

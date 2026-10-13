@@ -52,6 +52,7 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
   const [entityType, setEntityType] = useState<HistoryEntityType | "">(
     entityTypes[0] ?? "",
   );
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<HistoryRecord[]>([]);
@@ -102,6 +103,14 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
       setLoading(false);
     }
   }, [entityType, page, search]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     void loadHistory();
@@ -323,8 +332,8 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="history-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
                   placeholder="Reference, party, or status"
                   className="pl-9"
                 />

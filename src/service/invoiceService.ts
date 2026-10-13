@@ -1,5 +1,8 @@
 import { apiClient } from "@/service/apiClient";
 import type { FinanceInvoice } from "@/types/finance-invoice";
+import type { Invoice } from "@/types/sales";
+import type { PageResult } from "@/types/page";
+import { normalizePageResult } from "@/types/page";
 import axios from "axios";
 
 export async function listPurchaseInvoices(): Promise<FinanceInvoice[]> {
@@ -7,6 +10,50 @@ export async function listPurchaseInvoices(): Promise<FinanceInvoice[]> {
     params: { type: "PURCHASE" },
   });
   return res.data ?? [];
+}
+
+export async function listPurchaseInvoicesPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  tab?: string;
+  status?: string;
+}): Promise<PageResult<FinanceInvoice>> {
+  const res = await apiClient.get<PageResult<FinanceInvoice>>("/invoices", {
+    params: {
+      type: "PURCHASE",
+      page: params.page,
+      size: params.size,
+      search: params.search || undefined,
+      tab: params.tab || undefined,
+      status:
+        params.status && params.status !== "all" && params.status !== "attention"
+          ? params.status
+          : undefined,
+    },
+  });
+  return normalizePageResult(res.data);
+}
+
+export async function listSalesInvoicesPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  tab?: string;
+  status?: string;
+}): Promise<PageResult<Invoice>> {
+  const res = await apiClient.get<PageResult<Invoice>>("/invoices", {
+    params: {
+      type: "SALES",
+      page: params.page,
+      size: params.size,
+      search: params.search || undefined,
+      tab: params.tab || undefined,
+      status:
+        params.status && params.status !== "all" ? params.status : undefined,
+    },
+  });
+  return normalizePageResult(res.data);
 }
 
 export async function getInvoice(id: number): Promise<FinanceInvoice> {

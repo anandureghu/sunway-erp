@@ -22,7 +22,11 @@ import {
   STOCK_ADJUSTMENT_SCHEMA,
   type StockAdjustmentFormData,
 } from "@/schema/inventory";
-import type { ItemResponseDTO } from "@/service/erpApiTypes";
+import type {
+  ItemResponseDTO,
+  ItemWarehouseStockRowDTO,
+} from "@/service/erpApiTypes";
+import { listItemWarehouseStock } from "@/service/inventoryService";
 import {
   createStockVariance,
   resubmitStockVariance,
@@ -103,6 +107,9 @@ export function VarianceFormPanel({
   );
   const [itemSearchQuery, setItemSearchQuery] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [warehouseStock, setWarehouseStock] = useState<
+    ItemWarehouseStockRowDTO[]
+  >([]);
 
   const warehouseId = watch("warehouseId");
   const adjustmentQuantity = watch("adjustmentQuantity");
@@ -110,18 +117,55 @@ export function VarianceFormPanel({
   const adjustmentType = watch("adjustmentType");
   const isTransfer = adjustmentType === "transfer";
 
-  const searchResults = useMemo(
-    () => filterItemsByQuery(items, itemSearchQuery),
-    [items, itemSearchQuery],
+  const pickerItems = useMemo(
+    () => items.filter((item) => !item.archived),
+    [items],
   );
+
+  const searchResults = useMemo(
+    () => filterItemsByQuery(pickerItems, itemSearchQuery),
+    [pickerItems, itemSearchQuery],
+  );
+
+  useEffect(() => {
+    if (!varianceItem?.id) {
+      setWarehouseStock([]);
+      return;
+    }
+    let cancelled = false;
+    listItemWarehouseStock(varianceItem.id)
+      .then((rows) => {
+        if (!cancelled) setWarehouseStock(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setWarehouseStock([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [varianceItem?.id]);
 
   const stockRow = useMemo(() => {
     if (!varianceItem || !warehouseId) return null;
-    return items.find(
-      (i) =>
-        i.id === varianceItem.id && String(i.warehouse_id) === warehouseId,
+    const live = warehouseStock.find(
+      (row) => String(row.warehouseId) === String(warehouseId),
     );
-  }, [items, varianceItem, warehouseId]);
+    if (live) {
+      return {
+        ...varianceItem,
+        warehouse_id: live.warehouseId,
+        warehouse_name: live.warehouseName,
+        quantity: live.quantityOnHand,
+        reserved: live.reserved,
+        available: live.available,
+      } satisfies ItemResponseDTO;
+    }
+    // Fall back to catalog default warehouse row when live stock is empty.
+    if (String(varianceItem.warehouse_id) === String(warehouseId)) {
+      return varianceItem;
+    }
+    return null;
+  }, [varianceItem, warehouseId, warehouseStock]);
 
   const currentQuantity = stockRow?.quantity ?? 0;
   const unit = varianceItem?.unitMeasure ?? "units";

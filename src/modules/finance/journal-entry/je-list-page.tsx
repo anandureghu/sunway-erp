@@ -1,6 +1,6 @@
 // src/pages/admin/finance/JournalEntryListPage.tsx
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { apiClient } from "@/service/apiClient";
@@ -16,6 +16,8 @@ import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
 } from "@/service/historyService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import type { PageResult } from "@/types/page";
 
 function isJournalEntryArchivable(entry: JournalEntry): boolean {
   return !entry.archived && entry.status !== "PENDING_APPROVAL";
@@ -23,44 +25,68 @@ function isJournalEntryArchivable(entry: JournalEntry): boolean {
 
 export default function JournalEntryListPage() {
   const { confirm } = useConfirmDialog();
-  const [data, setData] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<JournalEntry | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [archivingId, setArchivingId] = useState<number | null>(null);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get("/finance/journal-entries", {
-        params: { archived: false, size: 500 },
-      });
-      setData(res.data.content ?? res.data);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const fetcher = useCallback(
+    async ({
+      page,
+      size,
+      search,
+    }: {
+      page: number;
+      size: number;
+      search: string;
+    }): Promise<PageResult<JournalEntry>> => {
+      const res = await apiClient.get<PageResult<JournalEntry>>(
+        "/finance/journal-entries",
+        {
+          params: {
+            archived: false,
+            search: search || undefined,
+            page,
+            size,
+          },
+        },
+      );
+      return res.data;
+    },
+    [],
+  );
 
-  useEffect(() => {
-    void fetchData();
-  }, [fetchData]);
+  const {
+    rows: data,
+    loading,
+    searchInput,
+    setSearchInput,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<JournalEntry>({
+    fetcher,
+    errorMessage: "Failed to load journal entries",
+  });
 
   const handleApprove = async (entry: JournalEntry) => {
     await apiClient.put(`/finance/journal-entries/${entry.id}/approve`);
-    await fetchData();
+    reload();
   };
 
   const handleReject = async (entry: JournalEntry) => {
     await apiClient.put(`/finance/journal-entries/${entry.id}/reject`);
-    await fetchData();
+    reload();
   };
 
   const handleHold = async (entry: JournalEntry) => {
     await apiClient.put(`/finance/journal-entries/${entry.id}/hold`);
-    await fetchData();
+    reload();
   };
 
   const handleEdit = (entry: JournalEntry) => {
@@ -84,7 +110,7 @@ export default function JournalEntryListPage() {
       try {
         await apiClient.post(`/finance/journal-entries/${entry.id}/archive`);
         toast.success("Journal entry archived");
-        await fetchData();
+        reload();
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { message?: string } } };
         toast.error(
@@ -97,7 +123,7 @@ export default function JournalEntryListPage() {
         setArchivingId(null);
       }
     },
-    [confirm, fetchData],
+    [confirm, reload],
   );
 
   const selectedEntryIds = useMemo(
@@ -126,7 +152,7 @@ export default function JournalEntryListPage() {
       );
       toast.success(summarizeBulkActionResult(result));
       setRowSelection({});
-      await fetchData();
+      reload();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(
@@ -138,16 +164,11 @@ export default function JournalEntryListPage() {
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, fetchData, selectedEntryIds]);
+  }, [confirm, reload, selectedEntryIds]);
 
-  const handleSuccess = (updated: JournalEntry, mode: "add" | "edit") => {
-    if (mode === "add") {
-      setData((prev) => [updated, ...prev]);
-      setSelected(null);
-    } else {
-      setData((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
-      setSelected(null);
-    }
+  const handleSuccess = (_updated: JournalEntry, _mode: "add" | "edit") => {
+    setSelected(null);
+    reload();
   };
 
   const columns = JOURNAL_ENTRY_COLUMNS({
@@ -159,19 +180,6 @@ export default function JournalEntryListPage() {
     archivingId,
   });
 
-  const filtered = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    const active = data.filter((entry) => !entry.archived);
-    if (!q) return active;
-    return active.filter((entry) =>
-      [entry.jeNumber, entry.description, entry.status, entry.source]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [data, searchQuery]);
-
   return (
     <>
       <GlTabPanel
@@ -179,8 +187,8 @@ export default function JournalEntryListPage() {
         description="Create and approve manual journal entries."
         icon={<BookOpen className="h-5 w-5" />}
         searchPlaceholder="Search manual journals..."
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
         loading={loading}
         actions={
           <Button
@@ -204,12 +212,20 @@ export default function JournalEntryListPage() {
           />
           <SelectableDataTable
             columns={columns}
-            data={filtered}
+            data={data}
             enableRowSelection
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
             getRowId={(row) => String(row.id)}
             isRowSelectable={isJournalEntryArchivable}
+            serverPagination={{
+              total: totalElements,
+              pageIndex: page,
+              pageSize,
+              pageCount,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
           />
         </div>
       </GlTabPanel>

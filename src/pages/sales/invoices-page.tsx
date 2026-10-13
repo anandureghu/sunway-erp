@@ -28,12 +28,11 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import { isInvoiceReceiptView } from "@/lib/invoice-status-filter";
 import {
-  invoiceMatchesStatusFilter,
-  isInvoiceArchivedStatus,
-  isInvoiceReceiptView,
-} from "@/lib/invoice-status-filter";
-import { getInvoicePdfUrl } from "@/service/invoiceService";
+  getInvoicePdfUrl,
+  listSalesInvoicesPaged,
+} from "@/service/invoiceService";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
@@ -46,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useAuth } from "@/context/AuthContext";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -59,61 +59,113 @@ export default function InvoicesPage({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || "",
-  );
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
     null,
   );
+  const [kpiCounts, setKpiCounts] = useState({
+    total: 0,
+    unpaid: 0,
+    paid: 0,
+    overdue: 0,
+    outstanding: 0,
+    archived: 0,
+  });
 
   const companyId = user?.companyId;
 
+  const filters = useMemo(
+    () => ({
+      tab: listTab,
+      status: statusFilter,
+    }),
+    [listTab, statusFilter],
+  );
+
+  const fetchInvoices = useCallback(
+    (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: string;
+      status: string;
+    }) =>
+      listSalesInvoicesPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        tab: params.tab,
+        status: params.status,
+      }),
+    [],
+  );
+
+  const {
+    rows: invoices,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<Invoice, { tab: string; status: string }>({
+    fetcher: fetchInvoices,
+    filters,
+    errorMessage: "Failed to load invoices",
+  });
+
   useEffect(() => {
-    apiClient
-      .get<Invoice[]>("/invoices", { params: { type: "SALES" } })
-      .then((res) => setInvoices(res.data));
-  }, [companyId]);
-
-  const outstandingCount = useMemo(
-    () => invoices.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
-    [invoices],
-  );
-  const archivedCount = useMemo(
-    () =>
-      invoices.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
-        .length,
-    [invoices],
-  );
-
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((invoice) => {
-      const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab =
-        listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
-      if (!matchesTab) return false;
-      if (listTab === "archived" && invoice.archived) return false;
-
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        invoice.invoiceId?.toLowerCase().includes(q) ||
-        invoice.toParty?.toLowerCase().includes(q) ||
-        invoice.orderNumber?.toLowerCase().includes(q) ||
-        invoice.salesOrder?.orderNumber?.toLowerCase().includes(q);
-
-      const matchesStatus = invoiceMatchesStatusFilter(
-        invoice.status,
-        statusFilter,
-      );
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [invoices, listTab, searchQuery, statusFilter]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [allOutstanding, unpaid, paid, overdue, archived] =
+          await Promise.all([
+            listSalesInvoicesPaged({ page: 0, size: 1, tab: "outstanding" }),
+            listSalesInvoicesPaged({
+              page: 0,
+              size: 1,
+              tab: "outstanding",
+              status: "UNPAID",
+            }),
+            listSalesInvoicesPaged({
+              page: 0,
+              size: 1,
+              tab: "archived",
+              status: "PAID",
+            }),
+            listSalesInvoicesPaged({
+              page: 0,
+              size: 1,
+              tab: "outstanding",
+              status: "OVERDUE",
+            }),
+            listSalesInvoicesPaged({ page: 0, size: 1, tab: "archived" }),
+          ]);
+        if (cancelled) return;
+        setKpiCounts({
+          total: allOutstanding.totalElements,
+          unpaid: unpaid.totalElements,
+          paid: paid.totalElements,
+          overdue: overdue.totalElements,
+          outstanding: allOutstanding.totalElements,
+          archived: archived.totalElements,
+        });
+      } catch {
+        /* KPI counts are best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId, reload]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -164,10 +216,7 @@ export default function InvoicesPage({
       );
       toast.success(summarizeBulkActionResult(result));
       setRowSelection({});
-      const res = await apiClient.get<Invoice[]>("/invoices", {
-        params: { type: "SALES" },
-      });
-      setInvoices(res.data);
+      reload();
     } catch (error: unknown) {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response
@@ -176,7 +225,7 @@ export default function InvoicesPage({
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, selectedInvoiceIds]);
+  }, [confirm, selectedInvoiceIds, reload]);
 
   const handleArchiveInvoice = useCallback(
     async (id: number) => {
@@ -190,11 +239,9 @@ export default function InvoicesPage({
       if (!(await confirm(`Archive invoice ${invoice.invoiceId}?`))) return;
       setProcessingInvoiceId(id);
       try {
-        const { data } = await apiClient.post<Invoice>(
-          `/invoices/${id}/archive`,
-        );
-        setInvoices((prev) => prev.map((inv) => (inv.id === id ? data : inv)));
+        await apiClient.post<Invoice>(`/invoices/${id}/archive`);
         toast.success("Invoice archived successfully");
+        reload();
       } catch (error: unknown) {
         const err = error as {
           response?: { data?: { message?: string; error?: string } };
@@ -209,7 +256,7 @@ export default function InvoicesPage({
         setProcessingInvoiceId(null);
       }
     },
-    [invoices],
+    [invoices, confirm, reload],
   );
 
   const handleViewInvoice = useCallback(
@@ -273,22 +320,11 @@ export default function InvoicesPage({
   );
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
-    const norm = (s?: string) => (s || "").toUpperCase();
-    const visibleInvoices = invoices.filter((inv) => !inv.archived);
-    const unpaid = visibleInvoices.filter(
-      (inv) => norm(inv.status) === "UNPAID",
-    ).length;
-    const paid = visibleInvoices.filter(
-      (inv) => norm(inv.status) === "PAID",
-    ).length;
-    const overdue = visibleInvoices.filter(
-      (inv) => norm(inv.status) === "OVERDUE",
-    ).length;
     return [
       kpiFilterItem(
         {
           label: "Total invoices",
-          value: visibleInvoices.length,
+          value: kpiCounts.total,
           hint: "Sales invoices loaded",
           accent: "sky",
           icon: FileText,
@@ -300,7 +336,7 @@ export default function InvoicesPage({
       kpiFilterItem(
         {
           label: "Unpaid",
-          value: unpaid,
+          value: kpiCounts.unpaid,
           hint: "Awaiting payment",
           accent: "orange",
           icon: Wallet,
@@ -312,7 +348,7 @@ export default function InvoicesPage({
       kpiFilterItem(
         {
           label: "Paid",
-          value: paid,
+          value: kpiCounts.paid,
           hint: "Fully settled",
           accent: "emerald",
           icon: CheckCircle2,
@@ -324,7 +360,7 @@ export default function InvoicesPage({
       kpiFilterItem(
         {
           label: "Overdue",
-          value: overdue,
+          value: kpiCounts.overdue,
           hint: "Past due — needs collection",
           accent: "rose",
           icon: AlertTriangle,
@@ -334,7 +370,7 @@ export default function InvoicesPage({
         applyKpiFilter,
       ),
     ];
-  }, [invoices, kpiFilter, applyKpiFilter]);
+  }, [kpiCounts, kpiFilter, applyKpiFilter]);
 
   const isFinancePage = useMemo(() => {
     return location.pathname.includes("/finance/receivable");
@@ -369,14 +405,14 @@ export default function InvoicesPage({
               <ListTodo className="h-4 w-4" />
               Current Invoices
               <Badge variant="secondary" className="font-normal">
-                {outstandingCount}
+                {kpiCounts.outstanding}
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="archived" className="gap-2">
               <FileCheck className="h-4 w-4" />
               Completed
               <Badge variant="secondary" className="font-normal">
-                {archivedCount}
+                {kpiCounts.archived}
               </Badge>
             </TabsTrigger>
           </TabsList>
@@ -429,23 +465,39 @@ export default function InvoicesPage({
           archiving={bulkArchiving}
         />
       ) : null}
-      <SelectableDataTable
-        data={filteredInvoices}
-        columns={columns}
-        enableRowSelection={listTab === "archived"}
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        getRowId={(row) => String(row.id)}
-        isRowSelectable={(row) => {
-          const status = (row.status || "").toUpperCase();
-          return (status === "PAID" || status === "CANCELLED") && !row.archived;
-        }}
-        onRowClick={(row: Row<Invoice>) =>
-          navigate(`/sales/invoices/${row.original.id}`, {
-            state: { backTo: location.pathname },
-          })
-        }
-      />
+      {loading ? (
+        <div className="py-16 text-center text-muted-foreground">
+          Loading invoices...
+        </div>
+      ) : (
+        <SelectableDataTable
+          data={invoices}
+          columns={columns}
+          enableRowSelection={listTab === "archived"}
+          rowSelection={rowSelection}
+          onRowSelectionChange={setRowSelection}
+          getRowId={(row) => String(row.id)}
+          isRowSelectable={(row) => {
+            const status = (row.status || "").toUpperCase();
+            return (
+              (status === "PAID" || status === "CANCELLED") && !row.archived
+            );
+          }}
+          onRowClick={(row: Row<Invoice>) =>
+            navigate(`/sales/invoices/${row.original.id}`, {
+              state: { backTo: location.pathname },
+            })
+          }
+          serverPagination={{
+            total: totalElements,
+            pageIndex: page,
+            pageSize,
+            pageCount: Math.max(pageCount, 1),
+            onPageChange: setPage,
+            onPageSizeChange: setPageSize,
+          }}
+        />
+      )}
     </div>
   );
 }

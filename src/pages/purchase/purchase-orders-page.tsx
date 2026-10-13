@@ -11,6 +11,7 @@ import {
   archivePurchaseOrder,
   approvePurchaseOrder,
   listPurchaseOrders,
+  listPurchaseOrdersPaged,
 } from "@/service/purchaseFlowService";
 import {
   bulkArchiveHistoryRecords,
@@ -30,7 +31,7 @@ import { PurchaseOrderForm } from "./components/purchase-order-form";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { excludeArchived } from "@/lib/exclude-archived";
-import { matchesDateRange } from "@/lib/date";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 
 type OrderTab = "open" | "terminal";
 
@@ -38,16 +39,10 @@ export default function PurchaseOrdersPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { confirm } = useConfirmDialog();
-  const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || "",
-  );
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [orderToEdit, setOrderToEdit] = useState<PurchaseOrder | null>(null);
   const [actionState, setActionState] = useState<{
     id: string;
@@ -57,38 +52,132 @@ export default function PurchaseOrdersPage() {
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [listTab, setListTab] = useState<OrderTab>("open");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+  const [kpiOrders, setKpiOrders] = useState<PurchaseOrder[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [openCount, setOpenCount] = useState(0);
+  const [terminalCount, setTerminalCount] = useState(0);
 
-  const refreshOrders = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
-    try {
-      const [ordersData, vendorsData] = await Promise.all([
-        listPurchaseOrders(),
-        listVendors(),
-      ]);
-      setOrders(enrichPurchaseOrdersWithVendors(ordersData, vendorsData));
-    } catch (e: any) {
-      const errorData = e?.response?.data;
-      let errorMessage = "Failed to load purchase orders";
-      if (
-        errorData?.message?.includes("No static resource") ||
-        errorData?.error?.includes("No static resource")
-      ) {
-        errorMessage =
-          "Purchase Orders API endpoint is not configured on the server.";
-      } else {
-        errorMessage =
-          errorData?.message || errorData?.error || e?.message || errorMessage;
+  const filters = useMemo(
+    () => ({
+      tab: listTab,
+      status: statusFilter,
+      paymentStatus: paymentStatusFilter,
+      dateFrom,
+      dateTo,
+    }),
+    [listTab, statusFilter, paymentStatusFilter, dateFrom, dateTo],
+  );
+
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: OrderTab;
+      status: string;
+      paymentStatus: string;
+      dateFrom: string;
+      dateTo: string;
+    }) => {
+      setLoadError(null);
+      try {
+        const [page, vendors] = await Promise.all([
+          listPurchaseOrdersPaged({
+            page: params.page,
+            size: params.size,
+            search: params.search,
+            tab: params.tab,
+            status: params.status,
+            paymentStatus: params.paymentStatus,
+            dateFrom: params.dateFrom || undefined,
+            dateTo: params.dateTo || undefined,
+          }),
+          listVendors().catch(() => []),
+        ]);
+        return {
+          ...page,
+          content: enrichPurchaseOrdersWithVendors(page.content, vendors),
+        };
+      } catch (e: any) {
+        const errorData = e?.response?.data;
+        let errorMessage = "Failed to load purchase orders";
+        if (
+          errorData?.message?.includes("No static resource") ||
+          errorData?.error?.includes("No static resource")
+        ) {
+          errorMessage =
+            "Purchase Orders API endpoint is not configured on the server.";
+        } else {
+          errorMessage =
+            errorData?.message || errorData?.error || e?.message || errorMessage;
+        }
+        setLoadError(errorMessage);
+        throw e;
       }
-      setLoadError(errorMessage);
-    } finally {
-      setLoading(false);
+    },
+    [],
+  );
+
+  const {
+    rows: orders,
+    loading,
+    searchInput,
+    setSearchInput,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    PurchaseOrder,
+    {
+      tab: OrderTab;
+      status: string;
+      paymentStatus: string;
+      dateFrom: string;
+      dateTo: string;
+    }
+  >({
+    fetcher: fetchPage,
+    filters,
+    errorMessage: "Failed to load purchase orders",
+  });
+
+  useEffect(() => {
+    const initial = (location.state as { searchQuery?: string })?.searchQuery;
+    if (initial) setSearchInput(initial);
+  }, [location.state, setSearchInput]);
+
+  const refreshKpis = useCallback(async () => {
+    try {
+      const [all, vendors] = await Promise.all([
+        listPurchaseOrders(),
+        listVendors().catch(() => []),
+      ]);
+      const enriched = enrichPurchaseOrdersWithVendors(all, vendors);
+      setKpiOrders(enriched);
+      const terminal = (status: string) => {
+        const s = (status || "").toLowerCase();
+        return s === "received" || s === "cancelled";
+      };
+      const active = excludeArchived(enriched);
+      setOpenCount(active.filter((o) => !terminal(o.status)).length);
+      setTerminalCount(active.filter((o) => terminal(o.status)).length);
+    } catch {
+      // KPI strip is best-effort
     }
   }, []);
 
   useEffect(() => {
-    void refreshOrders();
-  }, [refreshOrders]);
+    void refreshKpis();
+  }, [refreshKpis]);
+
+  const refreshOrders = useCallback(async () => {
+    reload();
+    await refreshKpis();
+  }, [reload, refreshKpis]);
 
   const normalizePaymentStatusKey = useCallback((status?: string) => {
     const normalized = (status || "UNPAID")
@@ -134,11 +223,11 @@ export default function PurchaseOrdersPage() {
       const s = (status || "").toLowerCase();
       return s === "received" || s === "cancelled";
     };
-    const activeOrders = excludeArchived(orders);
+    const activeOrders = excludeArchived(kpiOrders);
     const draftCount = activeOrders.filter(
       (o) => (o.status || "").toLowerCase() === "draft",
     ).length;
-    const terminalCount = activeOrders.filter((o) =>
+    const terminalCountKpi = activeOrders.filter((o) =>
       terminal(o.status),
     ).length;
     const partiallyPaidCount = activeOrders.filter(
@@ -178,7 +267,7 @@ export default function PurchaseOrdersPage() {
       kpiFilterItem(
         {
           label: "Completed or cancelled",
-          value: terminalCount,
+          value: terminalCountKpi,
           hint: "Fully received or cancelled (not archived)",
           accent: "emerald",
           icon: Package,
@@ -200,35 +289,7 @@ export default function PurchaseOrdersPage() {
         applyKpiFilter,
       ),
     ];
-  }, [orders, kpiFilter, applyKpiFilter, normalizePaymentStatusKey]);
-
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      const matchesSearch =
-        !searchQuery.trim() ||
-        order.orderNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.supplier?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || order.status === statusFilter;
-      const paymentKey = normalizePaymentStatusKey(
-        order.paymentStatus ||
-          (order.vendorPaymentSettled ? "PAID" : "UNPAID"),
-      );
-      const matchesPaymentStatus =
-        paymentStatusFilter === "all" ||
-        paymentKey === paymentStatusFilter.toUpperCase();
-      const matchesDate = matchesDateRange(order.orderDate, dateFrom, dateTo);
-      return matchesSearch && matchesStatus && matchesPaymentStatus && matchesDate;
-    });
-  }, [
-    orders,
-    searchQuery,
-    statusFilter,
-    paymentStatusFilter,
-    dateFrom,
-    dateTo,
-    normalizePaymentStatusKey,
-  ]);
+  }, [kpiOrders, kpiFilter, applyKpiFilter, normalizePaymentStatusKey]);
 
   const handleApproveOrder = useCallback(
     async (id: string) => {
@@ -359,17 +420,7 @@ export default function PurchaseOrdersPage() {
       if (!(await confirm(archiveMessage))) return;
       setActionState({ id, type: "archive" });
       try {
-        const updated = await archivePurchaseOrder(id);
-        setOrders((prev) =>
-          prev.map((po) =>
-            po.id === id
-              ? {
-                  ...po,
-                  archived: updated.archived ?? true,
-                }
-              : po,
-          ),
-        );
+        await archivePurchaseOrder(id);
         toast.success(
           order.requisitionId
             ? "Order and linked requisition archived successfully"
@@ -486,6 +537,18 @@ export default function PurchaseOrdersPage() {
     ],
   );
 
+  const serverPagination = useMemo(
+    () => ({
+      total: totalElements,
+      pageIndex: page,
+      pageSize,
+      pageCount: Math.max(pageCount, 1),
+      onPageChange: setPage,
+      onPageSizeChange: setPageSize,
+    }),
+    [totalElements, page, pageSize, pageCount, setPage, setPageSize],
+  );
+
   if (orderToEdit) {
     return (
       <PurchaseOrderForm
@@ -501,43 +564,44 @@ export default function PurchaseOrdersPage() {
   }
 
   return (
-    <>
-      <PurchaseOrdersListView
-        loading={loading}
-        error={loadError}
-        orders={filteredOrders}
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        columns={columns}
-        enableBulkArchive
-        rowSelection={rowSelection}
-        onRowSelectionChange={setRowSelection}
-        selectedCount={selectedOrderIds.length}
-        onBulkArchive={handleBulkArchiveOrders}
-        bulkArchiving={bulkArchiving}
-        listTab={listTab}
-        onListTabChange={(tab) => {
-          setListTab(tab);
-          setKpiFilter(null);
-          setPaymentStatusFilter("all");
-          setRowSelection({});
-        }}
-        onSearchChange={setSearchQuery}
-        onStatusChange={(value) => {
-          setStatusFilter(value);
-          setKpiFilter(null);
-          setPaymentStatusFilter("all");
-        }}
-        onDateRangeChange={({ from, to }) => {
-          setDateFrom(from);
-          setDateTo(to);
-        }}
-        onRowClick={handleRowClick}
-        onRetry={() => void refreshOrders()}
-        kpiItems={purchaseOrderKpis}
-      />
-    </>
+    <PurchaseOrdersListView
+      loading={loading}
+      error={loadError}
+      orders={orders}
+      searchQuery={searchInput}
+      statusFilter={statusFilter}
+      dateFrom={dateFrom}
+      dateTo={dateTo}
+      columns={columns}
+      enableBulkArchive
+      rowSelection={rowSelection}
+      onRowSelectionChange={setRowSelection}
+      selectedCount={selectedOrderIds.length}
+      onBulkArchive={handleBulkArchiveOrders}
+      bulkArchiving={bulkArchiving}
+      listTab={listTab}
+      openCount={openCount}
+      terminalCount={terminalCount}
+      onListTabChange={(tab) => {
+        setListTab(tab);
+        setKpiFilter(null);
+        setPaymentStatusFilter("all");
+        setRowSelection({});
+      }}
+      onSearchChange={setSearchInput}
+      onStatusChange={(value) => {
+        setStatusFilter(value);
+        setKpiFilter(null);
+        setPaymentStatusFilter("all");
+      }}
+      onDateRangeChange={({ from, to }) => {
+        setDateFrom(from);
+        setDateTo(to);
+      }}
+      onRowClick={handleRowClick}
+      onRetry={() => void refreshOrders()}
+      kpiItems={purchaseOrderKpis}
+      serverPagination={serverPagination}
+    />
   );
 }

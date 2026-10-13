@@ -34,6 +34,7 @@ export async function fetchSubscriptions(params: {
   companyId?: number;
   expiringWithinDays?: number;
   paymentStatus?: SubscriptionPaymentStatus | "";
+  search?: string;
   page?: number;
   size?: number;
 }): Promise<PagedSubscriptions> {
@@ -44,6 +45,7 @@ export async function fetchSubscriptions(params: {
       companyId: params.companyId,
       expiringWithinDays: params.expiringWithinDays,
       paymentStatus: params.paymentStatus || undefined,
+      search: params.search || undefined,
       page: params.page ?? 0,
       size: params.size ?? 20,
     },

@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { DataTable } from "@/ui/data-table";
@@ -20,6 +20,9 @@ import { UserPlus, Users2, LayoutGrid } from "lucide-react";
 import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { ImportEmployeesCsvDialog } from "@/pages/employees/import-employees-csv-dialog";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import { TablePagination } from "@/components/table-pagination";
+import type { PageResult } from "@/types/page";
 
 interface EmployeeTableProps {
   data: Employee[];
@@ -33,6 +36,15 @@ const EmployeeTable = ({ data, onSelect }: EmployeeTableProps) => (
     onRowClick={onSelect}
   />
 );
+
+/** Normalize UI filter labels ("under probation") to backend enum names. */
+function toApiStatus(raw: string | null): string | null {
+  if (!raw) return null;
+  return raw
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+}
 
 /**
  * Fills in `department` and `designation` for an employee from their
@@ -88,60 +100,70 @@ async function hydrateEmployees(list: Employee[]): Promise<Employee[]> {
 }
 
 export default function EmployeesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [empTypeFilter, setEmpTypeFilter] = useState<string | null>(null);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
+  /** Full-directory snapshot for KPI cards (status breakdown). */
+  const [statsEmployees, setStatsEmployees] = useState<Employee[]>([]);
   const navigate = useNavigate();
   const { setSelected } = useEmployeeSelection();
   const { permissions, permissionsLoading, user, company } = useAuth();
   const [canViewEmployees, setCanViewEmployees] = useState(false);
 
-  const filteredEmployees = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+  const isAdmin = isSecurityAdmin(user?.role);
 
-    const normalize = (s?: string | null) =>
-      String(s ?? "")
-        .trim()
-        .toUpperCase()
-        .replace(/\s+/g, "_")
-        .replace(/-/g, "_");
+  const filters = useMemo(
+    () => ({
+      status: toApiStatus(statusFilter),
+      employmentCategory: empTypeFilter,
+    }),
+    [statusFilter, empTypeFilter],
+  );
 
-    const desired = normalize(statusFilter);
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      status: string | null;
+      employmentCategory: string | null;
+    }): Promise<PageResult<Employee>> => {
+      const page = await hrService.listEmployeesPage({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        status: params.status,
+        employmentCategory: params.employmentCategory,
+      });
+      const content = page.content?.length
+        ? await hydrateEmployees(page.content)
+        : (page.content ?? []);
+      return { ...page, content };
+    },
+    [],
+  );
 
-    return employees.filter((employee: Employee) => {
-      const empNo = String(employee.employeeNo ?? "").toLowerCase();
-      const first = String(employee.firstName ?? "").toLowerCase();
-      const last = String(employee.lastName ?? "").toLowerCase();
-      const dept = String(employee.department ?? "").toLowerCase();
-      const desig = String(employee.designation ?? "").toLowerCase();
-      const stat = String(employee.status ?? "").toLowerCase();
-
-      const matchesSearch =
-        !query ||
-        empNo.includes(query) ||
-        first.includes(query) ||
-        last.includes(query) ||
-        dept.includes(query) ||
-        desig.includes(query) ||
-        stat.includes(query);
-
-      const matchesStatus =
-        !statusFilter ||
-        (desired === "FORMER"
-          ? ["RESIGNED", "TERMINATED", "RETIRED"].includes(
-              normalize(employee.status),
-            )
-          : normalize(employee.status) === desired);
-
-      const matchesEmpType =
-        !empTypeFilter ||
-        normalize(employee.employmentCategory) === normalize(empTypeFilter);
-
-      return matchesSearch && matchesStatus && matchesEmpType;
-    });
-  }, [searchQuery, statusFilter, empTypeFilter, employees]);
+  const {
+    rows,
+    loading,
+    searchInput,
+    setSearchInput,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    Employee,
+    { status: string | null; employmentCategory: string | null }
+  >({
+    fetcher: fetchPage,
+    filters,
+    enabled: isAdmin || canViewEmployees,
+    errorMessage: "Failed to load employees",
+  });
 
   const handleEmployeeSelect = (employee: Employee) => {
     setSelected({
@@ -236,9 +258,8 @@ export default function EmployeesPage() {
           `Employee created successfully.\nUsername: ${username || "-"}\nEmail: ${email || "-"}`,
         );
 
-        // refresh from server to reflect DB state (in case server enriches/normalizes payload)
-        const list = await hrService.listEmployees();
-        setEmployees(list);
+        reload();
+        void refreshStats();
       }
     } catch (err: any) {
       const msg =
@@ -252,9 +273,6 @@ export default function EmployeesPage() {
       toast.error(String(msg));
     }
   };
-
-  // load employees with department from current job
-  const isAdmin = isSecurityAdmin(user?.role);
 
   // determine canViewEmployees once when permissions change
   useEffect(() => {
@@ -283,76 +301,37 @@ export default function EmployeesPage() {
       );
     };
 
-    const has =
-      hasView("EMPLOYEE_PROFILE") || hasView("CURRENT_JOB");
+    const has = hasView("EMPLOYEE_PROFILE") || hasView("CURRENT_JOB");
     setCanViewEmployees(!!has);
   }, [permissions, permissionsLoading, isAdmin]);
 
-  // Load employees when we know user can view them
+  const refreshStats = useCallback(async () => {
+    if (!isAdmin && !canViewEmployees) {
+      setStatsEmployees([]);
+      return;
+    }
+    try {
+      const list = await hrService.listEmployees();
+      setStatsEmployees(list);
+    } catch {
+      setStatsEmployees([]);
+    }
+  }, [canViewEmployees, isAdmin]);
+
   useEffect(() => {
-    let mounted = true;
+    void refreshStats();
+  }, [refreshStats, company?.id]);
 
-    const load = async () => {
-      try {
-        if (!isAdmin && !canViewEmployees) {
-          setEmployees([]);
-          return;
-        }
-
-        const list = await hrService.listEmployees();
-
-        if (!mounted) return;
-
-        if (list.length > 0) {
-          const employeesWithDepartment = await hydrateEmployees(list);
-          setEmployees(employeesWithDepartment);
-        } else {
-          setEmployees(list);
-        }
-      } catch (err: any) {
-        console.error(
-          "EmployeesPage -> failed to load employees:",
-          err?.response?.data ?? err,
-        );
-        setEmployees([]);
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load employees";
-        toast.error(String(msg));
-      }
-    };
-
-    load();
-
-    return () => {
-      mounted = false;
-    };
-  }, [canViewEmployees, user, isAdmin, company?.id]);
-
-  // permissionsLoading handled above; no local permissionsLoaded state
-
-  // Refresh employees list when an employee is updated elsewhere (profile page)
+  // Refresh when an employee is updated elsewhere (profile page)
   useEffect(() => {
-    const handler = async () => {
-      try {
-        const list = await hrService.listEmployees();
-
-        // Fill in department/designation for rows the backend left incomplete.
-        if (list.length > 0) {
-          const employeesWithDepartment = await hydrateEmployees(list);
-          setEmployees(employeesWithDepartment);
-        } else {
-          setEmployees(list);
-        }
-      } catch (err) {
-        console.error("EmployeesPage -> refresh after update failed:", err);
-      }
+    const handler = () => {
+      reload();
+      void refreshStats();
     };
     window.addEventListener("employee:updated", handler as EventListener);
     return () =>
       window.removeEventListener("employee:updated", handler as EventListener);
-  }, []);
+  }, [reload, refreshStats]);
 
   const hasCreate = (moduleId: string) =>
     !!(permissions as any)?.[moduleId]?.create;
@@ -363,6 +342,12 @@ export default function EmployeesPage() {
     permissionsLoading ||
     hasCreate("EMPLOYEE_PROFILE") ||
     hasCreate("CURRENT_JOB");
+
+  const clearFilters = () => {
+    setSearchInput("");
+    setStatusFilter(null);
+    setEmpTypeFilter(null);
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -387,9 +372,9 @@ export default function EmployeesPage() {
           showAdd && (
             <div className="flex gap-2">
               <ImportEmployeesCsvDialog
-                onImported={async () => {
-                  const list = await hrService.listEmployees();
-                  setEmployees(list);
+                onImported={() => {
+                  reload();
+                  void refreshStats();
                 }}
               />
               <Button
@@ -406,7 +391,12 @@ export default function EmployeesPage() {
 
       {/* ── KPI stat cards ───────────────────────────────────────────────── */}
       <EmployeeStats
-        employees={employees}
+        employees={statsEmployees}
+        totalOverride={
+          !statusFilter && !empTypeFilter && !searchInput.trim()
+            ? totalElements
+            : undefined
+        }
         onFilter={setStatusFilter}
         activeFilter={statusFilter}
       />
@@ -420,7 +410,9 @@ export default function EmployeesPage() {
             </div>
             Employee Directory
             <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
-              {filteredEmployees.length} of {employees.length}
+              {loading
+                ? "Loading…"
+                : `${totalElements.toLocaleString()} employee${totalElements === 1 ? "" : "s"}`}
             </span>
           </CardTitle>
         </CardHeader>
@@ -431,15 +423,15 @@ export default function EmployeesPage() {
           <div className="relative w-full sm:max-w-xs">
             <LayoutGrid className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, dept, designation…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search name, code, email, phone…"
               className="h-9 pl-9 pr-9 text-sm"
             />
-            {searchQuery && (
+            {searchInput && (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => setSearchInput("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs"
               >
                 ✕
@@ -476,33 +468,37 @@ export default function EmployeesPage() {
         <div
           className={cn(
             "px-5 pb-5",
-            filteredEmployees.length === 0 &&
+            !loading &&
+              rows.length === 0 &&
               "min-h-[200px] flex items-center justify-center",
           )}
         >
-          {filteredEmployees.length === 0 ? (
+          {loading && rows.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
+              <p className="text-sm">Loading employees…</p>
+            </div>
+          ) : rows.length === 0 ? (
             <div className="flex flex-col items-center gap-2 text-muted-foreground py-8">
               <Users2 className="h-10 w-10 opacity-30" />
               <p className="text-sm">
                 No employees match your current filters.
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter(null);
-                  setEmpTypeFilter(null);
-                }}
-              >
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
                 Clear filters
               </Button>
             </div>
           ) : (
-            <EmployeeTable
-              data={filteredEmployees}
-              onSelect={handleEmployeeSelect}
-            />
+            <>
+              <EmployeeTable data={rows} onSelect={handleEmployeeSelect} />
+              <TablePagination
+                total={totalElements}
+                pageIndex={page}
+                pageSize={pageSize}
+                pageCount={Math.max(pageCount, 1)}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </>
           )}
         </div>
       </Card>

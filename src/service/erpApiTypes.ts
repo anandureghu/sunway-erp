@@ -526,6 +526,8 @@ export type PicklistResponseDTO = {
   id: Id;
   picklistNumber?: string;
   salesOrderId?: Id;
+  salesOrderNumber?: string;
+  customerName?: string;
   status?: string;
   archived?: boolean;
   createdAt?: string;
@@ -558,7 +560,10 @@ export type ShipmentResponseDTO = {
   id: Id;
   shipmentNumber?: string;
   picklistId?: Id;
+  salesOrderId?: Id;
+  salesOrderNumber?: string;
   customerId?: Id;
+  customerName?: string;
   status?: string;
   carrierName?: string;
   trackingNumber?: string;

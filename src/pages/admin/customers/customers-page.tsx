@@ -1,14 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/datatable";
 import type { Customer } from "@/types/customer";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getCustomerColumns } from "@/lib/columns/customer-listing-admin";
-import {
-  formatCustomerCode,
-  isCustomerActive,
-  normalizeCustomerFromApi,
-} from "@/lib/customer-api";
 import { Input } from "@/components/ui/input";
 import { Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,53 +20,121 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import { listCustomersPaged } from "@/service/customerService";
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
-  const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [countryFilter, setCountryFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [cityFilter, setCityFilter] = useState<string>("all");
+  const [cityFilter, setCityFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
   const [codeFilter, setCodeFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [kpiCounts, setKpiCounts] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+  });
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
-  const fetchCustomers = async () => {
-    try {
-      const res = await apiClient.get("/customers");
-      // Map API response to match our Customer type
-      const mappedCustomers = (res.data as Record<string, unknown>[]).map(
-        normalizeCustomerFromApi,
-      );
-      setCustomers(mappedCustomers);
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      toast.error("Failed to load customers");
-    } finally {
-      setLoading(false);
+  const filters = useMemo(
+    () => ({
+      status: statusFilter,
+      country: countryFilter.trim() || "all",
+      city: cityFilter.trim() || "all",
+      customerType: typeFilter,
+      phone: phoneFilter.trim(),
+      code: codeFilter.trim(),
+    }),
+    [statusFilter, countryFilter, cityFilter, typeFilter, phoneFilter, codeFilter],
+  );
+
+  const fetchCustomers = useCallback(
+    (params: {
+      page: number;
+      size: number;
+      search: string;
+      status: string;
+      country: string;
+      city: string;
+      customerType: string;
+      phone: string;
+      code: string;
+    }) =>
+      listCustomersPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        status: params.status,
+        country: params.country,
+        city: params.city,
+        customerType: params.customerType,
+        phone: params.phone,
+        code: params.code,
+      }),
+    [],
+  );
+
+  const {
+    rows: customers,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    Customer,
+    {
+      status: string;
+      country: string;
+      city: string;
+      customerType: string;
+      phone: string;
+      code: string;
     }
-  };
+  >({
+    fetcher: fetchCustomers,
+    filters,
+    errorMessage: "Failed to load customers",
+  });
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [all, active, inactive] = await Promise.all([
+          listCustomersPaged({ page: 0, size: 1, status: "all" }),
+          listCustomersPaged({ page: 0, size: 1, status: "active" }),
+          listCustomersPaged({ page: 0, size: 1, status: "inactive" }),
+        ]);
+        if (cancelled) return;
+        setKpiCounts({
+          total: all.totalElements,
+          active: active.totalElements,
+          inactive: inactive.totalElements,
+        });
+      } catch {
+        /* best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
 
-  const handleDialogSuccess = (updated: Customer, mode: "add" | "edit") => {
-    if (mode === "add") {
-      setCustomers((prev) => [...prev, updated]);
-    } else {
-      setCustomers((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
-      );
-    }
+  const handleDialogSuccess = (_updated: Customer, mode: "add" | "edit") => {
+    reload();
     setSelected(null);
+    if (mode === "add") setOpen(false);
   };
 
   const handleEdit = (customer: Customer) => {
@@ -84,28 +147,18 @@ export default function CustomersPage() {
     try {
       await apiClient.delete(`/customers/${customer.id}`);
       toast.success(`Deactivated ${customerName}`);
-      await fetchCustomers();
+      reload();
     } catch (err) {
       console.error("Deactivate failed:", err);
       toast.error("Failed to deactivate customer");
     }
   };
 
-  const navigate = useNavigate();
-
   const handleRowClick = (customer: Customer) => {
     const parentPath = getParentPath(pathname);
     const path = `/${parentPath}/customers/${customer.id}`;
     navigate(path);
   };
-
-  // Calculate statistics
-  const stats = useMemo(() => {
-    const total = customers.length;
-    const active = customers.filter(isCustomerActive).length;
-    const inactive = total - active;
-    return { total, active, inactive };
-  }, [customers]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -122,106 +175,11 @@ export default function CustomersPage() {
     }
   }, []);
 
-  // Get unique countries for filter
-  const countries = useMemo(() => {
-    const countrySet = new Set<string>();
-    customers.forEach((c) => {
-      if (c.country) countrySet.add(c.country);
-    });
-    return Array.from(countrySet).sort();
-  }, [customers]);
-
-  const cities = useMemo(() => {
-    const citySet = new Set<string>();
-    customers.forEach((c) => {
-      if (c.city) citySet.add(c.city);
-    });
-    return Array.from(citySet).sort();
-  }, [customers]);
-
   const columns = getCustomerColumns({
     onEdit: handleEdit,
     onDeactivate: handleDeactivate,
     onView: handleRowClick,
   });
-
-  const filteredCustomers = useMemo(() => {
-    return customers.filter((customer) => {
-      const query = searchQuery.toLowerCase();
-      const phoneQ = phoneFilter.trim().toLowerCase();
-      const codeQ = codeFilter.trim().toLowerCase();
-      const name = customer.customerName || customer.name || "";
-      const matchesSearch =
-        name.toLowerCase().includes(query) ||
-        (customer.contactPersonName?.toLowerCase() ?? "").includes(query) ||
-        (customer.email?.toLowerCase() ?? "").includes(query) ||
-        (customer.phoneNo?.toLowerCase() ?? "").includes(query) ||
-        (customer.city?.toLowerCase() ?? "").includes(query);
-
-      const matchesPhone =
-        !phoneQ || (customer.phoneNo?.toLowerCase() ?? "").includes(phoneQ);
-
-      const code = formatCustomerCode(customer.id).toLowerCase();
-      const rawId = String(customer.id ?? "").toLowerCase();
-      const matchesCode =
-        !codeQ || code.includes(codeQ) || rawId.includes(codeQ);
-
-      const active = isCustomerActive(customer);
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && active) ||
-        (statusFilter === "inactive" && !active);
-
-      const matchesCountry =
-        countryFilter === "all" || customer.country === countryFilter;
-
-      const matchesCity = cityFilter === "all" || customer.city === cityFilter;
-
-      const matchesType =
-        typeFilter === "all" || customer.customerType === typeFilter;
-
-      return (
-        matchesSearch &&
-        matchesPhone &&
-        matchesCode &&
-        matchesStatus &&
-        matchesCountry &&
-        matchesCity &&
-        matchesType
-      );
-    });
-  }, [
-    customers,
-    searchQuery,
-    phoneFilter,
-    codeFilter,
-    statusFilter,
-    countryFilter,
-    cityFilter,
-    typeFilter,
-  ]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredCustomers.slice(startIndex, endIndex);
-  }, [filteredCustomers, currentPage, itemsPerPage]);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [totalPages, currentPage]);
-
-  if (loading)
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading customers...</p>
-      </div>
-    );
 
   return (
     <div className="space-y-6 w-full">
@@ -242,14 +200,13 @@ export default function CustomersPage() {
         }
       />
 
-      {/* Summary Cards */}
       <div className="mb-6">
         <KpiSummaryStrip
           items={[
             kpiFilterItem(
               {
                 label: "Total Customers",
-                value: stats.total,
+                value: kpiCounts.total,
                 hint: "Customer master rows",
                 accent: "sky",
                 icon: Users,
@@ -261,7 +218,7 @@ export default function CustomersPage() {
             kpiFilterItem(
               {
                 label: "Active",
-                value: stats.active,
+                value: kpiCounts.active,
                 hint: "Currently active",
                 accent: "emerald",
                 icon: Users,
@@ -273,7 +230,7 @@ export default function CustomersPage() {
             kpiFilterItem(
               {
                 label: "Inactive",
-                value: stats.inactive,
+                value: kpiCounts.inactive,
                 hint: "Disabled accounts",
                 accent: "rose",
                 icon: Users,
@@ -285,8 +242,6 @@ export default function CustomersPage() {
           ]}
         />
       </div>
-
-      {/* Search and Filters */}
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex-1 relative min-w-[300px]">
@@ -327,19 +282,12 @@ export default function CustomersPage() {
               <SelectItem value="all">All statuses</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={countryFilter} onValueChange={setCountryFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Countries" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Countries</SelectItem>
-              {countries.map((country) => (
-                <SelectItem key={country} value={country}>
-                  {country}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            placeholder="Country..."
+            className="w-[140px]"
+            value={countryFilter}
+            onChange={(e) => setCountryFilter(e.target.value)}
+          />
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="All Types" />
@@ -352,82 +300,36 @@ export default function CustomersPage() {
               <SelectItem value="individual">Individual</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Cities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {cities.map((city) => (
-                <SelectItem key={city} value={city}>
-                  {city}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            placeholder="City..."
+            className="w-[140px]"
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+          />
         </div>
       </div>
 
-      {paginatedCustomers.length === 0 ? (
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          Loading customers...
+        </div>
+      ) : customers.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No customers found
         </div>
       ) : (
-        <>
-          <DataTable columns={columns} data={paginatedCustomers} />
-          {/* Pagination */}
-          {totalPages > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing{" "}
-                {Math.min(
-                  (currentPage - 1) * itemsPerPage + 1,
-                  filteredCustomers.length,
-                )}
-                -
-                {Math.min(currentPage * itemsPerPage, filteredCustomers.length)}{" "}
-                of {filteredCustomers.length} customers
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  ← Previous
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className={
-                        currentPage === page
-                          ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                          : "min-w-[40px]"
-                      }
-                    >
-                      {page}
-                    </Button>
-                  ),
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next →
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+        <DataTable
+          columns={columns}
+          data={customers}
+          serverPagination={{
+            total: totalElements,
+            pageIndex: page,
+            pageSize,
+            pageCount: Math.max(pageCount, 1),
+            onPageChange: setPage,
+            onPageSizeChange: setPageSize,
+          }}
+        />
       )}
 
       <CustomerDialog

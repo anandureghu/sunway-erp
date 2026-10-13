@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Search, ListTodo, FileCheck } from "lucide-react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
+import type { ServerPaginationProps } from "@/components/table-pagination";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ type OrderTab = "open" | "terminal";
 type Props = {
   loading: boolean;
   error: string | null;
+  /** Current server page rows (already filtered by tab/status/search). */
   orders: PurchaseOrder[];
   searchQuery: string;
   statusFilter: string;
@@ -37,6 +39,8 @@ type Props = {
   dateTo: string;
   listTab?: OrderTab;
   onListTabChange?: (tab: OrderTab) => void;
+  openCount?: number;
+  terminalCount?: number;
   columns: ColumnDef<PurchaseOrder>[];
   enableBulkArchive?: boolean;
   rowSelection?: RowSelectionState;
@@ -50,11 +54,8 @@ type Props = {
   onRowClick: (row: Row<PurchaseOrder>) => void;
   onRetry: () => void;
   kpiItems?: KpiSummaryStat[];
+  serverPagination?: ServerPaginationProps;
 };
-
-function isTerminalOrderStatus(status: string): boolean {
-  return status === "received" || status === "cancelled";
-}
 
 export function PurchaseOrdersListView({
   loading,
@@ -79,6 +80,9 @@ export function PurchaseOrdersListView({
   kpiItems,
   listTab: listTabProp,
   onListTabChange,
+  openCount,
+  terminalCount,
+  serverPagination,
 }: Props) {
   const [internalTab, setInternalTab] = useState<OrderTab>("open");
   const tab = listTabProp ?? internalTab;
@@ -87,26 +91,6 @@ export function PurchaseOrdersListView({
     if (onListTabChange) onListTabChange(value);
     else setInternalTab(value);
   };
-
-  const openOrders = useMemo(
-    () =>
-      orders.filter((o) => !isTerminalOrderStatus(o.status) && !o.archived),
-    [orders],
-  );
-  const terminalOrders = useMemo(
-    () =>
-      orders.filter((o) => {
-        if (!isTerminalOrderStatus(o.status)) return false;
-        return !o.archived;
-      }),
-    [orders],
-  );
-  const terminalUnarchivedCount = useMemo(
-    () =>
-      orders.filter((o) => isTerminalOrderStatus(o.status) && !o.archived)
-        .length,
-    [orders],
-  );
 
   const handleTabChange = (next: string) => {
     const value = next as OrderTab;
@@ -126,6 +110,11 @@ export function PurchaseOrdersListView({
       }
     }
   };
+
+  const openBadge = openCount ?? (tab === "open" ? (serverPagination?.total ?? orders.length) : undefined);
+  const terminalBadge =
+    terminalCount ??
+    (tab === "terminal" ? (serverPagination?.total ?? orders.length) : undefined);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -153,7 +142,7 @@ export function PurchaseOrdersListView({
                 <p className="text-sm text-muted-foreground">
                   Expected:{" "}
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                    GET /api/purchase/orders
+                    GET /api/purchase/orders?page=
                   </code>
                 </p>
               )}
@@ -168,11 +157,16 @@ export function PurchaseOrdersListView({
                   <TabsList>
                     <TabsTrigger value="open" className="flex items-center gap-2">
                       <ListTodo className="h-4 w-4" />
-                      Current Orders {openOrders.length}
+                      Current Orders
+                      {openBadge != null ? ` ${openBadge}` : ""}
                     </TabsTrigger>
-                    <TabsTrigger value="terminal" className="flex items-center gap-2">
+                    <TabsTrigger
+                      value="terminal"
+                      className="flex items-center gap-2"
+                    >
                       <FileCheck className="h-4 w-4" />
-                      Completed {terminalUnarchivedCount}
+                      Completed
+                      {terminalBadge != null ? ` ${terminalBadge}` : ""}
                     </TabsTrigger>
                   </TabsList>
                   <div className="flex flex-wrap gap-2">
@@ -214,34 +208,43 @@ export function PurchaseOrdersListView({
                   </div>
                 </div>
                 <TabsContent value="open" className="mt-4">
-                  <SelectableDataTable
-                    columns={columns}
-                    data={openOrders}
-                    onRowClick={onRowClick}
-                  />
-                </TabsContent>
-                <TabsContent value="terminal" className="mt-4 space-y-4">
-                  {enableBulkArchive ? (
-                    <BulkActionBar
-                      selectedCount={selectedCount}
-                      onArchive={onBulkArchive}
-                      onClear={() => onRowSelectionChange?.({})}
-                      archiving={bulkArchiving}
+                  {tab === "open" ? (
+                    <SelectableDataTable
+                      columns={columns}
+                      data={orders}
+                      onRowClick={onRowClick}
+                      serverPagination={serverPagination}
                     />
                   ) : null}
-                  <SelectableDataTable
-                    columns={columns}
-                    data={terminalOrders}
-                    onRowClick={onRowClick}
-                    enableRowSelection={enableBulkArchive}
-                    rowSelection={rowSelection}
-                    onRowSelectionChange={onRowSelectionChange}
-                    getRowId={(row) => row.id}
-                    isRowSelectable={(row) =>
-                      (row.status === "received" || row.status === "cancelled") &&
-                      !row.archived
-                    }
-                  />
+                </TabsContent>
+                <TabsContent value="terminal" className="mt-4 space-y-4">
+                  {tab === "terminal" ? (
+                    <>
+                      {enableBulkArchive ? (
+                        <BulkActionBar
+                          selectedCount={selectedCount}
+                          onArchive={onBulkArchive}
+                          onClear={() => onRowSelectionChange?.({})}
+                          archiving={bulkArchiving}
+                        />
+                      ) : null}
+                      <SelectableDataTable
+                        columns={columns}
+                        data={orders}
+                        onRowClick={onRowClick}
+                        enableRowSelection={enableBulkArchive}
+                        rowSelection={rowSelection}
+                        onRowSelectionChange={onRowSelectionChange}
+                        getRowId={(row) => row.id}
+                        isRowSelectable={(row) =>
+                          (row.status === "received" ||
+                            row.status === "cancelled") &&
+                          !row.archived
+                        }
+                        serverPagination={serverPagination}
+                      />
+                    </>
+                  ) : null}
                 </TabsContent>
               </Tabs>
             </>

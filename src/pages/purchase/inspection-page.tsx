@@ -23,11 +23,13 @@ import { PageHeader } from "@/components/PageHeader";
 import {
   listPurchaseOrders,
   listGoodsReceipts,
+  listGoodsReceiptsPaged,
   createGoodsReceiptForInspection,
   confirmGoodsReceiptInspection,
   archiveGoodsReceipt,
   getPurchaseOrder,
 } from "@/service/purchaseFlowService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
@@ -89,7 +91,6 @@ export default function InspectionPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { confirm } = useConfirmDialog();
-  const [searchQuery, setSearchQuery] = useState("");
   const [orderSearchQuery, setOrderSearchQuery] = useState("");
   const [showStartForm, setShowStartForm] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
@@ -101,11 +102,57 @@ export default function InspectionPage() {
   const [activeTab, setActiveTab] = useState<InspectionListTab>("ready");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
-  const [receiptsLoading, setReceiptsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+
+  const receiptListFilters = useMemo(
+    () => ({
+      tab:
+        activeTab === "pending"
+          ? "pending"
+          : activeTab === "inspected"
+            ? "inspected"
+            : "all",
+    }),
+    [activeTab],
+  );
+
+  const fetchReceiptPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: string;
+    }) =>
+      listGoodsReceiptsPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        tab: params.tab,
+      }),
+    [],
+  );
+
+  const {
+    rows: pagedReceipts,
+    loading: pagedReceiptsLoading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page: receiptPage,
+    setPage: setReceiptPage,
+    pageSize: receiptPageSize,
+    setPageSize: setReceiptPageSize,
+    totalElements: receiptTotal,
+    pageCount: receiptPageCount,
+    reload: reloadPagedReceipts,
+  } = useServerPagedList<GoodsReceipt, { tab: string }>({
+    fetcher: fetchReceiptPage,
+    filters: receiptListFilters,
+    enabled: activeTab === "pending" || activeTab === "inspected",
+    errorMessage: "Failed to load goods receipts",
+  });
 
   const handleRowClick = useCallback(
     (row: Row<GoodsReceipt>) => {
@@ -133,7 +180,6 @@ export default function InspectionPage() {
   const refreshData = useCallback(async () => {
     setLoadError(null);
     setOrdersLoading(true);
-    setReceiptsLoading(true);
     try {
       const [ordersData, vendorsData] = await Promise.all([
         listPurchaseOrders(),
@@ -145,6 +191,7 @@ export default function InspectionPage() {
 
       const allReceipts = await listGoodsReceipts(enriched);
       setReceipts(allReceipts);
+      reloadPagedReceipts();
     } catch (e: any) {
       console.error("Error loading inspection data:", e);
       const errorMessage =
@@ -156,9 +203,8 @@ export default function InspectionPage() {
       toast.error(errorMessage);
     } finally {
       setOrdersLoading(false);
-      setReceiptsLoading(false);
     }
-  }, []);
+  }, [reloadPagedReceipts]);
 
   useEffect(() => {
     void refreshData();
@@ -181,25 +227,40 @@ export default function InspectionPage() {
     [receipts],
   );
 
-  const filteredPendingReceipts = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    if (!q) return pendingReceipts;
-    return pendingReceipts.filter(
-      (r) =>
-        r.receiptNo.toLowerCase().includes(q) ||
-        (r.order?.orderNo?.toLowerCase().includes(q) ?? false),
-    );
-  }, [pendingReceipts, searchQuery]);
+  const filteredPendingReceipts = useMemo(
+    () =>
+      activeTab === "pending"
+        ? pagedReceipts
+        : pendingReceipts,
+    [activeTab, pagedReceipts, pendingReceipts],
+  );
 
-  const filteredInspectedReceipts = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    if (!q) return inspectedReceipts;
-    return inspectedReceipts.filter(
-      (r) =>
-        r.receiptNo.toLowerCase().includes(q) ||
-        (r.order?.orderNo?.toLowerCase().includes(q) ?? false),
-    );
-  }, [inspectedReceipts, searchQuery]);
+  const filteredInspectedReceipts = useMemo(
+    () =>
+      activeTab === "inspected"
+        ? pagedReceipts.filter((r) => !isGoodsReceiptFullyReceived(r))
+        : inspectedReceipts,
+    [activeTab, pagedReceipts, inspectedReceipts],
+  );
+
+  const receiptServerPagination = useMemo(
+    () => ({
+      total: receiptTotal,
+      pageIndex: receiptPage,
+      pageSize: receiptPageSize,
+      pageCount: Math.max(receiptPageCount, 1),
+      onPageChange: setReceiptPage,
+      onPageSizeChange: setReceiptPageSize,
+    }),
+    [
+      receiptTotal,
+      receiptPage,
+      receiptPageSize,
+      receiptPageCount,
+      setReceiptPage,
+      setReceiptPageSize,
+    ],
+  );
 
   // Only block a second intake while a GR is still awaiting inspection.
   // Inspected (even if not yet stocked) must not block the next partial receive —
@@ -583,7 +644,7 @@ export default function InspectionPage() {
               </div>
             )
           ) : activeTab === "pending" ? (
-            receiptsLoading ? (
+            pagedReceiptsLoading ? (
               <div className="py-10 text-center text-muted-foreground">
                 Loading receipts...
               </div>
@@ -598,9 +659,10 @@ export default function InspectionPage() {
                 columns={pendingColumns}
                 data={filteredPendingReceipts}
                 onRowClick={handleRowClick}
+                serverPagination={receiptServerPagination}
               />
             )
-          ) : receiptsLoading ? (
+          ) : pagedReceiptsLoading ? (
             <div className="py-10 text-center text-muted-foreground">
               Loading receipts...
             </div>
@@ -627,6 +689,7 @@ export default function InspectionPage() {
                 onRowSelectionChange={setRowSelection}
                 getRowId={(row) => row.id}
                 isRowSelectable={(row) => !row.archived}
+                serverPagination={receiptServerPagination}
               />
             </div>
           )}

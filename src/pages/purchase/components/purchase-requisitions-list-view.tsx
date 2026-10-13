@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Search, ListTodo, FileCheck } from "lucide-react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
+import type { ServerPaginationProps } from "@/components/table-pagination";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,8 @@ type Props = {
   statusFilter: string;
   listTab?: RequisitionTab;
   onListTabChange?: (tab: RequisitionTab) => void;
+  activeCount?: number;
+  convertedCount?: number;
   columns: ColumnDef<PurchaseRequisition>[];
   enableBulkArchive?: boolean;
   rowSelection?: RowSelectionState;
@@ -45,6 +48,7 @@ type Props = {
   onRetry: () => void;
   onRowClick: (row: Row<PurchaseRequisition>) => void;
   kpiItems?: KpiSummaryStat[];
+  serverPagination?: ServerPaginationProps;
 };
 
 export function PurchaseRequisitionsListView({
@@ -69,6 +73,9 @@ export function PurchaseRequisitionsListView({
   kpiItems,
   listTab: listTabProp,
   onListTabChange,
+  activeCount,
+  convertedCount,
+  serverPagination,
 }: Props) {
   const [internalTab, setInternalTab] = useState<RequisitionTab>("active");
   const tab = listTabProp ?? internalTab;
@@ -77,26 +84,6 @@ export function PurchaseRequisitionsListView({
     if (onListTabChange) onListTabChange(value);
     else setInternalTab(value);
   };
-
-  const activeReqs = useMemo(
-    () =>
-      requisitions.filter((r) => r.status !== "converted" && !r.archived),
-    [requisitions],
-  );
-  const convertedReqs = useMemo(
-    () =>
-      requisitions.filter((r) => r.status === "converted" && !r.archived),
-    [requisitions],
-  );
-  
-  const activeUnarchivedCount = useMemo(
-    () => requisitions.filter((r) => r.status !== "converted" && !r.archived).length,
-    [requisitions],
-  );
-  const convertedUnarchivedCount = useMemo(
-    () => requisitions.filter((r) => r.status === "converted" && !r.archived).length,
-    [requisitions],
-  );
 
   const handleTabChange = (next: string) => {
     const value = next as RequisitionTab;
@@ -108,6 +95,15 @@ export function PurchaseRequisitionsListView({
       onStatusChange("all");
     }
   };
+
+  const activeBadge =
+    activeCount ??
+    (tab === "active" ? (serverPagination?.total ?? requisitions.length) : undefined);
+  const convertedBadge =
+    convertedCount ??
+    (tab === "converted"
+      ? (serverPagination?.total ?? requisitions.length)
+      : undefined);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -152,11 +148,15 @@ export function PurchaseRequisitionsListView({
                 <TabsList>
                   <TabsTrigger value="active" className="flex items-center gap-2">
                     <ListTodo className="h-4 w-4" />
-                    Active {activeUnarchivedCount}
+                    Active{activeBadge != null ? ` ${activeBadge}` : ""}
                   </TabsTrigger>
-                  <TabsTrigger value="converted" className="flex items-center gap-2">
+                  <TabsTrigger
+                    value="converted"
+                    className="flex items-center gap-2"
+                  >
                     <FileCheck className="h-4 w-4" />
-                    Converted To Purchase Order {convertedUnarchivedCount}
+                    Converted To Purchase Order
+                    {convertedBadge != null ? ` ${convertedBadge}` : ""}
                   </TabsTrigger>
                 </TabsList>
                 <div className="flex flex-wrap gap-2">
@@ -187,33 +187,41 @@ export function PurchaseRequisitionsListView({
               </div>
 
               <TabsContent value="active" className="mt-4">
-                <SelectableDataTable
-                  columns={columns}
-                  data={activeReqs}
-                  onRowClick={onRowClick}
-                />
-              </TabsContent>
-              <TabsContent value="converted" className="mt-4 space-y-4">
-                {enableBulkArchive ? (
-                  <BulkActionBar
-                    selectedCount={selectedCount}
-                    onArchive={onBulkArchive}
-                    onClear={() => onRowSelectionChange?.({})}
-                    archiving={bulkArchiving}
+                {tab === "active" ? (
+                  <SelectableDataTable
+                    columns={columns}
+                    data={requisitions}
+                    onRowClick={onRowClick}
+                    serverPagination={serverPagination}
                   />
                 ) : null}
-                <SelectableDataTable
-                  columns={columns}
-                  data={convertedReqs}
-                  onRowClick={onRowClick}
-                  enableRowSelection={enableBulkArchive}
-                  rowSelection={rowSelection}
-                  onRowSelectionChange={onRowSelectionChange}
-                  getRowId={(row) => row.id}
-                  isRowSelectable={(row) =>
-                    row.status === "converted" && !row.archived
-                  }
-                />
+              </TabsContent>
+              <TabsContent value="converted" className="mt-4 space-y-4">
+                {tab === "converted" ? (
+                  <>
+                    {enableBulkArchive ? (
+                      <BulkActionBar
+                        selectedCount={selectedCount}
+                        onArchive={onBulkArchive}
+                        onClear={() => onRowSelectionChange?.({})}
+                        archiving={bulkArchiving}
+                      />
+                    ) : null}
+                    <SelectableDataTable
+                      columns={columns}
+                      data={requisitions}
+                      onRowClick={onRowClick}
+                      enableRowSelection={enableBulkArchive}
+                      rowSelection={rowSelection}
+                      onRowSelectionChange={onRowSelectionChange}
+                      getRowId={(row) => row.id}
+                      isRowSelectable={(row) =>
+                        row.status === "converted" && !row.archived
+                      }
+                      serverPagination={serverPagination}
+                    />
+                  </>
+                ) : null}
               </TabsContent>
             </Tabs>
           )}

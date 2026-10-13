@@ -25,43 +25,100 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  formatCustomerCode,
-  isCustomerActive,
-  normalizeCustomerFromApi,
-} from "@/lib/customer-api";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import { listCustomersPaged } from "@/service/customerService";
 
 export default function CustomersPage() {
   const { confirm } = useConfirmDialog();
   const navigate = useNavigate();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
   const [phoneFilter, setPhoneFilter] = useState("");
   const [codeFilter, setCodeFilter] = useState("");
+  const [kpiCounts, setKpiCounts] = useState({
+    total: 0,
+    active: 0,
+    withEmail: 0,
+    inactive: 0,
+  });
 
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      const res = await apiClient.get("/customers");
-      setCustomers(
-        (res.data as Record<string, unknown>[]).map(normalizeCustomerFromApi),
-      );
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      toast.error("Failed to load customers");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filters = useMemo(
+    () => ({
+      status: statusFilter,
+      phone: phoneFilter.trim(),
+      code: codeFilter.trim(),
+    }),
+    [statusFilter, phoneFilter, codeFilter],
+  );
+
+  const fetchCustomers = useCallback(
+    (params: {
+      page: number;
+      size: number;
+      search: string;
+      status: string;
+      phone: string;
+      code: string;
+    }) =>
+      listCustomersPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        status: params.status,
+        phone: params.phone,
+        code: params.code,
+      }),
+    [],
+  );
+
+  const {
+    rows: customers,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    Customer,
+    { status: string; phone: string; code: string }
+  >({
+    fetcher: fetchCustomers,
+    filters,
+    errorMessage: "Failed to load customers",
+  });
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [all, active, inactive, withEmail] = await Promise.all([
+          listCustomersPaged({ page: 0, size: 1, status: "all" }),
+          listCustomersPaged({ page: 0, size: 1, status: "active" }),
+          listCustomersPaged({ page: 0, size: 1, status: "inactive" }),
+          listCustomersPaged({ page: 0, size: 1, status: "with_email" }),
+        ]);
+        if (cancelled) return;
+        setKpiCounts({
+          total: all.totalElements,
+          active: active.totalElements,
+          inactive: inactive.totalElements,
+          withEmail: withEmail.totalElements,
+        });
+      } catch {
+        /* best-effort */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
 
   const handleEdit = (customer: Customer) => {
     setSelected(customer);
@@ -80,7 +137,7 @@ export default function CustomersPage() {
     try {
       await apiClient.delete(`/customers/${customer.id}`);
       toast.success(`Customer "${displayName}" deactivated`);
-      await fetchCustomers();
+      reload();
     } catch (error) {
       console.error("Deactivate failed:", error);
       toast.error("Failed to deactivate customer");
@@ -93,7 +150,7 @@ export default function CustomersPage() {
   };
 
   const handleDialogSuccess = (_updated: Customer, mode: "add" | "edit") => {
-    void fetchCustomers();
+    reload();
     setSelected(null);
     if (mode === "add") setOpen(false);
   };
@@ -102,39 +159,6 @@ export default function CustomersPage() {
     onEdit: handleEdit,
     onDeactivate: handleDeactivate,
   });
-
-  const filteredCustomers = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    const phoneQ = phoneFilter.trim().toLowerCase();
-    const codeQ = codeFilter.trim().toLowerCase();
-
-    return customers.filter((customer) => {
-      const name = customer.customerName || customer.name || "";
-      const matchesSearch =
-        !query ||
-        name.toLowerCase().includes(query) ||
-        (customer.email?.toLowerCase() ?? "").includes(query) ||
-        (customer.city?.toLowerCase() ?? "").includes(query);
-
-      const matchesPhone =
-        !phoneQ || (customer.phoneNo?.toLowerCase() ?? "").includes(phoneQ);
-
-      const code = formatCustomerCode(customer.id).toLowerCase();
-      const rawId = String(customer.id ?? "").toLowerCase();
-      const matchesCode =
-        !codeQ || code.includes(codeQ) || rawId.includes(codeQ);
-
-      const active = isCustomerActive(customer);
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && active) ||
-        (statusFilter === "inactive" && !active) ||
-        (statusFilter === "with_email" &&
-          Boolean((customer.email || "").trim()));
-
-      return matchesSearch && matchesPhone && matchesCode && matchesStatus;
-    });
-  }, [customers, searchQuery, phoneFilter, codeFilter, statusFilter]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -155,15 +179,11 @@ export default function CustomersPage() {
   }, []);
 
   const customerKpis = useMemo((): KpiSummaryStat[] => {
-    const total = customers.length;
-    const active = customers.filter(isCustomerActive).length;
-    const withEmail = customers.filter((c) => (c.email || "").trim()).length;
-    const inactive = Math.max(0, total - active);
     return [
       kpiFilterItem(
         {
           label: "Total customers",
-          value: total,
+          value: kpiCounts.total,
           hint: "Sales buyer accounts",
           accent: "sky",
           icon: Users,
@@ -175,7 +195,7 @@ export default function CustomersPage() {
       kpiFilterItem(
         {
           label: "Active",
-          value: active,
+          value: kpiCounts.active,
           hint: "Enabled for ordering",
           accent: "emerald",
           icon: UserCheck,
@@ -187,7 +207,7 @@ export default function CustomersPage() {
       kpiFilterItem(
         {
           label: "With email",
-          value: withEmail,
+          value: kpiCounts.withEmail,
           hint: "Reachable for invoicing",
           accent: "violet",
           icon: Mail,
@@ -199,7 +219,7 @@ export default function CustomersPage() {
       kpiFilterItem(
         {
           label: "Inactive",
-          value: inactive,
+          value: kpiCounts.inactive,
           hint: "Deactivated accounts",
           accent: "amber",
           icon: UserX,
@@ -209,15 +229,7 @@ export default function CustomersPage() {
         applyKpiFilter,
       ),
     ];
-  }, [customers, kpiFilter, applyKpiFilter]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading customers...</p>
-      </div>
-    );
-  }
+  }, [kpiCounts, kpiFilter, applyKpiFilter]);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -286,15 +298,27 @@ export default function CustomersPage() {
         </CardHeader>
 
         <CardContent>
-          {filteredCustomers.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Loading customers...
+            </div>
+          ) : customers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No customers found
             </div>
           ) : (
             <DataTable
               columns={columns}
-              data={filteredCustomers}
+              data={customers}
               onRowClick={handleRowClick}
+              serverPagination={{
+                total: totalElements,
+                pageIndex: page,
+                pageSize,
+                pageCount: Math.max(pageCount, 1),
+                onPageChange: setPage,
+                onPageSizeChange: setPageSize,
+              }}
             />
           )}
         </CardContent>

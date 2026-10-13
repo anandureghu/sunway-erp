@@ -23,6 +23,8 @@ import {
   bulkArchiveHistoryRecords,
   summarizeBulkActionResult,
 } from "@/service/historyService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import type { PageResult } from "@/types/page";
 
 type PaymentListTab = "outstanding" | "archived";
 
@@ -35,12 +37,9 @@ export default function PaymentsPage({
 }) {
   const { confirm } = useConfirmDialog();
   const navigate = useNavigate();
-  const [payments, setPayments] = useState<PaymentResponseDTO[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<PaymentResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
   const [listTab, setListTab] = useState<PaymentListTab>("outstanding");
-  const [searchQuery, setSearchQuery] = useState("");
   const [archivingPaymentId, setArchivingPaymentId] = useState<number | null>(
     null,
   );
@@ -51,46 +50,96 @@ export default function PaymentsPage({
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [otherPaymentOpen, setOtherPaymentOpen] = useState(false);
+  const [outstandingCount, setOutstandingCount] = useState(0);
+  const [completedTabCount, setCompletedTabCount] = useState(0);
 
   const directionParam =
     variant === "vendor" ? "VENDOR" : variant === "other" ? "OTHER" : "CUSTOMER";
 
-  const fetchPayments = useCallback(async () => {
+  const apiListTab = listTab === "archived" ? "completed" : "outstanding";
+
+  const fetcher = useCallback(
+    async ({
+      page,
+      size,
+      search,
+      direction,
+      listTab: tab,
+    }: {
+      page: number;
+      size: number;
+      search: string;
+      direction: string;
+      listTab: string;
+    }): Promise<PageResult<PaymentResponseDTO>> => {
+      const res = await apiClient.get<PageResult<PaymentResponseDTO>>(
+        `/finance/payments/company/${companyId}`,
+        {
+          params: {
+            direction,
+            listTab: tab,
+            search: search || undefined,
+            page,
+            size,
+          },
+        },
+      );
+      return res.data;
+    },
+    [companyId],
+  );
+
+  const {
+    rows: payments,
+    loading,
+    searchInput,
+    setSearchInput,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    PaymentResponseDTO,
+    { direction: string; listTab: string }
+  >({
+    fetcher,
+    filters: { direction: directionParam, listTab: apiListTab },
+    enabled: !!companyId,
+    errorMessage: "Failed to load payments",
+  });
+
+  const loadTabCounts = useCallback(async () => {
     if (!companyId) {
-      setPayments([]);
-      setLoading(false);
+      setOutstandingCount(0);
+      setCompletedTabCount(0);
       return;
     }
     try {
-      setLoading(true);
-      const res = await apiClient.get<PaymentResponseDTO[]>(
-        `/finance/payments/company/${companyId}`,
+      const res = await apiClient.get<{ outstanding: number; completed: number }>(
+        `/finance/payments/company/${companyId}/tab-counts`,
         { params: { direction: directionParam } },
       );
-      setPayments(res.data);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load payments");
-    } finally {
-      setLoading(false);
+      setOutstandingCount(res.data.outstanding ?? 0);
+      setCompletedTabCount(res.data.completed ?? 0);
+    } catch {
+      /* badges are best-effort */
     }
   }, [companyId, directionParam]);
 
   useEffect(() => {
-    void fetchPayments();
-  }, [fetchPayments]);
+    void loadTabCounts();
+  }, [loadTabCounts, payments]);
 
   const handleDialogSuccess = (
-    updated: PaymentResponseDTO,
-    mode: "add" | "edit",
+    _updated: PaymentResponseDTO,
+    _mode: "add" | "edit",
   ) => {
-    if (mode === "add") setPayments((prev) => [...prev, updated]);
-    else
-      setPayments((prev) =>
-        prev.map((p) => (p.id === updated.id ? updated : p)),
-      );
-
     setSelected(null);
+    reload();
+    void loadTabCounts();
   };
 
   const submitConfirmPayment = useCallback(
@@ -112,14 +161,12 @@ export default function PaymentsPage({
         if (payload.applyCreditAmount) {
           body.applyCreditAmount = payload.applyCreditAmount;
         }
-        const res = await apiClient.post<PaymentResponseDTO>(
+        await apiClient.post<PaymentResponseDTO>(
           `/finance/payments/${payment.id}/confirm`,
           body,
         );
-        setPayments((prev) =>
-          prev.map((p) => (p.id === payment.id ? res.data : p)),
-        );
-        void fetchPayments();
+        reload();
+        void loadTabCounts();
         toast.success(
           variant === "vendor"
             ? "Vendor payment confirmed"
@@ -138,7 +185,7 @@ export default function PaymentsPage({
         throw err;
       }
     },
-    [variant, fetchPayments],
+    [variant, reload, loadTabCounts],
   );
 
   const handleConfirmPayment = useCallback(
@@ -204,29 +251,28 @@ export default function PaymentsPage({
     [navigate],
   );
 
-  const handleViewReceipt = useCallback(async (payment: PaymentResponseDTO) => {
-    try {
-      const res = await apiClient.get<string>(
-        `/finance/payments/${payment.id}/pdf`,
-      );
-      if (res.data && !res.data.includes("dummy.url")) {
-        setPayments((prev) =>
-          prev.map((p) =>
-            p.id === payment.id ? { ...p, pdfUrl: res.data } : p,
-          ),
+  const handleViewReceipt = useCallback(
+    async (payment: PaymentResponseDTO) => {
+      try {
+        const res = await apiClient.get<string>(
+          `/finance/payments/${payment.id}/pdf`,
         );
-        window.open(res.data, "_blank", "noopener,noreferrer");
-      } else {
-        toast.error("Receipt PDF is not available yet.");
+        if (res.data && !res.data.includes("dummy.url")) {
+          reload();
+          window.open(res.data, "_blank", "noopener,noreferrer");
+        } else {
+          toast.error("Receipt PDF is not available yet.");
+        }
+      } catch (err: unknown) {
+        const ax = err as { response?: { data?: { message?: string } } };
+        toast.error(
+          ax?.response?.data?.message ||
+            (err instanceof Error ? err.message : "Could not open receipt PDF."),
+        );
       }
-    } catch (err: unknown) {
-      const ax = err as { response?: { data?: { message?: string } } };
-      toast.error(
-        ax?.response?.data?.message ||
-          (err instanceof Error ? err.message : "Could not open receipt PDF."),
-      );
-    }
-  }, []);
+    },
+    [reload],
+  );
 
   const handleArchivePayment = useCallback(
     async (payment: PaymentResponseDTO) => {
@@ -239,13 +285,12 @@ export default function PaymentsPage({
       if (!(await confirm(`Archive payment ${label}?`))) return;
       setArchivingPaymentId(payment.id);
       try {
-        const res = await apiClient.post<PaymentResponseDTO>(
+        await apiClient.post<PaymentResponseDTO>(
           `/finance/payments/${payment.id}/archive`,
         );
-        setPayments((prev) =>
-          prev.map((p) => (p.id === payment.id ? res.data : p)),
-        );
         toast.success("Payment archived");
+        reload();
+        void loadTabCounts();
       } catch (err: unknown) {
         const ax = err as { response?: { data?: { message?: string } } };
         toast.error(
@@ -256,7 +301,7 @@ export default function PaymentsPage({
         setArchivingPaymentId(null);
       }
     },
-    [variant],
+    [variant, confirm, reload, loadTabCounts],
   );
 
   const selectedPaymentIds = useMemo(
@@ -287,17 +332,20 @@ export default function PaymentsPage({
       );
       toast.success(summarizeBulkActionResult(result));
       setRowSelection({});
-      await fetchPayments();
+      reload();
+      void loadTabCounts();
     } catch (err: unknown) {
       const ax = err as { response?: { data?: { message?: string } } };
       toast.error(
         ax?.response?.data?.message ||
-          (err instanceof Error ? err.message : "Failed to archive selected payments."),
+          (err instanceof Error
+            ? err.message
+            : "Failed to archive selected payments."),
       );
     } finally {
       setBulkArchiving(false);
     }
-  }, [confirm, fetchPayments, selectedPaymentIds, variant]);
+  }, [confirm, reload, loadTabCounts, selectedPaymentIds, variant]);
 
   const columns = useMemo(
     () =>
@@ -319,69 +367,15 @@ export default function PaymentsPage({
       listTab,
       handleConfirmPayment,
       handleOpenInvoice,
+      handleOpenPurchaseOrder,
       handleViewReceipt,
       handleArchivePayment,
       archivingPaymentId,
     ],
   );
 
-  const outstandingCount = useMemo(
-    () =>
-      payments.filter(
-        (p) => !p.archived && !isPaymentArchivedTab(p, variant),
-      ).length,
-    [payments, variant],
-  );
-
-  /** Completed tab badge: settled payments that are not UI-archived. */
-  const completedTabCount = useMemo(
-    () =>
-      payments.filter((p) => isPaymentArchivedTab(p, variant) && !p.archived)
-        .length,
-    [payments, variant],
-  );
-
-  const filteredPayments = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return payments.filter((p) => {
-      const settled = isPaymentArchivedTab(p, variant);
-      let matchesTab: boolean;
-      if (listTab === "archived") {
-        if (!settled || p.archived) return false;
-        matchesTab = true;
-      } else {
-        if (p.archived) return false;
-        matchesTab = !settled;
-      }
-
-      const matchesSearch =
-        !q ||
-        (p.paymentCode?.toLowerCase().includes(q) ?? false) ||
-        (p.invoiceId?.toLowerCase().includes(q) ?? false) ||
-        (p.salesOrderNumber?.toLowerCase().includes(q) ?? false) ||
-        (p.customerName?.toLowerCase().includes(q) ?? false) ||
-        String(p.purchaseOrderId ?? "").includes(q) ||
-        (p.purchaseOrderNumber?.toLowerCase().includes(q) ?? false) ||
-        String(p.supplierId ?? "").includes(q) ||
-        (p.supplierName?.toLowerCase().includes(q) ?? false) ||
-        (p.paymentMethod?.toLowerCase().includes(q) ?? false) ||
-        (p.expenseCategory?.toLowerCase().includes(q) ?? false) ||
-        (p.payee?.toLowerCase().includes(q) ?? false) ||
-        String(p.amount ?? "")
-          .toLowerCase()
-          .includes(q);
-
-      return matchesTab && matchesSearch;
-    });
-  }, [payments, variant, listTab, searchQuery]);
-
   return (
     <div className="p-0 space-y-4">
-      {/* <div>
-        <h1 className="text-2xl font-semibold">{title}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
-      </div> */}
-
       <Tabs
         value={listTab}
         onValueChange={(v) => {
@@ -417,12 +411,15 @@ export default function PaymentsPage({
                       : "Search code, invoice, SO, customer, method…"
                 }
                 className="pl-9"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
             {variant === "other" && (
-              <Button onClick={() => setOtherPaymentOpen(true)} className="gap-2">
+              <Button
+                onClick={() => setOtherPaymentOpen(true)}
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 Add expense payment
               </Button>
@@ -435,7 +432,7 @@ export default function PaymentsPage({
         <div className="flex h-48 items-center justify-center text-muted-foreground">
           Loading payments…
         </div>
-      ) : filteredPayments.length === 0 ? (
+      ) : payments.length === 0 ? (
         <div className="py-12 text-center text-sm text-muted-foreground">
           {listTab === "outstanding"
             ? "No pending payments match your search."
@@ -452,7 +449,7 @@ export default function PaymentsPage({
             />
           ) : null}
           <SelectableDataTable
-            data={filteredPayments}
+            data={payments}
             columns={columns}
             enableRowSelection={listTab === "archived" && variant !== "other"}
             rowSelection={rowSelection}
@@ -461,6 +458,14 @@ export default function PaymentsPage({
             isRowSelectable={(row) =>
               isPaymentArchivedTab(row, variant) && !row.archived
             }
+            serverPagination={{
+              total: totalElements,
+              pageIndex: page,
+              pageSize,
+              pageCount,
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
+            }}
           />
         </div>
       )}
@@ -470,7 +475,10 @@ export default function PaymentsPage({
           open={otherPaymentOpen}
           onOpenChange={setOtherPaymentOpen}
           companyId={companyId}
-          onSuccess={(created) => setPayments((prev) => [created, ...prev])}
+          onSuccess={() => {
+            reload();
+            void loadTabCounts();
+          }}
         />
       ) : (
         <PaymentDialog

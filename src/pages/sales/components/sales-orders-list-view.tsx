@@ -25,6 +25,7 @@ import {
   OrderDateRangeFilter,
   type OrderDateRange,
 } from "@/components/order-date-range-filter";
+import type { ServerPaginationProps } from "@/components/table-pagination";
 
 type ListTab = "active" | "closed";
 
@@ -55,6 +56,7 @@ type Props = {
   onDateRangeChange: (next: OrderDateRange) => void;
   onRowClick: (id: string) => void;
   kpiItems?: KpiSummaryStat[];
+  serverPagination?: ServerPaginationProps;
 };
 
 export function SalesOrdersListView({
@@ -84,6 +86,7 @@ export function SalesOrdersListView({
   onDateRangeChange,
   onRowClick,
   kpiItems,
+  serverPagination,
 }: Props) {
   const emptyMessage =
     listTab === "active"
@@ -237,6 +240,7 @@ export function SalesOrdersListView({
                 (row.status === "completed" || row.status === "cancelled") &&
                 !row.archived
               }
+              serverPagination={serverPagination}
             />
           )}
         </CardContent>

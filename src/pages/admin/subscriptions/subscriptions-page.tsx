@@ -44,6 +44,7 @@ import {
   RefreshCw,
   MoreHorizontal,
   Mail,
+  Search,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DEFAULT_SEARCH_DEBOUNCE_MS } from "@/types/page";
 
 const PAGE_SIZE = 20;
 
@@ -78,6 +80,8 @@ export default function SubscriptionsPage() {
     SubscriptionPaymentStatus | ""
   >("");
   const [expiringWithin, setExpiringWithin] = useState<string>("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [analytics, setAnalytics] = useState<SubscriptionAnalytics | null>(null);
@@ -87,6 +91,14 @@ export default function SubscriptionsPage() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [selected, setSelected] = useState<CompanySubscription | null>(null);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, DEFAULT_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
   const loadList = useCallback(async () => {
     setLoading(true);
     try {
@@ -95,6 +107,7 @@ export default function SubscriptionsPage() {
         planType,
         paymentStatus,
         expiringWithinDays: expiringWithin ? Number(expiringWithin) : undefined,
+        search: search || undefined,
         page,
         size: PAGE_SIZE,
       });
@@ -105,7 +118,7 @@ export default function SubscriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, planType, paymentStatus, expiringWithin, page]);
+  }, [status, planType, paymentStatus, expiringWithin, search, page]);
 
   const loadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -222,6 +235,20 @@ export default function SubscriptionsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap items-end gap-3 pt-4">
+              <div className="space-y-1.5 min-w-[200px] flex-1">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Search
+                </p>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="h-9 rounded-xl pl-9"
+                    placeholder="Company, code, plan, status…"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   Status

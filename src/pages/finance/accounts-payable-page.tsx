@@ -10,7 +10,9 @@ import {
   getInvoicePdfUrl,
   invoiceDocumentPreviewUrl,
   listPurchaseInvoices,
+  listPurchaseInvoicesPaged,
 } from "@/service/invoiceService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import type { FinanceInvoice } from "@/types/finance-invoice";
 import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -37,7 +39,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
   isInvoiceReceiptView,
 } from "@/lib/invoice-status-filter";
@@ -65,9 +66,6 @@ function PayableInvoicesTab() {
   const { confirm } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
-  const [rows, setRows] = useState<FinanceInvoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [listTab, setListTab] = useState<InvoiceListTab>("outstanding");
   const [processingInvoiceId, setProcessingInvoiceId] = useState<number | null>(
@@ -77,60 +75,90 @@ function PayableInvoicesTab() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+  const [kpiRows, setKpiRows] = useState<FinanceInvoice[]>([]);
+  const [outstandingCount, setOutstandingCount] = useState(0);
+  const [completedTabCount, setCompletedTabCount] = useState(0);
+
+  const filters = useMemo(
+    () => ({ tab: listTab, status: statusFilter }),
+    [listTab, statusFilter],
+  );
+
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: InvoiceListTab;
+      status: string;
+    }) =>
+      listPurchaseInvoicesPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        tab: params.tab,
+        status: params.status,
+      }),
+    [],
+  );
+
+  const {
+    rows,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    FinanceInvoice,
+    { tab: InvoiceListTab; status: string }
+  >({
+    fetcher: fetchPage,
+    filters,
+    errorMessage: "Could not load purchase invoices",
+  });
 
   const load = useCallback(() => {
-    setLoading(true);
+    reload();
     listPurchaseInvoices()
-      .then(setRows)
-      .catch(() => {
-        toast.error("Could not load purchase invoices");
+      .then((all) => {
+        setKpiRows(all);
+        setOutstandingCount(
+          all.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
+        );
+        setCompletedTabCount(
+          all.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
+            .length,
+        );
       })
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        /* KPI best-effort */
+      });
+  }, [reload]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    listPurchaseInvoices()
+      .then((all) => {
+        setKpiRows(all);
+        setOutstandingCount(
+          all.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
+        );
+        setCompletedTabCount(
+          all.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
+            .length,
+        );
+      })
+      .catch(() => {
+        /* KPI best-effort */
+      });
+  }, []);
 
-  const outstandingCount = useMemo(
-    () => rows.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
-    [rows],
-  );
-  const completedTabCount = useMemo(
-    () =>
-      rows.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
-        .length,
-    [rows],
-  );
-
-  const filtered = useMemo(() => {
-    return rows.filter((invoice) => {
-      const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab =
-        listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
-      if (!matchesTab) return false;
-      if (listTab === "archived" && invoice.archived) return false;
-
-      const q = searchQuery.toLowerCase();
-      const supplierId =
-        invoice.supplierId ?? invoice.purchaseOrder?.supplierId;
-      const supplierName =
-        invoice.supplierName ??
-        invoice.purchaseOrder?.supplierName ??
-        invoice.toParty;
-      const matchesSearch =
-        (invoice.invoiceId?.toLowerCase().includes(q) ?? false) ||
-        (supplierName?.toLowerCase().includes(q) ?? false) ||
-        String(supplierId ?? "").includes(q) ||
-        (invoice.orderNumber?.toLowerCase().includes(q) ?? false) ||
-        (invoice.purchaseOrder?.orderNumber?.toLowerCase().includes(q) ?? false);
-      const matchesStatus = invoiceMatchesStatusFilter(
-        invoice.status,
-        statusFilter,
-      );
-      return matchesSearch && matchesStatus;
-    });
-  }, [rows, listTab, searchQuery, statusFilter]);
+  const filtered = rows;
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -204,9 +232,9 @@ function PayableInvoicesTab() {
       if (!(await confirm(`Archive invoice ${invoice.invoiceId}?`))) return;
       setProcessingInvoiceId(id);
       try {
-        const updated = await archiveInvoice(id);
-        setRows((prev) => prev.map((inv) => (inv.id === id ? updated : inv)));
+        await archiveInvoice(id);
         toast.success("Invoice archived successfully");
+        load();
       } catch (error: unknown) {
         const err = error as {
           response?: { data?: { message?: string; error?: string } };
@@ -221,7 +249,7 @@ function PayableInvoicesTab() {
         setProcessingInvoiceId(null);
       }
     },
-    [rows],
+    [rows, confirm, load],
   );
 
   const handleViewInvoice = useCallback(
@@ -320,7 +348,7 @@ function PayableInvoicesTab() {
 
   const invoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase();
-    const visible = excludeArchived(rows);
+    const visible = excludeArchived(kpiRows);
     const unpaid = visible.filter(
       (inv) => norm(inv.status) === "UNPAID",
     ).length;
@@ -378,7 +406,7 @@ function PayableInvoicesTab() {
         applyKpiFilter,
       ),
     ];
-  }, [rows, kpiFilter, applyKpiFilter]);
+  }, [kpiRows, kpiFilter, applyKpiFilter]);
 
   return (
     <div className="space-y-4">
@@ -478,6 +506,14 @@ function PayableInvoicesTab() {
               return (
                 (status === "PAID" || status === "CANCELLED") && !row.archived
               );
+            }}
+            serverPagination={{
+              total: totalElements,
+              pageIndex: page,
+              pageSize,
+              pageCount: Math.max(pageCount, 1),
+              onPageChange: setPage,
+              onPageSizeChange: setPageSize,
             }}
           />
         </div>

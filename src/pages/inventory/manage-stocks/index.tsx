@@ -39,6 +39,12 @@ export default function ManageStocks() {
     setCatalogView,
     filteredStock,
     stats,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
   } = useManageStocks();
 
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
@@ -149,6 +155,12 @@ export default function ManageStocks() {
                     loading={loading}
                     loadError={loadError}
                     filteredStock={filteredStock}
+                    page={page}
+                    pageSize={pageSize}
+                    pageCount={pageCount}
+                    totalElements={totalElements}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
                     onRowNavigate={(row) =>
                       navigate(`/inventory/stocks/${row.id}`)
                     }

@@ -23,6 +23,8 @@ import type {
   WarehouseUpdateDTO,
   Id,
 } from "@/service/erpApiTypes";
+import type { PageResult } from "@/types/page";
+import { DEFAULT_PAGE_SIZE } from "@/types/page";
 
 function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
@@ -392,15 +394,42 @@ export async function applyItemBulkDiscount(payload: {
   return res.data;
 }
 
+export type ListStockCatalogParams = {
+  page?: number;
+  size?: number;
+  search?: string;
+  archived?: boolean;
+  status?: string;
+  stockFilter?: string;
+};
+
 /** One row per item×warehouse — quantities match sales availability checks. */
 export async function listStockCatalog(
-  archived = false,
-): Promise<ItemResponseDTO[]> {
-  const res = await apiClient.get<ItemResponseDTO[]>(
+  params: ListStockCatalogParams = {},
+): Promise<PageResult<ItemResponseDTO>> {
+  const {
+    page = 0,
+    size = DEFAULT_PAGE_SIZE,
+    search = "",
+    archived = false,
+    status,
+    stockFilter,
+  } = params;
+  const res = await apiClient.get<PageResult<ItemResponseDTO>>(
     "/inventory/items/stock-catalog",
-    { params: { archived } },
+    {
+      params: {
+        page,
+        size,
+        archived,
+        search: search.trim() || undefined,
+        status: status && status !== "all" ? status : undefined,
+        stockFilter:
+          stockFilter && stockFilter !== "all" ? stockFilter : undefined,
+      },
+    },
   );
-  return res.data || [];
+  return res.data;
 }
 
 export async function bulkArchiveItems(

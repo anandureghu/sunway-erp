@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Row, RowSelectionState } from "@tanstack/react-table";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { DestructiveDeleteDialog } from "@/components/destructive-delete-dialog";
@@ -43,6 +43,12 @@ type StockListTabProps = {
   loading: boolean;
   loadError: string | null;
   filteredStock: ItemResponseDTO[];
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  totalElements: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
   onRowNavigate: (item: ItemResponseDTO) => void;
   onImported?: () => void;
   onRefresh?: () => void | Promise<void>;
@@ -203,6 +209,12 @@ export function StockListTab({
   loading,
   loadError,
   filteredStock,
+  page,
+  pageSize,
+  pageCount,
+  totalElements,
+  onPageChange,
+  onPageSizeChange,
   onRowNavigate,
   onImported,
   onRefresh,
@@ -239,6 +251,11 @@ export function StockListTab({
   );
 
   const clearSelection = useCallback(() => setRowSelection({}), []);
+
+  // Selection is page-scoped; clear when the server page, search, or catalog view changes.
+  useEffect(() => {
+    clearSelection();
+  }, [page, pageSize, catalogView, searchQuery, clearSelection]);
 
   const handleCatalogViewChange = (value: string) => {
     onCatalogViewChange(value as "active" | "archived");
@@ -358,7 +375,7 @@ export function StockListTab({
         <div className="flex-1 relative min-w-[200px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search by SKU, name, barcode, category, sale by date, or date received..."
+            placeholder="Search by SKU, name, barcode, category, or warehouse..."
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             className="pl-10"
@@ -465,6 +482,14 @@ export function StockListTab({
           onRowSelectionChange={setRowSelection}
           getRowId={(row) => `${row.id}-${row.warehouse_id}`}
           isRowSelectable={() => true}
+          serverPagination={{
+            total: totalElements,
+            pageIndex: page,
+            pageSize,
+            pageCount: Math.max(pageCount, 1),
+            onPageChange,
+            onPageSizeChange,
+          }}
           onRowClick={(row: Row<ItemResponseDTO>) => {
             if ((row.original.id ?? 0) <= 0) {
               toast.error("This product cannot be opened — item ID is missing.");

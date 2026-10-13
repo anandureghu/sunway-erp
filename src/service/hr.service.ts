@@ -1,4 +1,5 @@
   import type { Employee } from "@/types/hr";
+  import type { PageResult } from "@/types/page";
   import { apiClient } from "./apiClient";
   import { jobCodeService, type JobCode } from "./jobCodeService";
 
@@ -15,11 +16,46 @@
     matchedBy: "IDENTIFICATION" | "FULL_NAME";
   }
 
+  export type ListEmployeesPageParams = {
+    page?: number;
+    size?: number;
+    search?: string;
+    /** Backend enum name, e.g. ACTIVE / UNDER_PROBATION */
+    status?: string | null;
+    /** Backend enum name, e.g. PERMANENT / CONTRACT */
+    employmentCategory?: string | null;
+  };
+
   /* =====================================================
     LIST EMPLOYEES (current company)
   ===================================================== */
   async function listEmployees(): Promise<Employee[]> {
     const res = await apiClient.get<Employee[]>("/employees");
+    return res.data;
+  }
+
+  /* =====================================================
+    LIST EMPLOYEES PAGINATED (current company)
+  ===================================================== */
+  async function listEmployeesPage(
+    params: ListEmployeesPageParams = {},
+  ): Promise<PageResult<Employee>> {
+    const query: Record<string, string | number> = {
+      page: params.page ?? 0,
+      size: params.size ?? 20,
+    };
+    if (params.search?.trim()) {
+      query.search = params.search.trim();
+    }
+    if (params.status?.trim()) {
+      query.status = params.status.trim();
+    }
+    if (params.employmentCategory?.trim()) {
+      query.employmentCategory = params.employmentCategory.trim();
+    }
+    const res = await apiClient.get<PageResult<Employee>>("/employees/page", {
+      params: query,
+    });
     return res.data;
   }
 
@@ -242,6 +278,7 @@
   ===================================================== */
   export const hrService = {
     listEmployees,
+    listEmployeesPage,
     getEmployee,
     getEmployeeAddresses,
     createEmployee,

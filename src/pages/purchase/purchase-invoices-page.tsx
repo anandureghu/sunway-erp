@@ -31,7 +31,9 @@ import {
   getInvoicePdfUrl,
   invoiceDocumentPreviewUrl,
   listPurchaseInvoices,
+  listPurchaseInvoicesPaged,
 } from "@/service/invoiceService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import { RegisterSupplierInvoiceDialog } from "@/pages/purchase/components/register-supplier-invoice-dialog";
 import { MatchVendorInvoiceDialog } from "@/pages/purchase/components/match-vendor-invoice-dialog";
 import { PageHeader } from "@/components/PageHeader";
@@ -46,7 +48,6 @@ import {
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
 import {
-  invoiceMatchesStatusFilter,
   isInvoiceArchivedStatus,
   isInvoiceReceiptView,
 } from "@/lib/invoice-status-filter";
@@ -64,11 +65,6 @@ export default function PurchaseInvoicesPage() {
   const { confirm } = useConfirmDialog();
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState(
-    (location.state as { searchQuery?: string })?.searchQuery || "",
-  );
-  const [rows, setRows] = useState<FinanceInvoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [registerOpen, setRegisterOpen] = useState(false);
   const [matchingInvoice, setMatchingInvoice] = useState<FinanceInvoice | null>(
     null,
@@ -81,58 +77,105 @@ export default function PurchaseInvoicesPage() {
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+  const [kpiRows, setKpiRows] = useState<FinanceInvoice[]>([]);
+  const [outstandingCount, setOutstandingCount] = useState(0);
+  const [completedTabCount, setCompletedTabCount] = useState(0);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    listPurchaseInvoices()
-      .then(setRows)
-      .catch((e: unknown) => {
-        console.error(e);
-        toast.error("Could not load purchase invoices");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const filters = useMemo(
+    () => ({
+      tab: listTab,
+      status: statusFilter === "attention" ? "all" : statusFilter,
+    }),
+    [listTab, statusFilter],
+  );
+
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: InvoiceListTab;
+      status: string;
+    }) =>
+      listPurchaseInvoicesPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        tab: params.tab,
+        status: params.status,
+      }),
+    [],
+  );
+
+  const {
+    rows,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    FinanceInvoice,
+    { tab: InvoiceListTab; status: string }
+  >({
+    fetcher: fetchPage,
+    filters,
+    errorMessage: "Could not load purchase invoices",
+  });
 
   useEffect(() => {
-    load();
-  }, [load]);
+    const initial = (location.state as { searchQuery?: string })?.searchQuery;
+    if (initial) setSearchQuery(initial);
+  }, [location.state, setSearchQuery]);
 
-  const outstandingCount = useMemo(
-    () => rows.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
-    [rows],
-  );
-  const completedTabCount = useMemo(
-    () =>
-      rows.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
-        .length,
-    [rows],
-  );
+  const load = useCallback(() => {
+    reload();
+    listPurchaseInvoices()
+      .then((all) => {
+        setKpiRows(all);
+        setOutstandingCount(
+          all.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
+        );
+        setCompletedTabCount(
+          all.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
+            .length,
+        );
+      })
+      .catch(() => {
+        /* KPI best-effort */
+      });
+  }, [reload]);
+
+  useEffect(() => {
+    listPurchaseInvoices()
+      .then((all) => {
+        setKpiRows(all);
+        setOutstandingCount(
+          all.filter((i) => !isInvoiceArchivedStatus(i.status)).length,
+        );
+        setCompletedTabCount(
+          all.filter((i) => isInvoiceArchivedStatus(i.status) && !i.archived)
+            .length,
+        );
+      })
+      .catch(() => {
+        /* KPI best-effort */
+      });
+  }, []);
 
   const filteredInvoices = useMemo(() => {
+    if (statusFilter !== "attention") return rows;
     const norm = (s?: string) => (s || "").toUpperCase().replace(/\s+/g, "_");
-    return rows.filter((invoice) => {
-      const inCompletedByStatus = isInvoiceArchivedStatus(invoice.status);
-      const matchesTab =
-        listTab === "archived" ? inCompletedByStatus : !inCompletedByStatus;
-      if (!matchesTab) return false;
-      if (listTab === "archived" && invoice.archived) return false;
-
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        (invoice.invoiceId?.toLowerCase().includes(q) ?? false) ||
-        (invoice.toParty?.toLowerCase().includes(q) ?? false) ||
-        (invoice.supplierInvoiceNumber?.toLowerCase().includes(q) ?? false);
-      const matchesStatus = invoiceMatchesStatusFilter(
-        invoice.status,
-        statusFilter === "attention" ? "all" : statusFilter,
-      );
-      const matchesAttention =
-        statusFilter !== "attention" ||
-        norm(invoice.status) === "OVERDUE" ||
-        norm(invoice.status) === "DRAFT";
-      return matchesSearch && matchesStatus && matchesAttention;
-    });
-  }, [rows, listTab, searchQuery, statusFilter]);
+    return rows.filter(
+      (invoice) =>
+        norm(invoice.status) === "OVERDUE" || norm(invoice.status) === "DRAFT",
+    );
+  }, [rows, statusFilter]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -206,9 +249,9 @@ export default function PurchaseInvoicesPage() {
       if (!(await confirm(`Archive invoice ${invoice.invoiceId}?`))) return;
       setProcessingInvoiceId(id);
       try {
-        const updated = await archiveInvoice(id);
-        setRows((prev) => prev.map((inv) => (inv.id === id ? updated : inv)));
+        await archiveInvoice(id);
         toast.success("Invoice archived successfully");
+        load();
       } catch (error: unknown) {
         const err = error as {
           response?: { data?: { message?: string; error?: string } };
@@ -313,7 +356,7 @@ export default function PurchaseInvoicesPage() {
 
   const purchaseInvoiceKpis = useMemo((): KpiSummaryStat[] => {
     const norm = (s?: string) => (s || "").toUpperCase().replace(/\s+/g, "_");
-    const visible = rows.filter(notArchived);
+    const visible = kpiRows.filter(notArchived);
     const unpaid = visible.filter(
       (inv) => norm(inv.status) === "UNPAID",
     ).length;
@@ -372,7 +415,7 @@ export default function PurchaseInvoicesPage() {
         applyKpiFilter,
       ),
     ];
-  }, [rows, kpiFilter, applyKpiFilter]);
+  }, [kpiRows, kpiFilter, applyKpiFilter]);
 
   const handleRowClick = useCallback(
     (row: Row<FinanceInvoice>) => {
@@ -440,7 +483,9 @@ export default function PurchaseInvoicesPage() {
                   <Input
                     placeholder="Search invoices..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                    }}
                     className="pl-8 w-64"
                   />
                 </div>
@@ -502,6 +547,14 @@ export default function PurchaseInvoicesPage() {
                   return (
                     (status === "PAID" || status === "CANCELLED") && !row.archived
                   );
+                }}
+                serverPagination={{
+                  total: totalElements,
+                  pageIndex: page,
+                  pageSize,
+                  pageCount: Math.max(pageCount, 1),
+                  onPageChange: setPage,
+                  onPageSizeChange: setPageSize,
                 }}
               />
             </>

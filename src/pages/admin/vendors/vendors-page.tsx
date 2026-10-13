@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable } from "@/components/datatable";
 import type { Vendor } from "@/types/vendor";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
@@ -18,68 +18,109 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
-import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { Users } from "lucide-react";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { ImportVendorsCsvDialog } from "./import-vendors-csv-dialog";
+import { listVendors, listVendorsPaged } from "@/service/vendorService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 
 export default function VendorsPage({
   financeSettings,
 }: {
   financeSettings?: boolean;
 }) {
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
-  const [countryFilter, setCountryFilter] = useState<string>("all");
-  const [vendorTypeFilter, setVendorTypeFilter] = useState<string>("all");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [cityFilter, setCityFilter] = useState<string>("all");
-  const [paymentTermsFilter, setPaymentTermsFilter] = useState<string>("all");
-  const [bankFilter, setBankFilter] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [kpiVendors, setKpiVendors] = useState<Vendor[]>([]);
   const { pathname } = useLocation();
   const { user } = useAuth();
 
-  const fetchVendors = async () => {
-    try {
-      const res = await apiClient.get("/vendors", { params: { size: 500 } });
-      const mappedVendors = (res.data.content as unknown[]).map((row) =>
-        normalizeVendorFromApi(row),
-      );
-      setVendors(mappedVendors);
-    } catch (error) {
-      console.error("Error fetching vendors:", error);
-      toast.error("Failed to load suppliers");
-    } finally {
-      setLoading(false);
+  const filters = useMemo(() => {
+    const base: {
+      city?: string;
+      isActive?: boolean;
+      approved?: boolean;
+      rejected?: boolean;
+    } = {};
+    if (cityFilter !== "all") base.city = cityFilter;
+    if (statusFilter === "active") base.isActive = true;
+    else if (statusFilter === "inactive") base.isActive = false;
+    return base;
+  }, [statusFilter, cityFilter]);
+
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      city?: string;
+      isActive?: boolean;
+      approved?: boolean;
+      rejected?: boolean;
+    }) =>
+      listVendorsPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        city: params.city,
+        isActive: params.isActive,
+        approved: params.approved,
+        rejected: params.rejected,
+      }),
+    [],
+  );
+
+  const {
+    rows: vendors,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    Vendor,
+    {
+      city?: string;
+      isActive?: boolean;
+      approved?: boolean;
+      rejected?: boolean;
     }
-  };
+  >({
+    fetcher: fetchPage,
+    filters,
+    errorMessage: "Failed to load suppliers",
+  });
+
+  const fetchVendors = useCallback(async () => {
+    reload();
+    try {
+      setKpiVendors(await listVendors());
+    } catch {
+      /* best-effort */
+    }
+  }, [reload]);
 
   useEffect(() => {
-    fetchVendors();
+    void listVendors()
+      .then(setKpiVendors)
+      .catch(() => {
+        /* best-effort */
+      });
   }, []);
 
-  const handleDialogSuccess = (updated: Vendor, mode: "add" | "edit") => {
-    if (mode === "add") {
-      // Refresh the list to get all data from backend
-      fetchVendors();
-    } else {
-      // For edit, update the local state but also refresh to ensure we have latest data
-      setVendors((prev) =>
-        prev.map((v) => (v.id === updated.id ? updated : v)),
-      );
-      // Also refresh to get any server-computed fields like createdAt
-      fetchVendors();
-    }
+  const handleDialogSuccess = () => {
+    void fetchVendors();
     setSelected(null);
   };
 
@@ -116,153 +157,36 @@ export default function VendorsPage({
     role: user?.role,
   });
 
-  // Calculate statistics
   const stats = useMemo(() => {
-    const total = vendors.length;
-    const active = vendors.filter((v) => v.active !== false).length;
-    const inactive = vendors.filter((v) => v.active === false).length;
-    const is1099 = vendors.filter((v) => Boolean(v.is1099Vendor)).length;
+    const total = kpiVendors.length;
+    const active = kpiVendors.filter((v) => v.active !== false).length;
+    const inactive = kpiVendors.filter((v) => v.active === false).length;
+    const is1099 = kpiVendors.filter((v) => Boolean(v.is1099Vendor)).length;
     return { total, active, inactive, is1099 };
-  }, [vendors]);
+  }, [kpiVendors]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
     switch (key) {
       case "active":
         setStatusFilter("active");
-        setVendorTypeFilter("all");
         break;
       case "inactive":
         setStatusFilter("inactive");
-        setVendorTypeFilter("all");
-        break;
-      case "1099":
-        setStatusFilter("all");
-        setVendorTypeFilter("1099");
         break;
       default:
         setStatusFilter("all");
-        setVendorTypeFilter("all");
         break;
     }
   }, []);
 
-  // Get unique countries for filter
-  const countries = useMemo(() => {
-    const countrySet = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.country) countrySet.add(v.country);
-    });
-    return Array.from(countrySet).sort();
-  }, [vendors]);
-
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.categoryName?.trim()) set.add(v.categoryName.trim());
-    });
-    return Array.from(set).sort();
-  }, [vendors]);
-
   const cities = useMemo(() => {
     const set = new Set<string>();
-    vendors.forEach((v) => {
+    kpiVendors.forEach((v) => {
       if (v.city?.trim()) set.add(v.city.trim());
     });
     return Array.from(set).sort();
-  }, [vendors]);
-
-  const paymentTerms = useMemo(() => {
-    const set = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.paymentTerms?.trim()) set.add(v.paymentTerms.trim());
-    });
-    return Array.from(set).sort();
-  }, [vendors]);
-
-  const banks = useMemo(() => {
-    const set = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.bankName?.trim()) set.add(v.bankName.trim());
-    });
-    return Array.from(set).sort();
-  }, [vendors]);
-
-  const filteredVendors = useMemo(() => {
-    return vendors.filter((vendor) => {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch =
-        (vendor.vendorName?.toLowerCase() ?? "").includes(query) ||
-        (vendor.vendorCode?.toLowerCase() ?? "").includes(query) ||
-        (vendor.contactPersonName?.toLowerCase() ?? "").includes(query) ||
-        (vendor.email?.toLowerCase() ?? "").includes(query) ||
-        (vendor.phoneNo?.toLowerCase() ?? "").includes(query) ||
-        (vendor.city?.toLowerCase() ?? "").includes(query) ||
-        (vendor.categoryName?.toLowerCase() ?? "").includes(query);
-
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && vendor.active !== false) ||
-        (statusFilter === "inactive" && vendor.active === false);
-
-      const matchesCountry =
-        countryFilter === "all" || vendor.country === countryFilter;
-
-      const matchesVendorType =
-        vendorTypeFilter === "all" ||
-        (vendorTypeFilter === "1099" && vendor.is1099Vendor === true) ||
-        (vendorTypeFilter === "non1099" && vendor.is1099Vendor !== true);
-
-      const matchesCategory =
-        categoryFilter === "all" ||
-        (vendor.categoryName || "").trim() === categoryFilter;
-
-      const matchesCity =
-        cityFilter === "all" || (vendor.city || "").trim() === cityFilter;
-
-      const matchesPayment =
-        paymentTermsFilter === "all" ||
-        (vendor.paymentTerms || "").trim() === paymentTermsFilter;
-
-      const matchesBank =
-        bankFilter === "all" || (vendor.bankName || "").trim() === bankFilter;
-
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesCountry &&
-        matchesVendorType &&
-        matchesCategory &&
-        matchesCity &&
-        matchesPayment &&
-        matchesBank
-      );
-    });
-  }, [
-    vendors,
-    searchQuery,
-    statusFilter,
-    countryFilter,
-    vendorTypeFilter,
-    categoryFilter,
-    cityFilter,
-    paymentTermsFilter,
-    bankFilter,
-  ]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
-  const paginatedVendors = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filteredVendors.slice(startIndex, endIndex);
-  }, [filteredVendors, currentPage, itemsPerPage]);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(1);
-    }
-  }, [totalPages, currentPage]);
+  }, [kpiVendors]);
 
   if (loading)
     return (
@@ -348,37 +272,17 @@ export default function VendorsPage({
         />
       </div>
 
-      {/* Search and Filters */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex-1 relative min-w-[300px]">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="Search code, name, category, city…"
+            placeholder="Search by vendor name…"
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Select
-            value={categoryFilter}
-            onValueChange={(value) => {
-              setCategoryFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select
             value={cityFilter}
             onValueChange={(value) => {
@@ -399,44 +303,6 @@ export default function VendorsPage({
             </SelectContent>
           </Select>
           <Select
-            value={paymentTermsFilter}
-            onValueChange={(value) => {
-              setPaymentTermsFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Terms" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Terms</SelectItem>
-              {paymentTerms.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={bankFilter}
-            onValueChange={(value) => {
-              setBankFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Banks" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Banks</SelectItem>
-              {banks.map((b) => (
-                <SelectItem key={b} value={b}>
-                  {b}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
             value={statusFilter}
             onValueChange={(value) => {
               setStatusFilter(value);
@@ -452,97 +318,27 @@ export default function VendorsPage({
               <SelectItem value="all">All statuses</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={countryFilter} onValueChange={setCountryFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Countries" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Countries</SelectItem>
-              {countries.map((country) => (
-                <SelectItem key={country} value={country}>
-                  {country}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={vendorTypeFilter}
-            onValueChange={(value) => {
-              setVendorTypeFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Suppliers" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Suppliers</SelectItem>
-              <SelectItem value="1099">1099 Vendors</SelectItem>
-              <SelectItem value="non1099">Non-1099</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
-      {paginatedVendors.length === 0 ? (
+      {vendors.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No suppliers found
         </div>
       ) : (
-        <>
-          <DataTable columns={columns} data={paginatedVendors} />
-          {/* Pagination */}
-          {totalPages > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing{" "}
-                {Math.min(
-                  (currentPage - 1) * itemsPerPage + 1,
-                  filteredVendors.length,
-                )}
-                -{Math.min(currentPage * itemsPerPage, filteredVendors.length)}{" "}
-                of {filteredVendors.length} suppliers
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  ← Previous
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(page)}
-                      className={
-                        currentPage === page
-                          ? "min-w-[40px] bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
-                          : "min-w-[40px]"
-                      }
-                    >
-                      {page}
-                    </Button>
-                  ),
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                >
-                  Next →
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+        <DataTable
+          columns={columns}
+          data={vendors}
+          onRowClick={(row) => handleRowClick(row.original)}
+          serverPagination={{
+            total: totalElements,
+            pageIndex: page,
+            pageSize,
+            pageCount: Math.max(pageCount, 1),
+            onPageChange: setPage,
+            onPageSizeChange: setPageSize,
+          }}
+        />
       )}
 
       <VendorDialog

@@ -6,14 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Search, Users, Building2, Mail, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
-import { listVendors } from "@/service/vendorService";
+import { listVendors, listVendorsPaged } from "@/service/vendorService";
 import { toast } from "sonner";
 import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
 import type { Vendor } from "@/types/vendor";
 import type { Row } from "@tanstack/react-table";
 import { VendorDialog } from "@/pages/admin/vendors/vendor-dialog";
 import { ImportVendorsCsvDialog } from "@/pages/admin/vendors/import-vendors-csv-dialog";
-import { normalizeVendorFromApi } from "@/lib/vendor-api";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import {
   KpiSummaryStrip,
@@ -29,39 +28,103 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 
 export default function SuppliersPage() {
   const { confirm } = useConfirmDialog();
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Vendor | null>(null);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("active");
-  const [categoryFilter, setCategoryFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
-  const [paymentTermsFilter, setPaymentTermsFilter] = useState("all");
-  const [bankFilter, setBankFilter] = useState("all");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+  const [kpiVendors, setKpiVendors] = useState<Vendor[]>([]);
 
   const navigate = useNavigate();
 
-  const fetchVendors = async () => {
-    try {
-      setLoading(true);
-      const list = await listVendors();
-      setVendors(list.map((row) => normalizeVendorFromApi(row)));
-    } catch (error) {
-      console.error("Error fetching vendors:", error);
-      toast.error("Failed to load suppliers");
-    } finally {
-      setLoading(false);
+  const filters = useMemo(() => {
+    const base: {
+      city?: string;
+      isActive?: boolean;
+      approved?: boolean;
+      rejected?: boolean;
+    } = {};
+    if (cityFilter !== "all") base.city = cityFilter;
+    if (statusFilter === "active") base.isActive = true;
+    else if (statusFilter === "inactive") base.isActive = false;
+    else if (statusFilter === "approved") {
+      base.approved = true;
+      base.rejected = false;
+    } else if (statusFilter === "pending") {
+      base.approved = false;
+      base.rejected = false;
     }
-  };
+    return base;
+  }, [statusFilter, cityFilter]);
+
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      city?: string;
+      isActive?: boolean;
+      approved?: boolean;
+      rejected?: boolean;
+    }) =>
+      listVendorsPaged({
+        page: params.page,
+        size: params.size,
+        search: params.search,
+        city: params.city,
+        isActive: params.isActive,
+        approved: params.approved,
+        rejected: params.rejected,
+      }),
+    [],
+  );
+
+  const {
+    rows: vendors,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    Vendor,
+    {
+      city?: string;
+      isActive?: boolean;
+      approved?: boolean;
+      rejected?: boolean;
+    }
+  >({
+    fetcher: fetchPage,
+    filters,
+    errorMessage: "Failed to load suppliers",
+  });
+
+  const refreshKpis = useCallback(async () => {
+    try {
+      setKpiVendors(await listVendors());
+    } catch {
+      /* best-effort */
+    }
+  }, []);
 
   useEffect(() => {
-    fetchVendors();
-  }, []);
+    void refreshKpis();
+  }, [refreshKpis]);
+
+  const fetchVendors = useCallback(async () => {
+    reload();
+    await refreshKpis();
+  }, [reload, refreshKpis]);
 
   const handleEdit = (vendor: Vendor) => {
     setSelected(vendor);
@@ -83,27 +146,17 @@ export default function SuppliersPage() {
       await fetchVendors();
     } catch (error) {
       console.error("Deactivate failed:", error);
-      toast.error(
-        getApiErrorMessage(error, "Failed to deactivate supplier"),
-      );
+      toast.error(getApiErrorMessage(error, "Failed to deactivate supplier"));
     }
   };
 
   const handleRowClick = (row: Row<Vendor>) => {
-    // Optional: navigate to vendor detail page
     const vendor = row.original;
     navigate(`/inventory/purchase/suppliers/${vendor.id}`);
   };
 
-  const handleDialogSuccess = (updated: Vendor, mode: "add" | "edit") => {
-    if (mode === "add") {
-      fetchVendors(); // Refresh the list to get all data from backend
-    } else {
-      setVendors((prev) =>
-        prev.map((v) => (v.id === updated.id ? updated : v)),
-      );
-      fetchVendors(); // Also refresh to get any server-computed fields
-    }
+  const handleDialogSuccess = () => {
+    void fetchVendors();
     setSelected(null);
   };
 
@@ -112,80 +165,13 @@ export default function SuppliersPage() {
     onDeactivate: handleDeactivate,
   });
 
-  const categoryOptions = useMemo(() => {
-    const set = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.categoryName?.trim()) set.add(v.categoryName.trim());
-    });
-    return Array.from(set).sort();
-  }, [vendors]);
-
   const cityOptions = useMemo(() => {
     const set = new Set<string>();
-    vendors.forEach((v) => {
+    kpiVendors.forEach((v) => {
       if (v.city?.trim()) set.add(v.city.trim());
     });
     return Array.from(set).sort();
-  }, [vendors]);
-
-  const paymentOptions = useMemo(() => {
-    const set = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.paymentTerms?.trim()) set.add(v.paymentTerms.trim());
-    });
-    return Array.from(set).sort();
-  }, [vendors]);
-
-  const bankOptions = useMemo(() => {
-    const set = new Set<string>();
-    vendors.forEach((v) => {
-      if (v.bankName?.trim()) set.add(v.bankName.trim());
-    });
-    return Array.from(set).sort();
-  }, [vendors]);
-
-  const filteredVendors = vendors.filter((vendor) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      (vendor.vendorName?.toLowerCase() ?? "").includes(query) ||
-      (vendor.vendorCode?.toLowerCase() ?? "").includes(query) ||
-      (vendor.contactPersonName?.toLowerCase() ?? "").includes(query) ||
-      (vendor.email?.toLowerCase() ?? "").includes(query) ||
-      (vendor.phoneNo?.toLowerCase() ?? "").includes(query) ||
-      (vendor.city?.toLowerCase() ?? "").includes(query) ||
-      (vendor.categoryName?.toLowerCase() ?? "").includes(query);
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && vendor.active !== false) ||
-      (statusFilter === "inactive" && vendor.active === false) ||
-      (statusFilter === "approved" &&
-        vendor.approved === true &&
-        vendor.rejected !== true) ||
-      (statusFilter === "pending" &&
-        vendor.approved !== true &&
-        vendor.rejected !== true);
-
-    const matchesCategory =
-      categoryFilter === "all" ||
-      (vendor.categoryName || "").trim() === categoryFilter;
-    const matchesCity =
-      cityFilter === "all" || (vendor.city || "").trim() === cityFilter;
-    const matchesPayment =
-      paymentTermsFilter === "all" ||
-      (vendor.paymentTerms || "").trim() === paymentTermsFilter;
-    const matchesBank =
-      bankFilter === "all" || (vendor.bankName || "").trim() === bankFilter;
-
-    return (
-      matchesSearch &&
-      matchesStatus &&
-      matchesCategory &&
-      matchesCity &&
-      matchesPayment &&
-      matchesBank
-    );
-  });
+  }, [kpiVendors]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -206,10 +192,10 @@ export default function SuppliersPage() {
   }, []);
 
   const supplierKpis = useMemo((): KpiSummaryStat[] => {
-    const total = vendors.length;
-    const active = vendors.filter((v) => v.active !== false).length;
-    const approved = vendors.filter((v) => v.approved && !v.rejected).length;
-    const withEmail = vendors.filter((v) => (v.email || "").trim()).length;
+    const total = kpiVendors.length;
+    const active = kpiVendors.filter((v) => v.active !== false).length;
+    const approved = kpiVendors.filter((v) => v.approved && !v.rejected).length;
+    const withEmail = kpiVendors.filter((v) => (v.email || "").trim()).length;
     return [
       kpiFilterItem(
         {
@@ -260,9 +246,9 @@ export default function SuppliersPage() {
         applyKpiFilter,
       ),
     ];
-  }, [vendors, kpiFilter, applyKpiFilter]);
+  }, [kpiVendors, kpiFilter, applyKpiFilter]);
 
-  if (loading) {
+  if (loading && vendors.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Loading suppliers...</p>
@@ -302,31 +288,12 @@ export default function SuppliersPage() {
             <div className="relative flex-1 min-w-[240px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
               <Input
-                placeholder="Search code, name, category, city…"
+                placeholder="Search by vendor name…"
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select
-              value={categoryFilter}
-              onValueChange={(v) => {
-                setCategoryFilter(v);
-                setKpiFilter(null);
-              }}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categoryOptions.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select
               value={cityFilter}
               onValueChange={(v) => {
@@ -347,47 +314,12 @@ export default function SuppliersPage() {
               </SelectContent>
             </Select>
             <Select
-              value={paymentTermsFilter}
+              value={statusFilter}
               onValueChange={(v) => {
-                setPaymentTermsFilter(v);
+                setStatusFilter(v);
                 setKpiFilter(null);
               }}
             >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Terms" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Terms</SelectItem>
-                {paymentOptions.map((t) => (
-                  <SelectItem key={t} value={t}>
-                    {t}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={bankFilter}
-              onValueChange={(v) => {
-                setBankFilter(v);
-                setKpiFilter(null);
-              }}
-            >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Bank" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Banks</SelectItem>
-                {bankOptions.map((b) => (
-                  <SelectItem key={b} value={b}>
-                    {b}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={(v) => {
-              setStatusFilter(v);
-              setKpiFilter(null);
-            }}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -403,15 +335,23 @@ export default function SuppliersPage() {
         </CardHeader>
 
         <CardContent>
-          {filteredVendors.length === 0 ? (
+          {vendors.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No suppliers found
             </div>
           ) : (
             <DataTable
               columns={columns}
-              data={filteredVendors}
+              data={vendors}
               onRowClick={handleRowClick}
+              serverPagination={{
+                total: totalElements,
+                pageIndex: page,
+                pageSize,
+                pageCount: Math.max(pageCount, 1),
+                onPageChange: setPage,
+                onPageSizeChange: setPageSize,
+              }}
             />
           )}
         </CardContent>

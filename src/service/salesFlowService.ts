@@ -19,6 +19,8 @@ import type {
   ShipmentTrackingEventCreateDTO,
   ItemResponseDTO,
 } from "@/service/erpApiTypes";
+import type { PageResult } from "@/types/page";
+import { normalizePageResult } from "@/types/page";
 
 function normalizeStatus(status?: string) {
   return (status || "").toLowerCase();
@@ -177,6 +179,13 @@ function toPicklist(dto: PicklistResponseDTO): Picklist {
     shipmentStatus: dto.shipmentStatus
       ? normalizeStatus(dto.shipmentStatus)
       : undefined,
+    order: dto.salesOrderNumber
+      ? ({
+          id: String(dto.salesOrderId || ""),
+          orderNo: dto.salesOrderNumber,
+          customerName: dto.customerName || "",
+        } as SalesOrder)
+      : undefined,
   };
 }
 
@@ -243,6 +252,42 @@ export async function listSalesOrders(): Promise<SalesOrder[]> {
   return (res.data || []).map(toSalesOrder);
 }
 
+export async function listSalesOrdersPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  tab?: string;
+  status?: string;
+  paymentStatus?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<PageResult<SalesOrder>> {
+  const res = await apiClient.get<PageResult<SalesOrderResponseDTO>>(
+    "/sales/orders",
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+        tab: params.tab || undefined,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+        paymentStatus:
+          params.paymentStatus && params.paymentStatus !== "all"
+            ? params.paymentStatus
+            : undefined,
+        dateFrom: params.dateFrom || undefined,
+        dateTo: params.dateTo || undefined,
+      },
+    },
+  );
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map(toSalesOrder),
+  };
+}
+
 export async function getSalesOrderById(id: Id | string): Promise<SalesOrder> {
   const res = await apiClient.get<SalesOrderResponseDTO>(`/sales/orders/${id}`);
   return toSalesOrder(res.data);
@@ -303,6 +348,33 @@ export async function listPicklists(): Promise<Picklist[]> {
   return (res.data || []).map(toPicklist);
 }
 
+export async function listPicklistsPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  status?: string;
+  excludeDispatched?: boolean;
+}): Promise<PageResult<Picklist>> {
+  const res = await apiClient.get<PageResult<PicklistResponseDTO>>(
+    "/warehouse/picklists",
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+        excludeDispatched: params.excludeDispatched ?? true,
+      },
+    },
+  );
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map(toPicklist),
+  };
+}
+
 export async function generatePicklistFromSalesOrder(
   salesOrderId: Id | string,
   options?: { warehouseId?: Id | string },
@@ -343,6 +415,65 @@ export async function listShipmentsAsDispatches(): Promise<Dispatch[]> {
     "/warehouse/shipments",
   );
   return (res.data || []).map(toShipmentAsDispatch);
+}
+
+export async function listShipmentsPaged(params: {
+  page: number;
+  size: number;
+  search?: string;
+  status?: string;
+}): Promise<PageResult<Dispatch>> {
+  const res = await apiClient.get<PageResult<ShipmentResponseDTO>>(
+    "/warehouse/shipments",
+    {
+      params: {
+        page: params.page,
+        size: params.size,
+        search: params.search || undefined,
+        status:
+          params.status && params.status !== "all" ? params.status : undefined,
+      },
+    },
+  );
+  const page = normalizePageResult(res.data);
+  return {
+    ...page,
+    content: (page.content || []).map((dto) => {
+      const dispatch = toShipmentAsDispatch(dto);
+      return {
+        ...dispatch,
+        orderId: dto.salesOrderId != null ? String(dto.salesOrderId) : dispatch.orderId,
+        order: dto.salesOrderNumber
+          ? {
+              id: dto.salesOrderId != null ? String(dto.salesOrderId) : "",
+              orderNo: dto.salesOrderNumber,
+              customerName: dto.customerName || "",
+            }
+          : dispatch.order,
+      } as Dispatch;
+    }),
+  };
+}
+
+export async function getShipmentAsDispatch(
+  id: Id | string,
+): Promise<Dispatch> {
+  const res = await apiClient.get<ShipmentResponseDTO>(
+    `/warehouse/shipments/${id}`,
+  );
+  const dto = res.data;
+  const dispatch = toShipmentAsDispatch(dto);
+  return {
+    ...dispatch,
+    orderId: dto.salesOrderId != null ? String(dto.salesOrderId) : dispatch.orderId,
+    order: dto.salesOrderNumber
+      ? ({
+          id: dto.salesOrderId != null ? String(dto.salesOrderId) : "",
+          orderNo: dto.salesOrderNumber,
+          customerName: dto.customerName || "",
+        } as SalesOrder)
+      : dispatch.order,
+  };
 }
 
 export async function createShipmentFromPicklist(

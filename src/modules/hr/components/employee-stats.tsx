@@ -15,17 +15,20 @@ import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 
 interface EmployeeStatsProps {
   employees: Employee[];
+  /** Server-side total when the table is paginated (overrides `employees.length`). */
+  totalOverride?: number;
   onFilter?: (status: string | null) => void;
   activeFilter?: string | null;
 }
 
 export function EmployeeStats({
   employees,
+  totalOverride,
   onFilter,
   activeFilter,
 }: EmployeeStatsProps) {
   const stats = useMemo(() => {
-    const total = employees.length;
+    const total = totalOverride ?? employees.length;
     const active = employees.filter((e) => normalize(e.status) === "ACTIVE").length;
     const probation = employees.filter(
       (e) => normalize(e.status) === "UNDER_PROBATION",
@@ -34,7 +37,9 @@ export function EmployeeStats({
       (e) => normalize(e.status) === "ON_LEAVE",
     ).length;
     return { total, active, probation, onLeave };
-  }, [employees]);
+  }, [employees, totalOverride]);
+
+  const activeKey = normalize(activeFilter);
 
   return (
     <div className="mb-6">
@@ -47,7 +52,7 @@ export function EmployeeStats({
             accent: "blue",
             icon: UsersRound,
             onClick: () => onFilter?.(null),
-            active: activeFilter === null,
+            active: activeFilter == null || activeFilter === "",
           },
           {
             label: "Active",
@@ -59,7 +64,7 @@ export function EmployeeStats({
             accent: "emerald",
             icon: UserCheck,
             onClick: () => onFilter?.("ACTIVE"),
-            active: activeFilter === "ACTIVE",
+            active: activeKey === "ACTIVE",
           },
           {
             label: "Under Probation",
@@ -71,7 +76,7 @@ export function EmployeeStats({
             accent: "violet",
             icon: UserCog,
             onClick: () => onFilter?.("UNDER_PROBATION"),
-            active: activeFilter === "UNDER_PROBATION",
+            active: activeKey === "UNDER_PROBATION",
           },
           {
             label: "On Leave",
@@ -83,7 +88,7 @@ export function EmployeeStats({
             accent: "amber",
             icon: CalendarClock,
             onClick: () => onFilter?.("ON_LEAVE"),
-            active: activeFilter === "ON_LEAVE",
+            active: activeKey === "ON_LEAVE",
           },
         ]}
       />

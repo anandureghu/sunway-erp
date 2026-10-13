@@ -53,13 +53,16 @@ export function usePagination<T>(items: T[], initialPageSize = 10) {
   };
 }
 
-type TablePaginationProps = {
+export type ServerPaginationProps = {
   total: number;
   pageIndex: number;
   pageSize: number;
   pageCount: number;
   onPageChange: (index: number) => void;
   onPageSizeChange: (size: number) => void;
+};
+
+type TablePaginationProps = ServerPaginationProps & {
   pageSizeOptions?: number[];
 };
 

@@ -6,12 +6,14 @@ import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   listPurchaseRequisitions,
+  listPurchaseRequisitionsPaged,
   approvePurchaseRequisition,
   submitPurchaseRequisition,
   rejectPurchaseRequisition,
   sendBackPurchaseRequisition,
   revisePurchaseRequisition,
 } from "@/service/purchaseFlowService";
+import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import {
   PurchaseRequisitionReviewDialog,
   type ReviewActionType,
@@ -42,13 +44,13 @@ export default function PurchaseRequisitionsPage() {
     InventoryModule.PURCHASE,
   );
   const { confirm } = useConfirmDialog();
-  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(
     location.pathname.includes("/new"),
   );
-  const [requisitions, setRequisitions] = useState<PurchaseRequisition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [kpiRequisitions, setKpiRequisitions] = useState<PurchaseRequisition[]>(
+    [],
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionState, setActionState] = useState<{
     id: string;
@@ -64,6 +66,8 @@ export default function PurchaseRequisitionsPage() {
   const [bulkArchiving, setBulkArchiving] = useState(false);
   const [listTab, setListTab] = useState<RequisitionTab>("active");
   const [kpiFilter, setKpiFilter] = useState<string | null>(null);
+  const [activeCount, setActiveCount] = useState(0);
+  const [convertedCount, setConvertedCount] = useState(0);
 
   useEffect(() => {
     const wantsCreate = location.pathname.includes("/new");
@@ -74,23 +78,79 @@ export default function PurchaseRequisitionsPage() {
     setShowCreateForm(wantsCreate && canCreate);
   }, [location.pathname, canCreate, navigate]);
 
-  const refreshRequisitions = useCallback(async () => {
-    setLoading(true);
-    setLoadError(null);
+  const filters = useMemo(
+    () => ({ tab: listTab, status: statusFilter }),
+    [listTab, statusFilter],
+  );
+
+  const fetchPage = useCallback(
+    async (params: {
+      page: number;
+      size: number;
+      search: string;
+      tab: RequisitionTab;
+      status: string;
+    }) => {
+      setLoadError(null);
+      try {
+        return await listPurchaseRequisitionsPaged({
+          page: params.page,
+          size: params.size,
+          search: params.search,
+          tab: params.tab,
+          status: params.status,
+        });
+      } catch (e: any) {
+        setLoadError(e?.message || "Failed to load purchase requisitions");
+        throw e;
+      }
+    },
+    [],
+  );
+
+  const {
+    rows: requisitions,
+    loading,
+    searchInput: searchQuery,
+    setSearchInput: setSearchQuery,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    totalElements,
+    pageCount,
+    reload,
+  } = useServerPagedList<
+    PurchaseRequisition,
+    { tab: RequisitionTab; status: string }
+  >({
+    fetcher: fetchPage,
+    filters,
+    enabled: !showCreateForm,
+    errorMessage: "Failed to load purchase requisitions",
+  });
+
+  const refreshKpis = useCallback(async () => {
     try {
       const data = await listPurchaseRequisitions();
-      setRequisitions(data);
-    } catch (e: any) {
-      setLoadError(e?.message || "Failed to load purchase requisitions");
-    } finally {
-      setLoading(false);
+      setKpiRequisitions(data);
+      const active = excludeArchived(data);
+      setActiveCount(active.filter((r) => r.status !== "converted").length);
+      setConvertedCount(active.filter((r) => r.status === "converted").length);
+    } catch {
+      // best-effort
     }
   }, []);
 
   useEffect(() => {
     if (showCreateForm) return;
-    void refreshRequisitions();
-  }, [showCreateForm, location.pathname, refreshRequisitions]);
+    void refreshKpis();
+  }, [showCreateForm, location.pathname, refreshKpis]);
+
+  const refreshRequisitions = useCallback(async () => {
+    reload();
+    await refreshKpis();
+  }, [reload, refreshKpis]);
 
   const applyKpiFilter = useCallback((key: string) => {
     setKpiFilter(key);
@@ -105,7 +165,7 @@ export default function PurchaseRequisitionsPage() {
   }, []);
 
   const requisitionKpis = useMemo((): KpiSummaryStat[] => {
-    const activeRequisitions = excludeArchived(requisitions);
+    const activeRequisitions = excludeArchived(kpiRequisitions);
     const draft = activeRequisitions.filter(
       (r) => r.status === "quotation",
     ).length;
@@ -168,21 +228,7 @@ export default function PurchaseRequisitionsPage() {
         applyKpiFilter,
       ),
     ];
-  }, [requisitions, kpiFilter, applyKpiFilter]);
-
-  const filteredRequisitions = useMemo(() => {
-    return requisitions.filter((req) => {
-      const matchesSearch =
-        req.requisitionNo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        req.requestedByName
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase()) ||
-        req.departmentName?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus =
-        statusFilter === "all" || req.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [requisitions, searchQuery, statusFilter]);
+  }, [kpiRequisitions, kpiFilter, applyKpiFilter]);
 
   const handleOpenDetail = useCallback(
     (id: string) => {
@@ -354,12 +400,7 @@ export default function PurchaseRequisitionsPage() {
       if (!(await confirm(`Archive requisition ${req.requisitionNo}?`))) return;
       setActionState({ id, type: "archive" });
       try {
-        const updated = await archivePurchaseRequisition(id);
-        setRequisitions((prev) =>
-          prev.map((r) =>
-            r.id === id ? { ...r, archived: updated.archived ?? true } : r,
-          ),
-        );
+        await archivePurchaseRequisition(id);
         toast.success("Requisition archived successfully");
         void refreshRequisitions();
       } catch (error: any) {
@@ -472,7 +513,7 @@ export default function PurchaseRequisitionsPage() {
       <PurchaseRequisitionsListView
         loading={loading}
         error={loadError}
-        requisitions={filteredRequisitions}
+        requisitions={requisitions}
         searchQuery={searchQuery}
         statusFilter={statusFilter}
         columns={columns}
@@ -483,6 +524,8 @@ export default function PurchaseRequisitionsPage() {
         onBulkArchive={handleBulkArchiveRequisitions}
         bulkArchiving={bulkArchiving}
         listTab={listTab}
+        activeCount={activeCount}
+        convertedCount={convertedCount}
         onListTabChange={(tab) => {
           setListTab(tab);
           setKpiFilter(null);
@@ -498,6 +541,14 @@ export default function PurchaseRequisitionsPage() {
         onRetry={() => void refreshRequisitions()}
         onRowClick={handleRowClick}
         kpiItems={requisitionKpis}
+        serverPagination={{
+          total: totalElements,
+          pageIndex: page,
+          pageSize,
+          pageCount: Math.max(pageCount, 1),
+          onPageChange: setPage,
+          onPageSizeChange: setPageSize,
+        }}
       />
     </>
   );
