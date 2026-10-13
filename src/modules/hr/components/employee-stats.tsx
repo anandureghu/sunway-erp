@@ -4,7 +4,6 @@ import {
   UsersRound,
   UserCheck,
   CalendarClock,
-  UserX,
   UserCog,
 } from "lucide-react";
 import type { Employee } from "@/types/hr";
@@ -26,15 +25,15 @@ export function EmployeeStats({
   activeFilter,
 }: EmployeeStatsProps) {
   const stats = useMemo(() => {
-    const total    = employees.length;
-    const active   = employees.filter((e) => normalize(e.status) === "ACTIVE").length;
-    const probation = employees.filter((e) => normalize(e.status) === "UNDER_PROBATION").length;
-    const onLeave  = employees.filter((e) => normalize(e.status) === "ON_LEAVE").length;
-    const former = employees.filter((e) =>
-      ["RESIGNED", "TERMINATED", "RETIRED"].includes(normalize(e.status)),
+    const total = employees.length;
+    const active = employees.filter((e) => normalize(e.status) === "ACTIVE").length;
+    const probation = employees.filter(
+      (e) => normalize(e.status) === "UNDER_PROBATION",
     ).length;
-    const inactive = employees.filter((e) => normalize(e.status) === "INACTIVE").length;
-    return { total, active, probation, onLeave, former, inactive };
+    const onLeave = employees.filter(
+      (e) => normalize(e.status) === "ON_LEAVE",
+    ).length;
+    return { total, active, probation, onLeave };
   }, [employees]);
 
   return (
@@ -53,7 +52,10 @@ export function EmployeeStats({
           {
             label: "Active",
             value: stats.active,
-            hint: stats.total > 0 ? `${Math.round((stats.active / stats.total) * 100)}% of workforce` : "0% of workforce",
+            hint:
+              stats.total > 0
+                ? `${Math.round((stats.active / stats.total) * 100)}% of workforce`
+                : "0% of workforce",
             accent: "emerald",
             icon: UserCheck,
             onClick: () => onFilter?.("ACTIVE"),
@@ -62,7 +64,10 @@ export function EmployeeStats({
           {
             label: "Under Probation",
             value: stats.probation,
-            hint: stats.total > 0 ? `${Math.round((stats.probation / stats.total) * 100)}% of workforce` : "0% of workforce",
+            hint:
+              stats.total > 0
+                ? `${Math.round((stats.probation / stats.total) * 100)}% of workforce`
+                : "0% of workforce",
             accent: "violet",
             icon: UserCog,
             onClick: () => onFilter?.("UNDER_PROBATION"),
@@ -71,29 +76,14 @@ export function EmployeeStats({
           {
             label: "On Leave",
             value: stats.onLeave,
-            hint: stats.total > 0 ? `${Math.round((stats.onLeave / stats.total) * 100)}% of workforce` : "0% of workforce",
+            hint:
+              stats.total > 0
+                ? `${Math.round((stats.onLeave / stats.total) * 100)}% of workforce`
+                : "0% of workforce",
             accent: "amber",
             icon: CalendarClock,
             onClick: () => onFilter?.("ON_LEAVE"),
             active: activeFilter === "ON_LEAVE",
-          },
-          {
-            label: "Former",
-            value: stats.former,
-            hint: "Resigned, terminated, or retired",
-            accent: "orange",
-            icon: UserX,
-            onClick: () => onFilter?.("FORMER"),
-            active: activeFilter === "FORMER",
-          },
-          {
-            label: "Inactive",
-            value: stats.inactive,
-            hint: stats.total > 0 ? `${Math.round((stats.inactive / stats.total) * 100)}% of workforce` : "0% of workforce",
-            accent: "rose",
-            icon: UserX,
-            onClick: () => onFilter?.("INACTIVE"),
-            active: activeFilter === "INACTIVE",
           },
         ]}
       />

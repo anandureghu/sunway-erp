@@ -288,7 +288,7 @@ const legacyTabMap: Record<string, { tab: string; sub: TabId }> = {
   compliance: { tab: "employee-master", sub: "immigration" },
   "payroll-summary": { tab: "payroll", sub: "payroll-summary" },
   "exit-interviews": { tab: "employee-master", sub: "exit-interviews" },
-  archive: { tab: "employee-master", sub: "archive" },
+  archive: { tab: "archive", sub: "archive" },
   history: { tab: "employee-master", sub: "history" },
   audit: { tab: "employee-master", sub: "history" },
 };
@@ -449,16 +449,15 @@ export default function HRReports() {
       });
     }
 
-    // Employee Master: leave & loan history, lifecycle, compliance, and audit.
+    // Employee Master: leave, loan, compliance, audit, exit interviews.
     const employeeMaster = [
       ...(canRpt("HRR_LEAVE_HISTORY") || canLeaves ? [LEAVES_TAB] : []),
       ...(canRpt("HRR_LOAN_HISTORY") || canLoans ? [LOANS_TAB] : []),
-      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
-      ...(canRpt("HRR_ARCHIVE") ? [ARCHIVE_TAB] : []),
       ...(canRpt("HRR_IMMIGRATION_EXPIRY") || canImmigration
         ? [IMMIGRATION_TAB]
         : []),
       ...(canRpt("HRR_HISTORY") ? [HISTORY_TAB] : []),
+      ...(canRpt("HRR_EXIT_INTERVIEWS") || canExitInterviews ? [EXIT_TAB] : []),
     ];
     if (employeeMaster.length) {
       list.push({
@@ -475,6 +474,15 @@ export default function HRReports() {
         label: "Payroll",
         icon: <Banknote className="h-4 w-4" />,
         children: [PAYROLL_SUMMARY_TAB],
+      });
+    }
+
+    if (canRpt("HRR_ARCHIVE")) {
+      list.push({
+        value: "archive",
+        label: "Archive",
+        icon: <Archive className="h-4 w-4" />,
+        children: [ARCHIVE_TAB],
       });
     }
 

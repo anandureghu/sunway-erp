@@ -99,11 +99,11 @@ export default function HRSettingsPage() {
     canView(permissions, "HR_SETTINGS") ||
     HRS_MODULES.some((m) => canView(permissions, m));
 
-
   // Each HR Settings tab has its own permission; the HR_SETTINGS umbrella (and admin)
   // grants all of them. Approval tabs also honour their existing approval permission.
   const hasSettingsUmbrella = isAdmin || canView(permissions, "HR_SETTINGS");
-  const canTab = (mod: string) => hasSettingsUmbrella || canView(permissions, mod);
+  const canTab = (mod: string) =>
+    hasSettingsUmbrella || canView(permissions, mod);
 
   const groups = useMemo<GroupTab[]>(() => {
     const list: GroupTab[] = [
@@ -144,7 +144,7 @@ export default function HRSettingsPage() {
       },
       {
         value: "policies-access",
-        label: "Policies and access Administration",
+        label: "Policies and access",
         icon: <Shield className="h-4 w-4" />,
         children: [
           {
@@ -186,9 +186,7 @@ export default function HRSettingsPage() {
             value: "permissions",
             label: "Permissions",
             icon: <KeyRound className="h-4 w-4" />,
-            element: () => (
-              <PermissionsTab roles={roles} setRoles={setRoles} />
-            ),
+            element: () => <PermissionsTab roles={roles} setRoles={setRoles} />,
             guard: isAdmin || canView(permissions, "HRS_PERMISSIONS"),
           },
           {

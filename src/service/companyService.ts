@@ -448,7 +448,7 @@ export const getSidebarItems = async (
 
           return [
             {
-              title: "Inventory (Supply Chain)",
+              title: "Inventory and Assets",
               icon: Package,
               color: "text-amber-700",
               image: "/assets/images/inventory.svg",
