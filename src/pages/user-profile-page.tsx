@@ -168,21 +168,11 @@ const UserProfilePage = () => {
   })();
 
   return (
-    <div className="w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8 duration-500 animate-in fade-in-50">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => navigate('/')}
-        className="gap-1.5 text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </Button>
-
+    <div className="w-full space-y-5 px-4 pb-6 pt-0 sm:px-6 lg:px-8 duration-500 animate-in fade-in-50">
       {/* Banner profile card */}
-      <Card className="overflow-hidden border shadow-sm">
+      <Card className="overflow-hidden rounded-2xl border shadow-sm">
         {/* Cover banner with avatar + identity */}
-        <div className="relative h-44 bg-gradient-to-r from-slate-900 via-indigo-800 to-sky-600 sm:h-48">
+        <div className="relative h-44 rounded-t-2xl bg-gradient-to-r from-slate-900 via-indigo-800 to-sky-600 sm:h-48">
           <div
             className="pointer-events-none absolute inset-0 opacity-20"
             style={{
@@ -191,7 +181,21 @@ const UserProfilePage = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
 
-          <div className="absolute inset-0 flex items-center gap-5 px-6 sm:px-8">
+          <div className="absolute inset-0 flex items-center gap-4 px-6 sm:gap-5 sm:px-8">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              aria-label="Go back"
+              className={cn(
+                'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
+                'border border-white/40 bg-white shadow-md',
+                'text-slate-900 transition-colors hover:bg-slate-100',
+                '[&_svg]:stroke-slate-900 [&_svg]:text-slate-900',
+              )}
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+            </button>
+
             {/* Avatar with upload */}
             <div className="relative shrink-0">
               <div

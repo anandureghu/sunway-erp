@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Handshake, Truck, Users, ArrowRight } from "lucide-react";
+import { Handshake, Inbox, Truck, Users, ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,16 @@ export default function CrmPage() {
     isAdmin || permissions === null || canView(permissions, module);
 
   const cards = [
+    allow(InventoryModule.SALES) || allow(InventoryModule.PURCHASE)
+      ? {
+          title: "Enquiries",
+          description:
+            "Prospects and leads — notes, pipeline status, and convert to customer or supplier.",
+          to: "/inventory/crm/enquiries",
+          cta: "Manage enquiries",
+          icon: Inbox,
+        }
+      : null,
     allow(InventoryModule.SALES)
       ? {
           title: "Customers",
@@ -54,7 +64,7 @@ export default function CrmPage() {
     <div className="mx-auto w-full space-y-6 p-4 sm:p-6 py-2">
       <PageHeader
         title="CRM"
-        description="Customer Relationship Management — customers and suppliers in one place."
+        description="Customer Relationship Management — enquiries, customers, and suppliers."
         icon={<Handshake className="w-6 h-6" />}
         variant="darkGreen"
       />
@@ -62,11 +72,11 @@ export default function CrmPage() {
       {cards.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            You do not have permission to view customers or suppliers.
+            You do not have permission to view CRM.
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <Card key={card.title} className="flex flex-col">
               <CardHeader>

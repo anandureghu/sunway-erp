@@ -119,6 +119,8 @@ import KnowledgeBaseLibraryPage from "./pages/knowledge-base/knowledge-base-libr
 import KnowledgeBaseItemPage from "./pages/knowledge-base/knowledge-base-item-page";
 import KnowledgeBaseManagePage from "./pages/knowledge-base/knowledge-base-manage-page";
 import CrmPage from "./pages/inventory/crm-page";
+import CrmEnquiriesPage from "./pages/inventory/crm-enquiries-page";
+import CrmEnquiryDetailPage from "./pages/inventory/crm-enquiry-detail-page";
 import JournalDetailPage from "./modules/finance/journal-detail-page";
 import BudgetDetailPage from "./modules/finance/budget-detail-page";
 import InventorySettingsPage from "./pages/inventory/inventory-settings-page";
@@ -489,6 +491,28 @@ export default function App() {
                   title="CRM access denied"
                 >
                   <CrmPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="crm/enquiries"
+              element={
+                <ModuleAccessGate
+                  modules={[InventoryModule.SALES, InventoryModule.PURCHASE]}
+                  title="CRM access denied"
+                >
+                  <CrmEnquiriesPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="crm/enquiries/:id"
+              element={
+                <ModuleAccessGate
+                  modules={[InventoryModule.SALES, InventoryModule.PURCHASE]}
+                  title="CRM access denied"
+                >
+                  <CrmEnquiryDetailPage />
                 </ModuleAccessGate>
               }
             />
