@@ -24,10 +24,23 @@ export function KpiSummaryStrip({
 }) {
   if (!items.length) return null;
 
+  // Stretch cards across the full row based on count (avoids a short row of 3 on xl).
+  const colsByCount =
+    items.length === 1
+      ? "grid-cols-1"
+      : items.length === 2
+        ? "grid-cols-1 sm:grid-cols-2"
+        : items.length === 3
+          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+          : items.length === 4
+            ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
+
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4",
+        "grid w-full gap-4",
+        colsByCount,
         className,
       )}
     >

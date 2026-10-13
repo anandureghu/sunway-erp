@@ -1107,13 +1107,12 @@ export default function HRReports() {
             {/* KPI row */}
             <div className="mb-2">
               <KpiSummaryStrip
-                className="lg:grid-cols-5"
                 items={[
                   kpiFilterItem(
                     {
                       label: "Approvals Done",
                       value: leaveApprovalsDone,
-                      hint: "Approved + completed",
+                      hint: "Approved + completed returns",
                       accent: "violet",
                       icon: CalendarCheck,
                     },
@@ -1130,18 +1129,6 @@ export default function HRReports() {
                       icon: CheckCircle2,
                     },
                     "approved",
-                    leaveKpiFilter,
-                    applyLeaveKpiFilter,
-                  ),
-                  kpiFilterItem(
-                    {
-                      label: "Completed",
-                      value: leaveCompletedCount,
-                      hint: "Returned to office",
-                      accent: "sky",
-                      icon: CalendarCheck,
-                    },
-                    "completed",
                     leaveKpiFilter,
                     applyLeaveKpiFilter,
                   ),
@@ -1433,13 +1420,12 @@ export default function HRReports() {
             {/* KPI row */}
             <div className="mb-2">
               <KpiSummaryStrip
-                className="lg:grid-cols-5"
                 items={[
                   kpiFilterItem(
                     {
                       label: "Approvals Done",
                       value: loanApprovalsDone,
-                      hint: "Active + closed",
+                      hint: "Active + paid off",
                       accent: "violet",
                       icon: Wallet,
                     },
@@ -1456,18 +1442,6 @@ export default function HRReports() {
                       icon: CheckCircle2,
                     },
                     "active",
-                    loanKpiFilter,
-                    applyLoanKpiFilter,
-                  ),
-                  kpiFilterItem(
-                    {
-                      label: "Closed",
-                      value: loanClosedCount,
-                      hint: "Fully repaid",
-                      accent: "sky",
-                      icon: Banknote,
-                    },
-                    "closed",
                     loanKpiFilter,
                     applyLoanKpiFilter,
                   ),
