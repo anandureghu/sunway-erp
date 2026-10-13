@@ -53,9 +53,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DEFAULT_SEARCH_DEBOUNCE_MS } from "@/types/page";
-
-const PAGE_SIZE = 20;
+import { TablePagination } from "@/components/table-pagination";
+import { DEFAULT_PAGE_SIZE, DEFAULT_SEARCH_DEBOUNCE_MS } from "@/types/page";
 
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
@@ -80,10 +79,14 @@ export default function SubscriptionsPage() {
     SubscriptionPaymentStatus | ""
   >("");
   const [expiringWithin, setExpiringWithin] = useState<string>("");
+  const [companyCodeInput, setCompanyCodeInput] = useState("");
+  const [companyCode, setCompanyCode] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [analytics, setAnalytics] = useState<SubscriptionAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
@@ -94,10 +97,11 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setSearch(searchInput.trim());
+      setCompanyCode(companyCodeInput.trim());
       setPage(0);
     }, DEFAULT_SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
-  }, [searchInput]);
+  }, [searchInput, companyCodeInput]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -107,18 +111,20 @@ export default function SubscriptionsPage() {
         planType,
         paymentStatus,
         expiringWithinDays: expiringWithin ? Number(expiringWithin) : undefined,
+        companyCode: companyCode || undefined,
         search: search || undefined,
         page,
-        size: PAGE_SIZE,
+        size: pageSize,
       });
       setRows(data.content ?? []);
       setTotalPages(data.totalPages ?? 0);
+      setTotalElements(data.totalElements ?? 0);
     } catch (err) {
       toast.error(getApiErrorMessage(err, "Failed to load subscriptions"));
     } finally {
       setLoading(false);
     }
-  }, [status, planType, paymentStatus, expiringWithin, search, page]);
+  }, [status, planType, paymentStatus, expiringWithin, companyCode, search, page, pageSize]);
 
   const loadAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -235,6 +241,17 @@ export default function SubscriptionsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap items-end gap-3 pt-4">
+              <div className="space-y-1.5">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  Company code
+                </p>
+                <Input
+                  className="h-9 w-[140px] rounded-xl font-mono"
+                  placeholder="e.g. 500"
+                  value={companyCodeInput}
+                  onChange={(e) => setCompanyCodeInput(e.target.value)}
+                />
+              </div>
               <div className="space-y-1.5 min-w-[200px] flex-1">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   Search
@@ -243,7 +260,7 @@ export default function SubscriptionsPage() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="h-9 rounded-xl pl-9"
-                    placeholder="Company, code, plan, status…"
+                    placeholder="Company name, plan, status…"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                   />
@@ -394,7 +411,7 @@ export default function SubscriptionsPage() {
                         }
                       >
                         <td className="px-3 py-2.5 tabular-nums text-slate-500">
-                          {page * PAGE_SIZE + index + 1}
+                          {page * pageSize + index + 1}
                         </td>
                         <td className="px-3 py-2.5">
                           <span className="font-mono text-[12px] font-medium text-slate-700">
@@ -502,31 +519,19 @@ export default function SubscriptionsPage() {
             </div>
           </Card>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
-                disabled={page <= 0}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                Previous
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
-                disabled={page + 1 >= totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          )}
+          <div className="rounded-2xl border border-slate-200 bg-white px-2 shadow-sm">
+            <TablePagination
+              total={totalElements}
+              pageIndex={page}
+              pageSize={pageSize}
+              pageCount={Math.max(totalPages, 1)}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(0);
+              }}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="analysis" className="space-y-4">

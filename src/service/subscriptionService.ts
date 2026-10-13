@@ -32,6 +32,7 @@ export async function fetchSubscriptions(params: {
   status?: SubscriptionStatus | "";
   planType?: SubscriptionPlanType | "";
   companyId?: number;
+  companyCode?: string;
   expiringWithinDays?: number;
   paymentStatus?: SubscriptionPaymentStatus | "";
   search?: string;
@@ -43,6 +44,7 @@ export async function fetchSubscriptions(params: {
       status: params.status || undefined,
       planType: params.planType || undefined,
       companyId: params.companyId,
+      companyCode: params.companyCode || undefined,
       expiringWithinDays: params.expiringWithinDays,
       paymentStatus: params.paymentStatus || undefined,
       search: params.search || undefined,
