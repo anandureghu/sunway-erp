@@ -20,16 +20,22 @@ import { CompanyDialog } from "./company-dialog";
 import { EmployeeDialog } from "../employee/employee-dialog";
 import { CompanyAdminSetupDialog } from "./company-admin-setup-dialog";
 import { AssignExistingUserDialog } from "./assign-existing-user-dialog";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { PageHeader } from "@/components/PageHeader";
+import { useAuth } from "@/context/AuthContext";
 
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function CompanyListPage() {
+  const { user } = useAuth();
   const { confirm } = useConfirmDialog();
+
+  if (user?.role !== "SUPER_ADMIN") {
+    return <Navigate to="/" replace />;
+  }
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Company | null>(null);

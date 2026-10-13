@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { apiClient } from "@/service/apiClient";
@@ -45,6 +51,8 @@ type AuthContextType = {
   switchCompany: (companyId: number) => Promise<void>;
   permissions: Record<string, Record<string, boolean>> | null;
   permissionsLoading: boolean;
+  /** Re-fetch module grants for the current user (no-op for ADMIN/SUPER_ADMIN). */
+  refreshPermissions: () => Promise<void>;
   accountPeriodOpen: boolean;
   fetchAccountPeriodStatus: () => void;
   openPeriod?: AccountingPeriod | null;
@@ -620,6 +628,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [activeCompanyId, accessToken]);
 
+  const refreshPermissions = useCallback(async () => {
+    if (!accessToken || !user) return;
+    const securityRole = (user.role ?? "").toString();
+    if (isSecurityAdmin(securityRole)) {
+      setPermissions(null);
+      setPermissionsLoading(false);
+      return;
+    }
+    const companyRoleId =
+      user.companyRoleId != null ? Number(user.companyRoleId) : undefined;
+    await fetchPermissions(
+      user.companyRole || securityRole,
+      Number.isFinite(companyRoleId) && (companyRoleId as number) > 0
+        ? companyRoleId
+        : undefined,
+      securityRole,
+    );
+    // fetchPermissions is stable enough for this session; omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken, user]);
+
+  // Pick up role/permission grants made while this tab was in the background.
+  useEffect(() => {
+    if (!accessToken || !user || isSecurityAdmin(user.role)) return;
+    const onFocus = () => {
+      void refreshPermissions();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [accessToken, user, refreshPermissions]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -635,6 +674,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isAuthenticated: !!accessToken,
         permissions,
         permissionsLoading,
+        refreshPermissions,
         accountPeriodOpen,
         fetchAccountPeriodStatus,
         openPeriod,

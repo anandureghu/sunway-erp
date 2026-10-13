@@ -307,8 +307,21 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
-              // HR Reports — gated by HR_REPORTS
-              ...(canView(permissions, "HR_REPORTS")
+              // HR Reports — umbrella HR_REPORTS or any granular HRR_* tab grant
+              ...(canView(permissions, "HR_REPORTS") ||
+              [
+                "HRR_WORKFORCE",
+                "HRR_PERFORMANCE",
+                "HRR_TIMESHEETS",
+                "HRR_ATTENDANCE_HISTORY",
+                "HRR_LEAVE_HISTORY",
+                "HRR_LOAN_HISTORY",
+                "HRR_IMMIGRATION_EXPIRY",
+                "HRR_PAYROLL_SUMMARY",
+                "HRR_EXIT_INTERVIEWS",
+                "HRR_ARCHIVE",
+                "HRR_HISTORY",
+              ].some((m) => canView(permissions, m))
                 ? [
                     {
                       title: "HR Reports",
@@ -346,8 +359,24 @@ export const getSidebarItems = async (
                   ]
                 : []),
 
-              // HR Settings — gated by HR_SETTINGS
-              ...(canView(permissions, "HR_SETTINGS")
+              // HR Settings — umbrella HR_SETTINGS or any granular HRS_* grant
+              ...(canView(permissions, "HR_SETTINGS") ||
+              [
+                "HRS_ORG_STRUCTURE",
+                "HRS_DEPARTMENTS",
+                "HRS_JOB_CODES",
+                "HRS_ROLES",
+                "HRS_CONFIRMATIONS",
+                "HRS_CONTRACT_RENEWALS",
+                "HRS_APPRAISAL_CONFIG",
+                "HRS_LEAVE_TYPES",
+                "HRS_LEAVE_APPROVALS",
+                "HRS_LOAN_APPROVALS",
+                "HRS_POLICIES",
+                "HRS_SOCIAL",
+                "HRS_PERMISSIONS",
+                "HRS_BULK_UPLOAD",
+              ].some((m) => canView(permissions, m))
                 ? [
                     {
                       title: "HR Settings",

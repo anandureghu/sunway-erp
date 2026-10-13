@@ -25,18 +25,18 @@ export function useModulePermission(module: string) {
     [permissions, module],
   );
 
+  const hasMap = permissions != null;
+
   return {
     ...caps,
     loading: permissionsLoading,
     isAdmin,
-    canView: isAdmin || permissions === null || canView(permissions, module),
-    canCreate:
-      isAdmin || permissions === null || canCreateModule(permissions, module),
-    canEdit:
-      isAdmin || permissions === null || canEditModule(permissions, module),
-    canDelete:
-      isAdmin || permissions === null || canDeleteModule(permissions, module),
-    canApprove:
-      isAdmin || permissions === null || canApproveModule(permissions, module),
+    // Role bypass for ADMIN/SUPER_ADMIN only. Require a loaded map for USER —
+    // `permissions === null` is the admin sentinel, not a grant for everyone.
+    canView: isAdmin || (hasMap && canView(permissions, module)),
+    canCreate: isAdmin || (hasMap && canCreateModule(permissions, module)),
+    canEdit: isAdmin || (hasMap && canEditModule(permissions, module)),
+    canDelete: isAdmin || (hasMap && canDeleteModule(permissions, module)),
+    canApprove: isAdmin || (hasMap && canApproveModule(permissions, module)),
   };
 }

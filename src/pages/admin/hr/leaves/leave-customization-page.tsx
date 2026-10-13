@@ -4,13 +4,13 @@ import { ArrowLeft, Settings, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LeaveCustomizationForm from "@/modules/hr/leaves/admin/LeaveCustomizationForm";
 import { useAuth } from "@/context/AuthContext";
+import { isSecurityAdmin } from "@/lib/utils";
 
 export default function LeaveCustomizationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Check if user has ADMIN role - only ADMIN can access this page
-  if (user?.role !== "ADMIN") {
+  if (!isSecurityAdmin(user?.role)) {
     return (
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
@@ -31,7 +31,7 @@ export default function LeaveCustomizationPage() {
             <p className="text-muted-foreground text-center">
               You do not have permission to access Leave Customization.
               <br />
-              This feature is only available for ADMIN role.
+              This feature is only available for ADMIN and SUPER_ADMIN.
             </p>
           </CardContent>
         </Card>

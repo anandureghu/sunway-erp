@@ -187,12 +187,73 @@ export default function App() {
                 </ModuleAccessGate>
               }
             />
-            <Route path="payroll" element={<Payroll />} />
-            <Route path="settings" element={<FinanceSettingsPage />} />
-            <Route path="receivable" element={<AccountsReceivablePage />} />
-            <Route path="payable" element={<AccountsPayablePage />} />
-            <Route path="ledger" element={<GeneralLedgerPage />} />
-            <Route path="reports" element={<FinanceReportsPage />} />
+            <Route
+              path="payroll"
+              element={
+                <ModuleAccessGate module="PAYROLL" title="Payroll access denied">
+                  <Payroll />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <ModuleAccessGate
+                  modules={[
+                    "FINANCE_COA",
+                    "FINANCE_BUDGET",
+                    "FINANCE_RECONCILIATION",
+                  ]}
+                  title="Finance settings access denied"
+                >
+                  <FinanceSettingsPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="receivable"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_INVOICE"
+                  title="Accounts receivable access denied"
+                >
+                  <AccountsReceivablePage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="payable"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_PAYMENT"
+                  title="Accounts payable access denied"
+                >
+                  <AccountsPayablePage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="ledger"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_LEDGER"
+                  title="General ledger access denied"
+                >
+                  <GeneralLedgerPage />
+                </ModuleAccessGate>
+              }
+            />
+            <Route
+              path="reports"
+              element={
+                <ModuleAccessGate
+                  module="FINANCE_REPORTS"
+                  title="Finance reports access denied"
+                >
+                  <FinanceReportsPage />
+                </ModuleAccessGate>
+              }
+            />
             {/* FIN_SHEET_REPORTS — remove with Financial/Account Summary pages + backend. */}
             <Route
               path="reports/financial-summary"
@@ -682,7 +743,14 @@ export default function App() {
               element={<Navigate to="/hr/employees" replace />}
             />
 
-            <Route path="payroll" element={<Payroll />} />
+            <Route
+              path="payroll"
+              element={
+                <ModuleAccessGate module="PAYROLL" title="Payroll access denied">
+                  <Payroll />
+                </ModuleAccessGate>
+              }
+            />
 
             {/* employees list */}
             <Route path="employees" element={<EmployeesPage />} />

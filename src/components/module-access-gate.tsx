@@ -38,14 +38,16 @@ export function ModuleAccessGate({
     );
   }
 
+  // ADMIN/SUPER_ADMIN bypass via role only. Non-admins need a loaded permission
+  // map (`null` is the admin sentinel — never treat it as a grant for USER).
   const allowed =
     isAdmin ||
-    permissions === null ||
-    (modules && modules.length > 0
-      ? canViewAnyModule(permissions, modules)
-      : module
-        ? canView(permissions, module)
-        : true);
+    (permissions != null &&
+      (modules && modules.length > 0
+        ? canViewAnyModule(permissions, modules)
+        : module
+          ? canView(permissions, module)
+          : true));
 
   if (!allowed) {
     return (
