@@ -1,6 +1,6 @@
 ---
 description: Locked HR UI patterns — ask before changing typography, Employee Register, or home module cards
-globs: src/pages/employees-page.tsx,src/modules/hr/components/employee-filters.tsx,src/modules/hr/columns/employees-columns.tsx,src/modules/hr/policies/HrPoliciesForm.tsx,src/pages/dashboard.tsx
+globs: src/pages/employees-page.tsx,src/modules/hr/components/employee-filters.tsx,src/modules/hr/columns/employees-columns.tsx,src/modules/hr/policies/HrPoliciesForm.tsx,src/pages/dashboard.tsx,src/modules/hr/current-job/tabs/CurrentJobForm.tsx
 alwaysApply: false
 ---
 
@@ -26,9 +26,15 @@ These surfaces are **frozen by product decision**. Files contain `LOCKED UI` com
    - Uniform size: `min-h-[5.75rem]`, `h-full`, `auto-rows-fr`, description `line-clamp-2` + `min-h-[2rem]`
    - Reference size: Employee Payroll tile (icon | title+2-line blurb | arrow)
 
+4. **Reporting Manager list** (`CurrentJobForm.tsx`):
+   - Same department as the job being edited
+   - Plus company `ceoEmployeeId`
+   - Plus titles matching CEO / Chief Executive / Managing Director
+   - Always keep the currently saved manager visible
+
 ## Agent requirement
 
-Before restyling, renaming chips, changing column layout, altering this typography, or changing module-card height:
+Before restyling, renaming chips, changing column layout, altering this typography, changing module-card height, or broadening the reporting-manager list:
 
 1. **Stop and ask the user** whether they want to change the locked pattern.
 2. Do not “improve” or normalize these areas to match other modules without explicit approval.

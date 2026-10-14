@@ -159,7 +159,30 @@ type EmployeeOption = {
   lastName?: string;
   employeeNo?: string;
   fullName?: string;
+  departmentId?: number | string | null;
+  departmentName?: string | null;
+  designation?: string | null;
+  jobCode?: string | null;
+  companyRole?: string | null;
 };
+
+/**
+ * LOCKED RULE — Reporting Manager candidates
+ * Do not broaden this list without asking the user first.
+ * Eligible: employees in the same department as the job being edited,
+ * plus company CEO (ceoEmployeeId), plus anyone titled CEO / Managing Director.
+ */
+function isExecutiveManagerTitle(emp: EmployeeOption): boolean {
+  const text = [emp.designation, emp.companyRole, emp.jobCode]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return (
+    /\bceo\b/.test(text) ||
+    text.includes("chief executive") ||
+    text.includes("managing director")
+  );
+}
 
 /* ================= COMPONENT ================= */
 
@@ -650,7 +673,7 @@ export default function CurrentJobForm() {
         void loadDivisionsForDepartment(selectedDept.id);
 
         // Default "Report to" to the department's manager when none is set yet.
-        // It remains fully editable — the dropdown lists everyone in the org.
+        // Dropdown is limited to same department + CEO / Managing Director.
         if (
           formData.reportingManagerId == null &&
           selectedDept.managerId != null &&
@@ -690,9 +713,63 @@ export default function CurrentJobForm() {
   const isContractual =
     !!formData.employmentCategory && formData.employmentCategory !== "PERMANENT";
 
+  const reportingManagerOptions = useMemo(() => {
+    const selectedDept = departments.find(
+      (d) => d.departmentCode === formData.departmentCode,
+    );
+    const deptId =
+      selectedDept?.id != null ? Number(selectedDept.id) : null;
+    const deptName = (selectedDept?.departmentName || "").trim().toLowerCase();
+    const ceoId =
+      company?.ceoEmployeeId != null ? Number(company.ceoEmployeeId) : null;
+    const selectedId = formData.reportingManagerId;
+
+    const filtered = managerCandidates.filter((e) => {
+      if (e.id === employeeId) return false;
+      if (ceoId != null && e.id === ceoId) return true;
+      if (isExecutiveManagerTitle(e)) return true;
+      if (deptId != null && e.departmentId != null) {
+        if (Number(e.departmentId) === deptId) return true;
+      }
+      if (
+        deptName &&
+        (e.departmentName || "").trim().toLowerCase() === deptName
+      ) {
+        return true;
+      }
+      // Keep a previously saved manager visible even if they no longer match.
+      if (selectedId != null && e.id === selectedId) return true;
+      return false;
+    });
+
+    // If the saved manager wasn't in the loaded candidate list, synthesize a row.
+    if (
+      selectedId != null &&
+      !filtered.some((e) => e.id === selectedId) &&
+      formData.reportingManagerName
+    ) {
+      filtered.push({
+        id: selectedId,
+        fullName: formData.reportingManagerName,
+        employeeNo: formData.reportingManagerEmployeeNo,
+      });
+    }
+
+    return filtered;
+  }, [
+    managerCandidates,
+    departments,
+    formData.departmentCode,
+    formData.reportingManagerId,
+    formData.reportingManagerName,
+    formData.reportingManagerEmployeeNo,
+    employeeId,
+    company?.ceoEmployeeId,
+  ]);
+
   const managerLabel = useMemo(() => {
     if (formData.reportingManagerId == null) return "";
-    const m = managerCandidates.find(
+    const m = reportingManagerOptions.find(
       (e) => e.id === formData.reportingManagerId,
     );
     if (!m) {
@@ -701,7 +778,7 @@ export default function CurrentJobForm() {
     const name = [m.firstName, m.lastName].filter(Boolean).join(" ");
     return name || (m.fullName ?? "");
   }, [
-    managerCandidates,
+    reportingManagerOptions,
     formData.reportingManagerId,
     formData.reportingManagerName,
   ]);
@@ -1083,28 +1160,26 @@ export default function CurrentJobForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— No reporting manager —</SelectItem>
-                  {managerCandidates
-                    .filter((e) => e.id !== employeeId)
-                    .map((m) => {
-                      const name =
-                        [m.firstName, m.lastName].filter(Boolean).join(" ") ||
-                        m.fullName ||
-                        `Employee #${m.id}`;
-                      return (
-                        <SelectItem key={m.id} value={String(m.id)}>
-                          <div className="flex flex-col">
-                            <span className="font-medium text-slate-800">
-                              {name}
+                  {reportingManagerOptions.map((m) => {
+                    const name =
+                      [m.firstName, m.lastName].filter(Boolean).join(" ") ||
+                      m.fullName ||
+                      `Employee #${m.id}`;
+                    return (
+                      <SelectItem key={m.id} value={String(m.id)}>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-800">
+                            {name}
+                          </span>
+                          {m.employeeNo && (
+                            <span className="text-[11px] text-slate-400">
+                              #{m.employeeNo}
                             </span>
-                            {m.employeeNo && (
-                              <span className="text-[11px] text-slate-400">
-                                #{m.employeeNo}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
