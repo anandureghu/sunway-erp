@@ -16,13 +16,16 @@ import { EmployeeFilters } from "@/modules/hr/components/employee-filters";
 import { EmployeeStats } from "@/modules/hr/components/employee-stats";
 import { AddEmployeeModal } from "@/context/employee-selection";
 import { useAuth } from "@/context/AuthContext";
-import { UserPlus, Users2, LayoutGrid } from "lucide-react";
+import { UserPlus, Users2, Search } from "lucide-react";
 import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { ImportEmployeesCsvDialog } from "@/pages/employees/import-employees-csv-dialog";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import { fetchDepartments } from "@/service/departmentService";
 import type { PageResult } from "@/types/page";
 import type { Row } from "@tanstack/react-table";
+
+type DepartmentOption = { id: number; departmentName?: string; name?: string };
 
 /** Normalize UI filter labels ("under probation") to backend enum names. */
 function toApiStatus(raw: string | null): string | null {
@@ -53,11 +56,16 @@ async function hydrateEmployeeFromCurrentJob(emp: Employee): Promise<Employee> {
       cj.department?.departmentName ||
       "";
     const jobTitle = cj.job?.title || cj.jobTitle || "";
+    const jobCode = cj.job?.code || cj.jobCode || "";
+    const divisionName =
+      cj.divisionName || cj.division?.name || cj.division?.divisionName || "";
 
     const next: Employee = { ...emp };
     if (departmentName) next.department = departmentName;
     // Prefer backend-supplied designation; fall back to the current job's title.
     if (!next.designation && jobTitle) next.designation = jobTitle;
+    if (!next.jobCode && jobCode) next.jobCode = jobCode;
+    if (!next.divisionName && divisionName) next.divisionName = divisionName;
     // Employment type/category also come from the current job — fall back to it.
     if (!next.employmentCategory && cj.employmentCategory)
       next.employmentCategory = cj.employmentCategory;
@@ -88,7 +96,8 @@ async function hydrateEmployees(list: Employee[]): Promise<Employee[]> {
 
 export default function EmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [empTypeFilter, setEmpTypeFilter] = useState<string | null>(null);
+  const [departmentId, setDepartmentId] = useState<number | null>(null);
+  const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   /** Full-directory snapshot for KPI cards (status breakdown). */
   const [statsEmployees, setStatsEmployees] = useState<Employee[]>([]);
@@ -102,9 +111,9 @@ export default function EmployeesPage() {
   const filters = useMemo(
     () => ({
       status: toApiStatus(statusFilter),
-      employmentCategory: empTypeFilter,
+      departmentId,
     }),
-    [statusFilter, empTypeFilter],
+    [statusFilter, departmentId],
   );
 
   const fetchPage = useCallback(
@@ -113,14 +122,14 @@ export default function EmployeesPage() {
       size: number;
       search: string;
       status: string | null;
-      employmentCategory: string | null;
+      departmentId: number | null;
     }): Promise<PageResult<Employee>> => {
       const page = await hrService.listEmployeesPage({
         page: params.page,
         size: params.size,
         search: params.search,
         status: params.status,
-        employmentCategory: params.employmentCategory,
+        departmentId: params.departmentId,
       });
       const content = page.content?.length
         ? await hydrateEmployees(page.content)
@@ -144,13 +153,25 @@ export default function EmployeesPage() {
     reload,
   } = useServerPagedList<
     Employee,
-    { status: string | null; employmentCategory: string | null }
+    { status: string | null; departmentId: number | null }
   >({
     fetcher: fetchPage,
     filters,
     enabled: isAdmin || canViewEmployees,
     errorMessage: "Failed to load employees",
   });
+
+  useEffect(() => {
+    if (!company?.id) return;
+    let cancelled = false;
+    fetchDepartments(Number(company.id)).then((list) => {
+      if (cancelled || !Array.isArray(list)) return;
+      setDepartments(list as DepartmentOption[]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [company?.id]);
 
   const handleEmployeeSelect = (employee: Employee) => {
     setSelected({
@@ -333,8 +354,10 @@ export default function EmployeesPage() {
   const clearFilters = () => {
     setSearchInput("");
     setStatusFilter(null);
-    setEmpTypeFilter(null);
+    setDepartmentId(null);
   };
+
+  const directoryTotal = Math.max(statsEmployees.length, totalElements);
 
   return (
     <div className="p-6 space-y-4">
@@ -380,7 +403,7 @@ export default function EmployeesPage() {
       <EmployeeStats
         employees={statsEmployees}
         totalOverride={
-          !statusFilter && !empTypeFilter && !searchInput.trim()
+          !statusFilter && !departmentId && !searchInput.trim()
             ? totalElements
             : undefined
         }
@@ -388,68 +411,69 @@ export default function EmployeesPage() {
         activeFilter={statusFilter}
       />
 
-      {/* ── Employee table ───────────────────────────────────────────────── */}
+      {/*
+        LOCKED UI — Employee Register directory card
+        Do not change toolbar layout, typography scale, or column set without asking the user first.
+        Typography aligned with Company HR Policies (section ~text-xs bold uppercase;
+        labels ~text-[11px]; body ~text-sm).
+        Toolbar: search | All departments | status chips (single row when space allows).
+      */}
       <Card className="shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100">
-              <Users2 className="h-4 w-4 text-slate-600" />
-            </div>
-            Employee Directory
-            <span className="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
+          <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            Employee Register
+            <span className="ml-auto text-[11px] font-normal normal-case tracking-normal text-slate-400 tabular-nums">
               {loading
                 ? "Loading…"
-                : `${totalElements.toLocaleString()} employee${totalElements === 1 ? "" : "s"}`}
+                : `${totalElements.toLocaleString()} of ${directoryTotal.toLocaleString()} employees`}
             </span>
           </CardTitle>
         </CardHeader>
         <Separator />
 
-        {/* Search + filter toolbar */}
-        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:flex-wrap lg:items-center">
           <div className="relative w-full sm:max-w-xs">
-            <LayoutGrid className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search name, code, email, phone…"
-              className="h-9 pl-9 pr-9 text-sm"
+              placeholder="Search name, code, designation"
+              className="h-9 rounded-full border-slate-200 pl-9 pr-9 text-sm"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={() => setSearchInput("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors text-xs"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors text-xs"
               >
                 ✕
               </button>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <EmployeeFilters
-              onFilterStatus={setStatusFilter}
-              activeFilter={statusFilter}
-            />
-            <select
-              value={empTypeFilter ?? ""}
-              onChange={(e) => setEmpTypeFilter(e.target.value || null)}
-              aria-label="Filter by employment type"
-              className={cn(
-                "h-[26px] rounded-full border px-3 text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-foreground/10",
-                empTypeFilter
-                  ? "border-foreground/20 bg-foreground text-background"
-                  : "border-border bg-background text-muted-foreground hover:border-foreground/20 hover:text-foreground",
-              )}
-            >
-              <option value="">All types</option>
-              <option value="PERMANENT">Permanent</option>
-              <option value="CONTRACT">Contract</option>
-              <option value="CONSULTANT">Consultant</option>
-              <option value="INTERN">Intern</option>
-              <option value="TEMPORARY">Temporary</option>
-            </select>
-          </div>
+          <select
+            value={departmentId ?? ""}
+            onChange={(e) =>
+              setDepartmentId(e.target.value ? Number(e.target.value) : null)
+            }
+            aria-label="Filter by department"
+            className={cn(
+              "h-9 rounded-full border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700",
+              "focus:outline-none focus:ring-2 focus:ring-slate-200",
+            )}
+          >
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.departmentName || d.name || `Department ${d.id}`}
+              </option>
+            ))}
+          </select>
+
+          <EmployeeFilters
+            onFilterStatus={setStatusFilter}
+            activeFilter={statusFilter}
+          />
         </div>
 
         <div
@@ -478,6 +502,7 @@ export default function EmployeesPage() {
             <DataTable<Employee, unknown>
               columns={EMPLOYEE_COLUMNS}
               data={rows}
+              hideSlNo
               onRowClick={(row: Row<Employee>) =>
                 handleEmployeeSelect(row.original)
               }

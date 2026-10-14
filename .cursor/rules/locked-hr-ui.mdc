@@ -1,0 +1,35 @@
+---
+description: Locked HR UI patterns — ask before changing typography, Employee Register, or home module cards
+globs: src/pages/employees-page.tsx,src/modules/hr/components/employee-filters.tsx,src/modules/hr/columns/employees-columns.tsx,src/modules/hr/policies/HrPoliciesForm.tsx,src/pages/dashboard.tsx
+alwaysApply: false
+---
+
+# Locked HR UI — ask before changing
+
+These surfaces are **frozen by product decision**. Files contain `LOCKED UI` comments marking the exact blocks.
+
+## Canonical standards
+
+1. **Company HR Policies** (`HrPoliciesForm.tsx`) — typography scale for HR settings forms:
+   - Section headers: `text-xs font-bold uppercase tracking-wide`
+   - Field labels: `text-[11px] font-semibold uppercase tracking-wider text-slate-500`
+   - Helpers: `text-[10px]` / `text-[11px] text-slate-400`
+   - Inputs: `h-9 text-sm`
+
+2. **Employee Register** (`employees-page.tsx` + filters + columns):
+   - Toolbar: search (pill) → All departments → status chips
+   - Chips: All / Active / Probation / On leave / Exiting / Inactive
+   - Active chip: `bg-slate-900 text-white`; idle: white + `border-slate-200`
+   - Columns: Employee (name+code), Status, Nationality, Department/Division, Designation, Joined
+
+3. **Home module cards** (`dashboard.tsx` Modules tab):
+   - Uniform size: `min-h-[5.75rem]`, `h-full`, `auto-rows-fr`, description `line-clamp-2` + `min-h-[2rem]`
+   - Reference size: Employee Payroll tile (icon | title+2-line blurb | arrow)
+
+## Agent requirement
+
+Before restyling, renaming chips, changing column layout, altering this typography, or changing module-card height:
+
+1. **Stop and ask the user** whether they want to change the locked pattern.
+2. Do not “improve” or normalize these areas to match other modules without explicit approval.
+3. Bug fixes that preserve visual design are OK (logic, data, a11y) without asking.

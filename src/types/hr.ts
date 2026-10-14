@@ -58,6 +58,8 @@ export interface Employee {
    * which is the security/permission role on the user.
    */
   designation?: string;
+  /** Job code from current job (job_codes.code). */
+  jobCode?: string;
   /** Employment category (PERMANENT/CONTRACT/…) + type (FULL_TIME/PART_TIME) from current job. */
   employmentCategory?: string;
   employmentType?: string;

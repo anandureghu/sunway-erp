@@ -150,6 +150,14 @@ export default function HrPoliciesForm() {
 
   return (
     <div className="space-y-5">
+      {/*
+        LOCKED UI — Company HR Policies typography scale (canonical for HR settings forms)
+        Do not change font sizes, label casing, or section header treatment without asking
+        the user first. Scale: card title text-sm semibold; section headers text-xs bold
+        uppercase tracking-wide; field labels text-[11px] font-semibold uppercase
+        tracking-wider text-slate-500; helpers text-[10px]/text-[11px] text-slate-400;
+        inputs h-9 text-sm.
+      */}
       <SecondaryPageHeader
         title="HR Policies"
         description={`Company-wide rules applied to every employee in ${company.companyName}`}

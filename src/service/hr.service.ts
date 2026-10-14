@@ -24,6 +24,8 @@
     status?: string | null;
     /** Backend enum name, e.g. PERMANENT / CONTRACT */
     employmentCategory?: string | null;
+    /** Filter by department id (employee or current-job department). */
+    departmentId?: number | null;
   };
 
   /* =====================================================
@@ -52,6 +54,9 @@
     }
     if (params.employmentCategory?.trim()) {
       query.employmentCategory = params.employmentCategory.trim();
+    }
+    if (params.departmentId != null) {
+      query.departmentId = params.departmentId;
     }
     const res = await apiClient.get<PageResult<Employee>>("/employees/page", {
       params: query,

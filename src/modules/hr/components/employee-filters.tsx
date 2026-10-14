@@ -1,19 +1,23 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * LOCKED UI — Employee Register status chips
+ * Do not restyle, rename, or reorder these chips without asking the user first.
+ * Reference: compact register toolbar (All / Active / Probation / On leave / Exiting / Inactive).
+ * Active chip = solid slate-900 + white text; idle = white + border.
+ */
 interface EmployeeFiltersProps {
   onFilterStatus: (status: string | null) => void;
   activeFilter: string | null;
 }
 
 const filters = [
-  { label: "All",             value: null,              dot: "bg-blue-500" },
-  { label: "Active",          value: "ACTIVE",          dot: "bg-emerald-500" },
-  { label: "Under Probation", value: "UNDER_PROBATION", dot: "bg-indigo-500" },
-  { label: "On Leave",        value: "ON_LEAVE",        dot: "bg-amber-500" },
-  { label: "Resigned",        value: "RESIGNED",        dot: "bg-orange-500" },
-  { label: "Terminated",      value: "TERMINATED",      dot: "bg-rose-500" },
-  { label: "Retired",         value: "RETIRED",         dot: "bg-violet-500" },
-  { label: "Inactive",        value: "INACTIVE",        dot: "bg-slate-500" },
+  { label: "All", value: null },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Probation", value: "UNDER_PROBATION" },
+  { label: "On leave", value: "ON_LEAVE" },
+  { label: "Exiting", value: "RESIGNED" },
+  { label: "Inactive", value: "INACTIVE" },
 ] as const;
 
 const toStatusKey = (raw: string | null | undefined) =>
@@ -30,7 +34,7 @@ export function EmployeeFilters({
 }: EmployeeFiltersProps) {
   const activeKey = toStatusKey(activeFilter);
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       {filters.map((f) => {
         const valueKey = toStatusKey(f.value);
         const isActive = activeKey === valueKey;
@@ -40,13 +44,12 @@ export function EmployeeFilters({
             type="button"
             onClick={() => onFilterStatus(valueKey)}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all",
+              "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors",
               isActive
-                ? "border-foreground/20 bg-foreground text-background shadow-sm"
-                : "border-border bg-background text-muted-foreground hover:border-foreground/20 hover:bg-muted hover:text-foreground",
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
             )}
           >
-            <span className={cn("h-1.5 w-1.5 rounded-full", f.dot)} />
             {f.label}
           </button>
         );
