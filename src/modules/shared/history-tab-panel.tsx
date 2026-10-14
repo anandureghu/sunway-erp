@@ -55,8 +55,10 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [rows, setRows] = useState<HistoryRecord[]>([]);
   const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -87,11 +89,12 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
         module: HISTORY_TYPE_MODULE[entityType],
         type: entityType,
         page,
-        size: 20,
+        size: pageSize,
         search: search.trim() || undefined,
       });
       setRows(response.content);
       setTotalElements(response.totalElements);
+      setTotalPages(response.totalPages ?? 0);
     } catch (error: unknown) {
       const message =
         (error as { response?: { data?: { message?: string } } })?.response?.data
@@ -102,7 +105,7 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
     } finally {
       setLoading(false);
     }
-  }, [entityType, page, search]);
+  }, [entityType, page, pageSize, search]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -377,11 +380,19 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
               onRowSelectionChange={setRowSelection}
               getRowId={(row) => String(row.id)}
               hideSlNo
+              serverPagination={{
+                total: totalElements,
+                pageIndex: page,
+                pageSize,
+                pageCount: Math.max(totalPages, 1),
+                onPageChange: setPage,
+                onPageSizeChange: (size) => {
+                  setPageSize(size);
+                  setPage(0);
+                },
+              }}
             />
           )}
-          <p className="text-xs text-muted-foreground">
-            {totalElements} archived record{totalElements === 1 ? "" : "s"} found.
-          </p>
         </CardContent>
       </Card>
 

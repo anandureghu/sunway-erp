@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { DataTable } from "@/ui/data-table";
+import { DataTable } from "@/components/datatable";
 import { EMPLOYEE_COLUMNS } from "@/modules/hr/columns/employees-columns";
 import { hrService } from "@/service/hr.service";
 import { addressService } from "@/service/addressService";
@@ -21,21 +21,8 @@ import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { ImportEmployeesCsvDialog } from "@/pages/employees/import-employees-csv-dialog";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
-import { TablePagination } from "@/components/table-pagination";
 import type { PageResult } from "@/types/page";
-
-interface EmployeeTableProps {
-  data: Employee[];
-  onSelect: (employee: Employee) => void;
-}
-
-const EmployeeTable = ({ data, onSelect }: EmployeeTableProps) => (
-  <DataTable<Employee>
-    columns={EMPLOYEE_COLUMNS}
-    data={data}
-    onRowClick={onSelect}
-  />
-);
+import type { Row } from "@tanstack/react-table";
 
 /** Normalize UI filter labels ("under probation") to backend enum names. */
 function toApiStatus(raw: string | null): string | null {
@@ -488,17 +475,21 @@ export default function EmployeesPage() {
               </Button>
             </div>
           ) : (
-            <>
-              <EmployeeTable data={rows} onSelect={handleEmployeeSelect} />
-              <TablePagination
-                total={totalElements}
-                pageIndex={page}
-                pageSize={pageSize}
-                pageCount={Math.max(pageCount, 1)}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-              />
-            </>
+            <DataTable<Employee, unknown>
+              columns={EMPLOYEE_COLUMNS}
+              data={rows}
+              onRowClick={(row: Row<Employee>) =>
+                handleEmployeeSelect(row.original)
+              }
+              serverPagination={{
+                total: totalElements,
+                pageIndex: page,
+                pageSize,
+                pageCount: Math.max(pageCount, 1),
+                onPageChange: setPage,
+                onPageSizeChange: setPageSize,
+              }}
+            />
           )}
         </div>
       </Card>
