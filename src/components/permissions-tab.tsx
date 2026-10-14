@@ -1,14 +1,25 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { Plus, KeyRound, Shield, Search, Edit, Trash2, Users } from "lucide-react";
+import {
+  Plus,
+  KeyRound,
+  Shield,
+  Search,
+  Edit,
+  Trash2,
+  Users,
+  UserRound,
+  ShieldCheck,
+  CircleCheckBig,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { TablePagination, usePagination } from "@/components/table-pagination";
+import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import {
   roleBadgeClasses,
   avatarColor,
@@ -420,34 +431,38 @@ export default function PermissionsTab({ moduleType, modules }: Props) {
         }
       />
 
-      {/* Summary stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total Rules", val: perms.length, color: "text-blue-600" },
+      <KpiSummaryStrip
+        items={[
+          {
+            label: "Total Rules",
+            value: perms.length,
+            hint: "All permission rules in this company",
+            accent: "sky",
+            icon: ShieldCheck,
+          },
           {
             label: "Active",
-            val: perms.filter((p) => p.active).length,
-            color: "text-green-600",
+            value: perms.filter((p) => p.active).length,
+            hint: "Rules currently enforced",
+            accent: "emerald",
+            icon: CircleCheckBig,
           },
           {
             label: "By Employee",
-            val: perms.filter((p) => p.staffId).length,
-            color: "text-purple-600",
+            value: perms.filter((p) => p.staffId).length,
+            hint: "Overrides for individual staff",
+            accent: "violet",
+            icon: UserRound,
           },
           {
             label: "By Role",
-            val: perms.filter((p) => !p.staffId).length,
-            color: "text-yellow-600",
+            value: perms.filter((p) => !p.staffId).length,
+            hint: "Shared grants on company roles",
+            accent: "amber",
+            icon: Users,
           },
-        ].map((s) => (
-          <Card key={s.label} className="bg-white border-slate-200">
-            <CardContent className="p-4">
-              <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-              <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+        ]}
+      />
 
       {/* Role filter chips + search */}
       <div className="flex flex-wrap items-center gap-2">
