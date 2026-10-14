@@ -7,6 +7,7 @@ import {
 } from "@/service/contractService";
 import { cn, initialsFrom } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { formatDisplayDate } from "@/lib/format-date";
 
@@ -171,6 +172,16 @@ export default function ContractRenewablesPanel() {
     return d != null && d <= 30;
   }).length;
 
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(rows, 20);
+
   return (
     <div className="space-y-5">
       <SecondaryPageHeader
@@ -238,7 +249,7 @@ export default function ContractRenewablesPanel() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((c, index) => {
+                {pageItems.map((c, index) => {
                   const busy = busyId === c.id;
                   const expired = c.status === "EXPIRED";
                   const meta = statusMeta(c.status);
@@ -318,6 +329,16 @@ export default function ContractRenewablesPanel() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="border-t border-slate-100 px-2">
+            <TablePagination
+              total={total}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={pageCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         </div>
       )}

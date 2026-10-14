@@ -5,6 +5,7 @@ import { hrService } from "@/service/hr.service";
 import type { Employee } from "@/types/hr";
 import { cn, initialsFrom } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TablePagination, usePagination } from "@/components/table-pagination";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { formatDisplayDate } from "@/lib/format-date";
 
@@ -75,6 +76,16 @@ export function ConfirmEmployeesPanel() {
 
   const readyCount = rows.filter((r) => isOverdue(r.probationEndDate)).length;
 
+  const {
+    pageItems,
+    pageIndex,
+    setPageIndex,
+    pageSize,
+    setPageSize,
+    pageCount,
+    total,
+  } = usePagination(rows, 20);
+
   return (
     <div className="space-y-5">
       <SecondaryPageHeader
@@ -132,7 +143,7 @@ export function ConfirmEmployeesPanel() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((emp, index) => {
+                {pageItems.map((emp, index) => {
                   const id = Number(emp.id);
                   const overdue = isOverdue(emp.probationEndDate);
                   const busy = confirmingId === id;
@@ -207,6 +218,16 @@ export function ConfirmEmployeesPanel() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className="border-t border-slate-100 px-2">
+            <TablePagination
+              total={total}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              pageCount={pageCount}
+              onPageChange={setPageIndex}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         </div>
       )}
