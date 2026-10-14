@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Inbox, Plus, Search } from "lucide-react";
+import { Inbox, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { listCrmEnquiries } from "@/service/crmEnquiryService";
 import type {
   CrmEnquiry,
@@ -21,6 +13,11 @@ import type {
   CrmProspectType,
   CrmRelationshipStage,
 } from "@/types/crm-enquiry";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 const PIPELINE_LABEL: Record<CrmPipelineStatus, string> = {
   NEW: "New",
@@ -120,74 +117,59 @@ export default function CrmEnquiriesPage() {
         }
       />
 
-      <div className="flex flex-col gap-3 rounded-xl border bg-white p-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search name, org, email, phone…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-        <Select
+      <ListToolbar className="rounded-xl border bg-white p-3">
+        <ListSearchField
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder="Search name, org, email, phone…"
+          className="min-w-[200px] flex-1 sm:max-w-none"
+        />
+        <ListToolbarSelect
+          aria-label="Pipeline"
           value={pipeline}
-          onValueChange={(v) => {
-            setPipeline(v as CrmPipelineStatus | "all");
+          onChange={(e) => {
+            setPipeline(e.target.value as CrmPipelineStatus | "all");
             setPage(0);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Pipeline" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All pipelines</SelectItem>
-            {(Object.keys(PIPELINE_LABEL) as CrmPipelineStatus[]).map((k) => (
-              <SelectItem key={k} value={k}>
-                {PIPELINE_LABEL[k]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          <option value="all">All pipelines</option>
+          {(Object.keys(PIPELINE_LABEL) as CrmPipelineStatus[]).map((k) => (
+            <option key={k} value={k}>
+              {PIPELINE_LABEL[k]}
+            </option>
+          ))}
+        </ListToolbarSelect>
+        <ListToolbarSelect
+          aria-label="Stage"
           value={stage}
-          onValueChange={(v) => {
-            setStage(v as CrmRelationshipStage | "all");
+          onChange={(e) => {
+            setStage(e.target.value as CrmRelationshipStage | "all");
             setPage(0);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Stage" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All stages</SelectItem>
-            {(Object.keys(STAGE_LABEL) as CrmRelationshipStage[]).map((k) => (
-              <SelectItem key={k} value={k}>
-                {STAGE_LABEL[k]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          <option value="all">All stages</option>
+          {(Object.keys(STAGE_LABEL) as CrmRelationshipStage[]).map((k) => (
+            <option key={k} value={k}>
+              {STAGE_LABEL[k]}
+            </option>
+          ))}
+        </ListToolbarSelect>
+        <ListToolbarSelect
+          aria-label="Type"
           value={type}
-          onValueChange={(v) => {
-            setType(v as CrmProspectType | "all");
+          onChange={(e) => {
+            setType(e.target.value as CrmProspectType | "all");
             setPage(0);
           }}
         >
-          <SelectTrigger className="w-full sm:w-[160px]">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {(Object.keys(TYPE_LABEL) as CrmProspectType[]).map((k) => (
-              <SelectItem key={k} value={k}>
-                {TYPE_LABEL[k]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          <option value="all">All types</option>
+          {(Object.keys(TYPE_LABEL) as CrmProspectType[]).map((k) => (
+            <option key={k} value={k}>
+              {TYPE_LABEL[k]}
+            </option>
+          ))}
+        </ListToolbarSelect>
+      </ListToolbar>
 
       <div className="overflow-hidden rounded-xl border bg-white">
         <div className="overflow-x-auto">

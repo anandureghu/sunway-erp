@@ -13,15 +13,15 @@ import {
   Inbox,
   Loader2,
   RefreshCw,
-  Search,
   ThumbsDown,
   ThumbsUp,
   Users,
   XCircle,
 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { FilterChipGroup, ListSearchField, ListToolbar } from "@/components/list-toolbar";
 import type { Employee } from "@/types/hr";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TableCardHeader } from "@/components/table-card-header";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
 
@@ -515,34 +515,18 @@ export default function LeaveApprovalPanel() {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search employee or leave type..."
-            className="pl-9 h-9 text-sm border-slate-200 focus-visible:border-violet-300 focus-visible:ring-violet-300/20"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {allTypes.map((type) => (
-            <button
-              key={type}
-              onClick={() => setTypeFilter(type)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition-all border",
-                typeFilter === type
-                  ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-amber-200 hover:text-amber-700",
-              )}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-      </div>
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Search employee or leave type..."
+        />
+        <FilterChipGroup<string>
+          options={allTypes.map((type) => ({ label: type, value: type }))}
+          value={typeFilter}
+          onChange={setTypeFilter}
+        />
+      </ListToolbar>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white py-20 gap-3">
@@ -571,13 +555,15 @@ export default function LeaveApprovalPanel() {
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              {displayed.length} pending request
-              {displayed.length !== 1 ? "s" : ""}
-              {typeFilter !== "All" && ` · ${typeFilter}`}
-            </p>
-          </div>
+          <TableCardHeader
+            title="Pending requests"
+            meta={
+              <>
+                {displayed.length} request{displayed.length !== 1 ? "s" : ""}
+                {typeFilter !== "All" && ` · ${typeFilter}`}
+              </>
+            }
+          />
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">

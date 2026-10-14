@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { cn, formatMoney, initialsFrom } from "@/lib/utils";
 import { humanizeLoanType } from "@/lib/loan-type-label";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TableCardHeader } from "@/components/table-card-header";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { RejectReasonDialog } from "@/modules/hr/components/reject-reason-dialog";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
@@ -176,11 +177,10 @@ export default function LoanApprovalPanel() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              {total} pending request{total !== 1 ? "s" : ""}
-            </p>
-          </div>
+          <TableCardHeader
+            title="Pending requests"
+            meta={`${total} request${total !== 1 ? "s" : ""}`}
+          />
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3">
               <thead>

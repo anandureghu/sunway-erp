@@ -21,7 +21,6 @@ import {
   CalendarCheck,
   CheckCircle2,
   XCircle,
-  Search,
   Wallet,
   Banknote,
   FileText,
@@ -65,6 +64,7 @@ import EmployeeRegisterReport from "./EmployeeRegisterReport";
 import EmployeeSummaryReport from "./EmployeeSummaryReport";
 import WorkforceOverview from "./WorkforceOverview";
 import { HistoryTabPanel } from "@/modules/shared/history-tab-panel";
+import { FilterChipGroup, ListSearchField, ListToolbar } from "@/components/list-toolbar";
 
 // ── colour palette ────────────────────────────────────────────────────────────
 const COLORS = {
@@ -1168,33 +1168,21 @@ export default function HRReports() {
                   label={leaveArchivedView ? "Archived Leaves" : "Leave Approvals"}
                   color="text-violet-600"
                 />
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 text-xs">
-                    {([false, true] as const).map((arch) => (
-                      <button
-                        key={String(arch)}
-                        onClick={() => setLeaveArchivedView(arch)}
-                        className={cn(
-                          "rounded-md px-2.5 py-1 font-semibold transition-all",
-                          leaveArchivedView === arch
-                            ? "bg-gradient-to-r from-violet-600 to-blue-600 text-white shadow-sm"
-                            : "text-slate-500 hover:text-slate-800",
-                        )}
-                      >
-                        {arch ? "Archived" : "Active"}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="relative w-full max-w-xs">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      value={leaveSearch}
-                      onChange={(e) => setLeaveSearch(e.target.value)}
-                      placeholder="Search employee, type or status…"
-                      className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
-                    />
-                  </div>
-                </div>
+                <ListToolbar className="px-0 py-0">
+                  <FilterChipGroup<"active" | "archived">
+                    options={[
+                      { label: "Active", value: "active" },
+                      { label: "Archived", value: "archived" },
+                    ]}
+                    value={leaveArchivedView ? "archived" : "active"}
+                    onChange={(v) => setLeaveArchivedView(v === "archived")}
+                  />
+                  <ListSearchField
+                    value={leaveSearch}
+                    onChange={setLeaveSearch}
+                    placeholder="Search employee, type or status…"
+                  />
+                </ListToolbar>
               </div>
 
               {filteredLeaves.length === 0 ? (
@@ -1481,34 +1469,21 @@ export default function HRReports() {
                   label={loanArchivedView ? "Archived Loans" : "Loan Approvals"}
                   color="text-violet-600"
                 />
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="inline-flex rounded-lg border border-slate-200 p-0.5">
-                    {([false, true] as const).map((arch) => (
-                      <button
-                        key={String(arch)}
-                        type="button"
-                        onClick={() => setLoanArchivedView(arch)}
-                        className={cn(
-                          "rounded-md px-3 py-1 text-xs font-semibold transition",
-                          loanArchivedView === arch
-                            ? "bg-violet-600 text-white shadow-sm"
-                            : "text-slate-500 hover:text-slate-700",
-                        )}
-                      >
-                        {arch ? "Archived" : "Active"}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="relative w-full max-w-xs">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      value={loanSearch}
-                      onChange={(e) => setLoanSearch(e.target.value)}
-                      placeholder="Search employee, type or status…"
-                      className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
-                    />
-                  </div>
-                </div>
+                <ListToolbar className="px-0 py-0">
+                  <FilterChipGroup<"active" | "archived">
+                    options={[
+                      { label: "Active", value: "active" },
+                      { label: "Archived", value: "archived" },
+                    ]}
+                    value={loanArchivedView ? "archived" : "active"}
+                    onChange={(v) => setLoanArchivedView(v === "archived")}
+                  />
+                  <ListSearchField
+                    value={loanSearch}
+                    onChange={setLoanSearch}
+                    placeholder="Search employee, type or status…"
+                  />
+                </ListToolbar>
               </div>
 
               {filteredLoans.length === 0 ? (

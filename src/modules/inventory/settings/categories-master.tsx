@@ -30,7 +30,6 @@ import type { ItemCategory } from "@/types/inventory";
 import { ImportCategoriesCsvDialog } from "@/modules/inventory/settings/import-categories-csv-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Search,
   Plus,
   Edit,
   Trash2,
@@ -46,6 +45,11 @@ import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 const CategoriesMaster = () => {
   const { confirm } = useConfirmDialog();
@@ -439,35 +443,26 @@ const CategoriesMaster = () => {
       </div>
 
       {/* Search and Filters */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex-1 relative min-w-[300px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search categories..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2">
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search categories..."
+          className="min-w-[300px] flex-1 sm:max-w-none"
+        />
+        <ListToolbarSelect
+          aria-label="Status"
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setKpiFilter(null);
+          }}
+        >
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </ListToolbarSelect>
+      </ListToolbar>
       {paginatedCategories.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No categories found

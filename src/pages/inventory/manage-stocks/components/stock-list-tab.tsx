@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Row, RowSelectionState } from "@tanstack/react-table";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { DestructiveDeleteDialog } from "@/components/destructive-delete-dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { STOCK_COLUMNS } from "@/lib/columns/inventory-columns";
@@ -16,14 +15,7 @@ import {
 import { summarizeBulkActionResult } from "@/service/historyService";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { getApiErrorMessage } from "@/lib/api-error-message";
-import { Search, FileSpreadsheet, FileText } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { FileSpreadsheet, FileText } from "lucide-react";
 import { formatOptionalDate } from "@/pages/inventory/inventory-item-detail/formatters";
 import {
   resolveCatalogStatus,
@@ -32,6 +24,11 @@ import {
 import { ImportItemsCsvDialog } from "./import-items-csv-dialog";
 import { StockBulkActionBar } from "./stock-bulk-action-bar";
 import { toast } from "sonner";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 type StockListTabProps = {
   searchQuery: string;
@@ -371,28 +368,24 @@ export function StockListTab({
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1 relative min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search by SKU, name, barcode, category, or warehouse..."
-            value={searchQuery}
-            onChange={(e) => onSearchQueryChange(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={searchQuery}
+          onChange={onSearchQueryChange}
+          placeholder="Search by SKU, name, barcode, category, or warehouse..."
+          className="min-w-[200px] flex-1 sm:max-w-none"
+        />
         {catalogView === "active" ? (
-          <Select value={selectedStatus} onValueChange={onSelectedStatusChange}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="discontinued">Discontinued</SelectItem>
-              <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-            </SelectContent>
-          </Select>
+          <ListToolbarSelect
+            aria-label="Status"
+            value={selectedStatus}
+            onChange={(e) => onSelectedStatusChange(e.target.value)}
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="discontinued">Discontinued</option>
+            <option value="out_of_stock">Out of Stock</option>
+          </ListToolbarSelect>
         ) : null}
         <div className="flex items-center gap-2 ml-auto">
           {onImported && catalogView === "active" ? (
@@ -419,7 +412,7 @@ export function StockListTab({
             Export PDF
           </Button>
         </div>
-      </div>
+      </ListToolbar>
 
       {catalogView === "archived" ? (
         <p className="text-sm text-muted-foreground rounded-lg border border-dashed px-3 py-2">

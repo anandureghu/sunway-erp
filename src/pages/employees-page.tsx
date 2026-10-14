@@ -9,14 +9,18 @@ import { currentJobService } from "@/service/currentJobService";
 import type { Employee } from "@/types/hr";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
+import {
+  ListSearchField,
+  ListToolbar,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
+import { TableCardHeader } from "@/components/table-card-header";
 import { EmployeeFilters } from "@/modules/hr/components/employee-filters";
 import { EmployeeStats } from "@/modules/hr/components/employee-stats";
 import { AddEmployeeModal } from "@/context/employee-selection";
 import { useAuth } from "@/context/AuthContext";
-import { UserPlus, Users2, Search } from "lucide-react";
+import { UserPlus, Users2 } from "lucide-react";
 import { cn, isSecurityAdmin } from "@/lib/utils";
 import { PageHeader } from "@/components/PageHeader";
 import { ImportEmployeesCsvDialog } from "@/pages/employees/import-employees-csv-dialog";
@@ -418,49 +422,34 @@ export default function EmployeesPage() {
         labels ~text-[11px]; body ~text-sm).
         Toolbar: search | All departments | status chips (single row when space allows).
       */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Employee Register
-            <span className="ml-auto text-[11px] font-normal normal-case tracking-normal text-slate-400 tabular-nums">
-              {loading
-                ? "Loading…"
-                : `${totalElements.toLocaleString()} of ${directoryTotal.toLocaleString()} employees`}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <Separator />
+      <Card className="gap-0 py-0 shadow-sm">
+        <TableCardHeader
+          title="Employee Register"
+          meta={
+            loading
+              ? "Loading…"
+              : `${totalElements.toLocaleString()} of ${directoryTotal.toLocaleString()} employees`
+          }
+          className="px-6"
+        />
 
-        <div className="flex flex-col gap-3 px-5 py-4 lg:flex-row lg:flex-wrap lg:items-center">
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search name, code, designation"
-              className="h-9 rounded-full border-slate-200 pl-9 pr-9 text-sm"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={() => setSearchInput("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors text-xs"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+        {/*
+          LOCKED UI — Employee Register toolbar
+          Standard: ListToolbar (search → select → chips). Do not restyle without asking.
+        */}
+        <ListToolbar>
+          <ListSearchField
+            value={searchInput}
+            onChange={setSearchInput}
+            placeholder="Search name, code, designation"
+          />
 
-          <select
+          <ListToolbarSelect
             value={departmentId ?? ""}
             onChange={(e) =>
               setDepartmentId(e.target.value ? Number(e.target.value) : null)
             }
             aria-label="Filter by department"
-            className={cn(
-              "h-9 rounded-full border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700",
-              "focus:outline-none focus:ring-2 focus:ring-slate-200",
-            )}
           >
             <option value="">All departments</option>
             {departments.map((d) => (
@@ -468,13 +457,13 @@ export default function EmployeesPage() {
                 {d.departmentName || d.name || `Department ${d.id}`}
               </option>
             ))}
-          </select>
+          </ListToolbarSelect>
 
           <EmployeeFilters
             onFilterStatus={setStatusFilter}
             activeFilter={statusFilter}
           />
-        </div>
+        </ListToolbar>
 
         <div
           className={cn(

@@ -2,10 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { createSalesInvoiceColumns } from "@/lib/columns/accounts-receivable-columns";
 import {
-  Search,
   FileText,
   AlertTriangle,
   CheckCircle2,
@@ -13,13 +11,6 @@ import {
   ListTodo,
   FileCheck,
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useLocation, useNavigate } from "react-router-dom";
 import { type Invoice } from "@/types/sales";
 import { apiClient } from "@/service/apiClient";
@@ -46,6 +37,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useAuth } from "@/context/AuthContext";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -416,45 +412,36 @@ export default function InvoicesPage({
               </Badge>
             </TabsTrigger>
           </TabsList>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search invoices..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 w-64"
-              />
-            </div>
-            <Select
+          <ListToolbar className="p-0">
+            <ListSearchField
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search invoices..."
+              className="w-64"
+            />
+            <ListToolbarSelect
+              aria-label="Payment status"
               value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v);
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
                 setKpiFilter(null);
               }}
             >
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Payment status" />
-              </SelectTrigger>
-              <SelectContent position="popper" className="z-[100]">
-                <SelectItem value="all">All payment status</SelectItem>
-                {listTab === "outstanding" ? (
-                  <>
-                    <SelectItem value="Unpaid">Unpaid</SelectItem>
-                    <SelectItem value="Partially Paid">
-                      Partially Paid
-                    </SelectItem>
-                    <SelectItem value="Overdue">Overdue</SelectItem>
-                  </>
-                ) : (
-                  <>
-                    <SelectItem value="Paid">Paid</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+              <option value="all">All payment status</option>
+              {listTab === "outstanding" ? (
+                <>
+                  <option value="Unpaid">Unpaid</option>
+                  <option value="Partially Paid">Partially Paid</option>
+                  <option value="Overdue">Overdue</option>
+                </>
+              ) : (
+                <>
+                  <option value="Paid">Paid</option>
+                  <option value="Cancelled">Cancelled</option>
+                </>
+              )}
+            </ListToolbarSelect>
+          </ListToolbar>
         </div>
       </Tabs>
       {listTab === "archived" ? (

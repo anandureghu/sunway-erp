@@ -4,10 +4,8 @@ import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { createPurchaseInvoiceColumns } from "@/lib/columns/purchase-columns";
 import {
-  Search,
   Plus,
   FileText,
   Wallet,
@@ -16,13 +14,6 @@ import {
   ListTodo,
   FileCheck,
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { Row } from "@tanstack/react-table";
 import type { FinanceInvoice } from "@/types/finance-invoice";
@@ -54,6 +45,11 @@ import {
 import { apiClient } from "@/service/apiClient";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 type InvoiceListTab = "outstanding" | "archived";
 
@@ -477,45 +473,37 @@ export default function PurchaseInvoicesPage() {
                   </Badge>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search invoices..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                    }}
-                    className="pl-8 w-64"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={(v) => {
-                  setStatusFilter(v);
-                  setKpiFilter(null);
-                }}>
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" className="z-[100]">
-                    <SelectItem value="all">All</SelectItem>
-                    {listTab === "outstanding" ? (
-                      <>
-                        <SelectItem value="Draft">Draft</SelectItem>
-                        <SelectItem value="Unpaid">Unpaid</SelectItem>
-                        <SelectItem value="Partially Paid">
-                          Partially Paid
-                        </SelectItem>
-                        <SelectItem value="Overdue">Overdue</SelectItem>
-                      </>
-                    ) : (
-                      <>
-                        <SelectItem value="Paid">Paid</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+              <ListToolbar className="p-0">
+                <ListSearchField
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search invoices..."
+                  className="w-64"
+                />
+                <ListToolbarSelect
+                  aria-label="Status"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setKpiFilter(null);
+                  }}
+                >
+                  <option value="all">All</option>
+                  {listTab === "outstanding" ? (
+                    <>
+                      <option value="Draft">Draft</option>
+                      <option value="Unpaid">Unpaid</option>
+                      <option value="Partially Paid">Partially Paid</option>
+                      <option value="Overdue">Overdue</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Paid">Paid</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </>
+                  )}
+                </ListToolbarSelect>
+              </ListToolbar>
             </div>
           </Tabs>
         </CardHeader>

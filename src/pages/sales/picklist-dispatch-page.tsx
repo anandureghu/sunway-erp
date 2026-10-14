@@ -7,13 +7,11 @@ import {
   Plus,
   ClipboardList,
   Radar,
-  Search,
 } from "lucide-react";
 import { DataTable } from "@/components/datatable";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList } from "@/components/ui/tabs";
 import { StyledTabsTrigger } from "@/components/styled-tabs-trigger";
 import { toast } from "sonner";
@@ -52,6 +50,7 @@ import {
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import { excludeArchived } from "@/lib/exclude-archived";
+import { ListSearchField } from "@/components/list-toolbar";
 
 export default function PicklistDispatchPage() {
   const { confirm, confirmCancel } = useConfirmDialog();
@@ -604,15 +603,12 @@ export default function PicklistDispatchPage() {
           ) : (
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="pl-8"
-                    placeholder="Search picklist / order / customer..."
-                    value={picklistSearch}
-                    onChange={(e) => setPicklistSearch(e.target.value)}
-                  />
-                </div>
+                <ListSearchField
+                  value={picklistSearch}
+                  onChange={setPicklistSearch}
+                  placeholder="Search picklist / order / customer..."
+                  className="flex-1 sm:max-w-md"
+                />
                 <Button
                   disabled={!hasDispatchablePicklists}
                   onClick={() => {
@@ -651,15 +647,12 @@ export default function PicklistDispatchPage() {
           ) : (
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="pl-8"
-                    placeholder="Search shipment / tracking / customer..."
-                    value={dispatchSearch}
-                    onChange={(e) => setDispatchSearch(e.target.value)}
-                  />
-                </div>
+                <ListSearchField
+                  value={dispatchSearch}
+                  onChange={setDispatchSearch}
+                  placeholder="Search shipment / tracking / customer..."
+                  className="flex-1 sm:max-w-md"
+                />
                 <Button
                   disabled={!hasDispatchablePicklists}
                   onClick={() => {

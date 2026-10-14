@@ -9,7 +9,6 @@ import {
   Download,
   Loader2,
   Package,
-  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -24,6 +23,12 @@ import {
   type StockSummaryReport,
   type StockSummaryRow,
 } from "@/service/stockSheetReportService";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+  FilterChipGroup,
+} from "@/components/list-toolbar";
 
 const NAVY = "#1F3A6E";
 const NAVY_DARK = "#16294E";
@@ -598,20 +603,17 @@ export default function StockSummaryReport({
 
         <section>
           <SectionTitle title="Stock register" />
-          <div className="mb-3 flex flex-wrap items-center gap-2 print:hidden">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search code, description or brand"
-                className="h-8 w-56 rounded-md border border-slate-300 bg-white pl-8 pr-2 text-[13px] outline-none focus:border-[#1F3A6E]"
-              />
-            </div>
-            <select
+          <ListToolbar className="mb-3 px-0 py-0 print:hidden">
+            <ListSearchField
+              value={query}
+              onChange={setQuery}
+              placeholder="Search code, description or brand"
+              className="sm:w-56"
+            />
+            <ListToolbarSelect
+              aria-label="Category"
               value={cat}
               onChange={(e) => setCat(e.target.value)}
-              className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[13px] outline-none focus:border-[#1F3A6E]"
             >
               <option value="">All categories</option>
               {categories.map((c) => (
@@ -619,27 +621,16 @@ export default function StockSummaryReport({
                   {c}
                 </option>
               ))}
-            </select>
-            {STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value || "all"}
-                type="button"
-                onClick={() => setStatusFilter(f.value)}
-                className={cn(
-                  "h-8 rounded-md border px-2.5 text-[12.5px]",
-                  statusFilter === f.value
-                    ? "border-[#1F3A6E] bg-[#1F3A6E] text-white"
-                    : "border-slate-300 bg-white text-slate-600 hover:border-[#1F3A6E] hover:text-[#1F3A6E]",
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
+            </ListToolbarSelect>
+            <FilterChipGroup<StatusFilter>
+              options={STATUS_FILTERS}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
             <span className="ml-auto font-mono text-[11.5px] text-slate-400">
               {filtered.length} of {rows.length} items
             </span>
-          </div>
-
+          </ListToolbar>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] border-collapse text-[12.5px]">
               <thead>

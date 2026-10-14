@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import {
   Loader2,
-  Search,
   CalendarClock,
   Archive,
   ArchiveRestore,
@@ -18,6 +17,7 @@ import {
 import { cn, initialsFrom } from "@/lib/utils";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { AttendanceProfileDialog } from "./AttendanceProfileDialog";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
 
 const PAGE_SIZE = 10;
 
@@ -178,15 +178,14 @@ export default function AttendanceHistory() {
               className="h-9 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
             />
           </label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
+          <ListToolbar className="px-0 py-0">
+            <ListSearchField
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={setCode}
               placeholder="Employee code…"
-              className="h-9 w-48 rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
+              className="sm:max-w-[12rem]"
             />
-          </div>
+          </ListToolbar>
         </div>
 
         {archived ? (

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TableCardHeader } from "@/components/table-card-header";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { cn } from "@/lib/utils";
 import { jobCodeService } from "@/service/jobCodeService";
@@ -159,11 +160,10 @@ export function PositionApprovalsPanel({
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              {total} position{total !== 1 ? "s" : ""} awaiting approval
-            </p>
-          </div>
+          <TableCardHeader
+            title="Awaiting approval"
+            meta={`${total} position${total !== 1 ? "s" : ""}`}
+          />
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3">
               <thead>
@@ -273,11 +273,10 @@ export function PositionApprovalsPanel({
 
       {!loading && recent.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Recent decisions
-            </p>
-          </div>
+          <TableCardHeader
+            title="Recent decisions"
+            meta={`${recent.length} decision${recent.length !== 1 ? "s" : ""}`}
+          />
           <ul className="divide-y divide-slate-100">
             {recent.map((jc) => {
               const rejected = jc.holdDecision === "REJECTED";

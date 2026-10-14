@@ -7,13 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   cancelSubscription,
   extendSubscription,
   fetchSubscription,
@@ -44,7 +37,6 @@ import {
   RefreshCw,
   MoreHorizontal,
   Mail,
-  Search,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -55,6 +47,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { TablePagination } from "@/components/table-pagination";
 import { DEFAULT_PAGE_SIZE, DEFAULT_SEARCH_DEBOUNCE_MS } from "@/types/page";
+import {
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 function formatMoney(amount?: number | null, currency?: string | null) {
   if (amount == null) return "—";
@@ -256,86 +252,74 @@ export default function SubscriptionsPage() {
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   Search
                 </p>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="h-9 rounded-xl pl-9"
-                    placeholder="Company name, plan, status…"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                  />
-                </div>
+                <ListSearchField
+                  value={searchInput}
+                  onChange={setSearchInput}
+                  placeholder="Company name, plan, status…"
+                  className="sm:max-w-none"
+                />
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   Status
                 </p>
-                <Select
+                <ListToolbarSelect
+                  aria-label="Status"
                   value={status || "all"}
-                  onValueChange={(v) => {
+                  onChange={(e) => {
+                    const v = e.target.value;
                     setPage(0);
                     setStatus(v === "all" ? "" : (v as SubscriptionStatus));
                   }}
                 >
-                  <SelectTrigger className="h-9 w-[160px] rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="EXPIRING">Expiring</SelectItem>
-                    <SelectItem value="EXPIRED">Expired</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                    <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="all">All</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="EXPIRING">Expiring</option>
+                  <option value="EXPIRED">Expired</option>
+                  <option value="CANCELLED">Cancelled</option>
+                  <option value="SUSPENDED">Suspended</option>
+                </ListToolbarSelect>
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   Plan
                 </p>
-                <Select
+                <ListToolbarSelect
+                  aria-label="Plan"
                   value={planType || "all"}
-                  onValueChange={(v) => {
+                  onChange={(e) => {
+                    const v = e.target.value;
                     setPage(0);
                     setPlanType(v === "all" ? "" : (v as SubscriptionPlanType));
                   }}
                 >
-                  <SelectTrigger className="h-9 w-[140px] rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="FREE">Free</SelectItem>
-                    <SelectItem value="MONTHLY">Monthly</SelectItem>
-                    <SelectItem value="YEARLY">Yearly</SelectItem>
-                    <SelectItem value="CUSTOM">Custom</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="all">All</option>
+                  <option value="FREE">Free</option>
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="YEARLY">Yearly</option>
+                  <option value="CUSTOM">Custom</option>
+                </ListToolbarSelect>
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
                   Payment
                 </p>
-                <Select
+                <ListToolbarSelect
+                  aria-label="Payment"
                   value={paymentStatus || "all"}
-                  onValueChange={(v) => {
+                  onChange={(e) => {
+                    const v = e.target.value;
                     setPage(0);
                     setPaymentStatus(
                       v === "all" ? "" : (v as SubscriptionPaymentStatus),
                     );
                   }}
                 >
-                  <SelectTrigger className="h-9 w-[140px] rounded-xl">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="PAID">Paid</SelectItem>
-                    <SelectItem value="UNPAID">Unpaid</SelectItem>
-                    <SelectItem value="NOT_REQUIRED">N/A</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="all">All</option>
+                  <option value="PAID">Paid</option>
+                  <option value="UNPAID">Unpaid</option>
+                  <option value="NOT_REQUIRED">N/A</option>
+                </ListToolbarSelect>
               </div>
               <div className="space-y-1.5">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">

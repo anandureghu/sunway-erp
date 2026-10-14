@@ -57,6 +57,11 @@ interface SummaryCardProps {
   active?: boolean;
 }
 
+/**
+ * LOCKED UI — KPI / summary card size (match home module cards)
+ * Do not enlarge padding or value typography without asking the user first.
+ * Compact: p-3.5, gap-3, h-9 icon, text-lg value — same scale as dashboard home tiles.
+ */
 export function SummaryCard({
   label,
   value,
@@ -74,23 +79,23 @@ export function SummaryCard({
       onClick={onClick}
       type={onClick ? "button" : undefined}
       className={cn(
-        "flex w-full items-center gap-4 rounded-xl border bg-card px-5 py-5 shadow-sm text-left transition-all duration-200",
-        "border-t-4 pt-4",
-        onClick && "cursor-pointer hover:shadow-md hover:-translate-y-0.5",
+        "flex w-full items-start gap-3 rounded-xl border bg-card p-3.5 text-left shadow-sm transition-all duration-200",
+        "border-t-[3px] pt-3",
+        onClick && "cursor-pointer hover:shadow-md active:scale-[0.99]",
         active && "ring-2 ring-primary/40 shadow-md",
         c.bar,
-        className
+        className,
       )}
     >
-      <div className="min-w-0 flex-1 space-y-1">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className="text-2xl font-bold tracking-tight tabular-nums">
+        <p className="mt-0.5 text-lg font-bold leading-tight tracking-tight tabular-nums text-slate-900">
           {value}
         </p>
         {description && (
-          <p className="text-xs text-muted-foreground leading-snug">
+          <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
             {description}
           </p>
         )}
@@ -98,7 +103,7 @@ export function SummaryCard({
       {icon && (
         <div
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-xl",
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
             c.iconBg,
           )}
           aria-hidden

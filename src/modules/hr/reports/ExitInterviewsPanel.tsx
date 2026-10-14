@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Search, LogOut, CheckCircle2, FileText } from "lucide-react";
+import { Loader2, LogOut, CheckCircle2, FileText } from "lucide-react";
 import {
   exitInterviewService,
   type ExitInterviewSummary,
 } from "@/service/exitInterviewService";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { TablePagination, usePagination } from "@/components/table-pagination";
+import { FilterChipGroup, ListSearchField, ListToolbar } from "@/components/list-toolbar";
 import { cn, initialsFrom } from "@/lib/utils";
 
 const fmtDate = (iso?: string | null) => {
@@ -110,34 +111,24 @@ export function ExitInterviewsPanel() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-lg border border-slate-200 p-0.5">
-            {(["ALL", "SUBMITTED", "DRAFT"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-semibold capitalize transition-colors",
-                  statusFilter === s
-                    ? "bg-violet-600 text-white"
-                    : "text-slate-500 hover:text-slate-700",
-                )}
-              >
-                {s.toLowerCase()}
-              </button>
-            ))}
-          </div>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search employee or type…"
-              className="h-9 w-56 rounded-lg border border-slate-300 pl-8 pr-3 text-sm focus:border-violet-400 focus:outline-none"
-            />
-          </div>
-        </div>
       </div>
+
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Search employee or type…"
+        />
+        <FilterChipGroup<"ALL" | "SUBMITTED" | "DRAFT">
+          options={[
+            { label: "All", value: "ALL" },
+            { label: "Submitted", value: "SUBMITTED" },
+            { label: "Draft", value: "DRAFT" },
+          ]}
+          value={statusFilter}
+          onChange={setStatusFilter}
+        />
+      </ListToolbar>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
         {loading ? (

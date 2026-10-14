@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Loader2,
-  Search,
   Wallet,
   ChevronDown,
   Building2,
@@ -18,6 +17,7 @@ import {
   type PayrollSummaryRow,
 } from "@/service/payrollService";
 import { fetchDepartments } from "@/service/departmentService";
+import { ListSearchField, ListToolbarSelect } from "@/components/list-toolbar";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtDate = (iso?: string | null) => {
@@ -454,10 +454,9 @@ export function PayrollSummaryPanel() {
         />
         <div className="flex items-center gap-1.5">
           <Building2 className="h-4 w-4 text-slate-400" />
-          <select
+          <ListToolbarSelect
             value={deptFilter}
             onChange={(e) => setDeptFilter(e.target.value)}
-            className="h-9 rounded-lg border border-slate-200 px-2.5 text-sm focus:border-violet-400 focus:outline-none"
           >
             <option value="">All departments</option>
             {deptOptions.map((d) => (
@@ -465,17 +464,14 @@ export function PayrollSummaryPanel() {
                 {d}
               </option>
             ))}
-          </select>
+          </ListToolbarSelect>
         </div>
-        <div className="relative ml-auto">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search employee, code or department…"
-            className="h-9 w-64 rounded-lg border border-slate-200 pl-8 pr-3 text-sm focus:border-violet-400 focus:outline-none"
-          />
-        </div>
+        <ListSearchField
+          value={search}
+          onChange={setSearch}
+          placeholder="Search employee, code or department…"
+          className="ml-auto sm:max-w-xs"
+        />
         {hasFilter && (
           <button
             type="button"

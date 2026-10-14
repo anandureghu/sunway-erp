@@ -9,7 +9,6 @@ import {
   AlertCircle,
   FileText,
   TrendingUp,
-  Search,
   Wallet,
   Download,
   Pencil,
@@ -21,6 +20,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
 
 type Row = {
   id: number;
@@ -494,18 +494,13 @@ export default function LeavesHistory() {
       {/* ── Table card ── */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Search bar */}
-        <div className="border-b border-slate-100 px-5 py-3">
-          <div className="relative max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by type or status…"
-              className="h-8 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm focus:border-violet-300 focus:outline-none focus:ring-2 focus:ring-violet-300/20 transition-colors"
-            />
-          </div>
-        </div>
+        <ListToolbar className="border-b border-slate-100">
+          <ListSearchField
+            value={search}
+            onChange={setSearch}
+            placeholder="Search by type or status…"
+          />
+        </ListToolbar>
 
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">

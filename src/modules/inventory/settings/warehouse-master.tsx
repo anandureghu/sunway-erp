@@ -1,13 +1,5 @@
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createWarehouseColumns } from "@/lib/columns/warehouse-columns";
 import {
   listWarehouses,
@@ -16,7 +8,6 @@ import {
 import type { Warehouse } from "@/types/inventory";
 import {
   Plus,
-  Search,
   Warehouse as WarehouseIcon,
   CircleCheckBig,
   CircleSlash2,
@@ -29,6 +20,11 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { WarehouseDialog } from "./warehouse-dialog";
 import { ImportWarehousesCsvDialog } from "./import-warehouses-csv-dialog";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 const TYPE_LABELS: Record<string, string> = {
   MAIN: "Main / General",
@@ -300,90 +296,71 @@ const WarehouseMaster = () => {
         />
       </div>
 
-      <div className="flex min-w-0 flex-wrap items-center gap-3">
-        <div className="relative min-w-0 flex-1 basis-[220px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-          <Input
-            placeholder="Search code, name, city, manager…"
-            className="rounded-xl border-slate-200 pl-10 text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Select
+      <ListToolbar className="min-w-0 px-0 py-0">
+        <ListSearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search code, name, city, manager…"
+          className="min-w-0 flex-1 basis-[220px] sm:max-w-none"
+        />
+        <ListToolbarSelect
+          aria-label="Warehouse type"
           value={typeFilter}
-          onValueChange={(value) => {
-            setTypeFilter(value);
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
             setKpiFilter(null);
           }}
         >
-          <SelectTrigger className="w-[160px] shrink-0 rounded-xl border-slate-200 text-[13px]">
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-            <SelectItem value="all">All Types</SelectItem>
-            {typeOptions.map((type) => (
-              <SelectItem key={type} value={type}>
-                {TYPE_LABELS[type] || type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          <option value="all">All Types</option>
+          {typeOptions.map((type) => (
+            <option key={type} value={type}>
+              {TYPE_LABELS[type] || type}
+            </option>
+          ))}
+        </ListToolbarSelect>
+        <ListToolbarSelect
+          aria-label="City"
           value={cityFilter}
-          onValueChange={(value) => {
-            setCityFilter(value);
+          onChange={(e) => {
+            setCityFilter(e.target.value);
             setKpiFilter(null);
           }}
         >
-          <SelectTrigger className="w-[150px] shrink-0 rounded-xl border-slate-200 text-[13px]">
-            <SelectValue placeholder="All Cities" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-            <SelectItem value="all">All Cities</SelectItem>
-            {cityOptions.map((city) => (
-              <SelectItem key={city} value={city}>
-                {city}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          <option value="all">All Cities</option>
+          {cityOptions.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+        </ListToolbarSelect>
+        <ListToolbarSelect
+          aria-label="Manager"
           value={managerFilter}
-          onValueChange={(value) => {
-            setManagerFilter(value);
+          onChange={(e) => {
+            setManagerFilter(e.target.value);
             setKpiFilter(null);
           }}
         >
-          <SelectTrigger className="w-[180px] shrink-0 rounded-xl border-slate-200 text-[13px]">
-            <SelectValue placeholder="All Managers" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-            <SelectItem value="all">All Managers</SelectItem>
-            {managerOptions.map((manager) => (
-              <SelectItem key={manager} value={manager}>
-                {manager}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
+          <option value="all">All Managers</option>
+          {managerOptions.map((manager) => (
+            <option key={manager} value={manager}>
+              {manager}
+            </option>
+          ))}
+        </ListToolbarSelect>
+        <ListToolbarSelect
+          aria-label="Status"
           value={statusFilter}
-          onValueChange={(value) => {
-            setStatusFilter(value);
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
             setKpiFilter(null);
           }}
         >
-          <SelectTrigger className="w-[140px] shrink-0 rounded-xl border-slate-200 text-[13px]">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </ListToolbarSelect>
+      </ListToolbar>
 
       <WarehouseDialog
         open={dialogOpen}

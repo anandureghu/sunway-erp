@@ -11,7 +11,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createGoodsReceiptColumns } from "@/lib/columns/purchase-columns";
 import {
   Plus,
-  Search,
   ClipboardCheck,
   Package,
   CheckCircle2,
@@ -56,6 +55,7 @@ import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { isGoodsReceiptFullyReceived, purchaseOrderRemainingFromReceipts } from "@/lib/goods-receipt-status";
 import { excludeArchived } from "@/lib/exclude-archived";
+import { ListSearchField } from "@/components/list-toolbar";
 
 function purchaseOrderSupplierLabel(order: PurchaseOrder): string {
   return (
@@ -569,23 +569,20 @@ export default function InspectionPage() {
                   </TabsTrigger>
                 </TabsList>
               </div>
-              <div className="relative w-full max-w-sm">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={
-                    activeTab === "ready"
-                      ? "Search purchase orders..."
-                      : "Search receipts or PO number..."
-                  }
-                  value={activeTab === "ready" ? orderSearchQuery : searchQuery}
-                  onChange={(e) =>
-                    activeTab === "ready"
-                      ? setOrderSearchQuery(e.target.value)
-                      : setSearchQuery(e.target.value)
-                  }
-                  className="w-full pl-8"
-                />
-              </div>
+              <ListSearchField
+                placeholder={
+                  activeTab === "ready"
+                    ? "Search purchase orders..."
+                    : "Search receipts or PO number..."
+                }
+                value={activeTab === "ready" ? orderSearchQuery : searchQuery}
+                onChange={(v) =>
+                  activeTab === "ready"
+                    ? setOrderSearchQuery(v)
+                    : setSearchQuery(v)
+                }
+                className="max-w-sm"
+              />
             </div>
           </Tabs>
         </CardHeader>

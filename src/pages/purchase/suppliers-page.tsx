@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Users, Building2, Mail, ShieldCheck } from "lucide-react";
+import { Users, Building2, Mail, ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "@/service/apiClient";
 import { listVendors, listVendorsPaged } from "@/service/vendorService";
@@ -20,15 +19,13 @@ import {
 } from "@/components/kpi-summary-strip";
 import { PageHeader } from "@/components/PageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 export default function SuppliersPage() {
   const { confirm } = useConfirmDialog();
@@ -284,54 +281,43 @@ export default function SuppliersPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[240px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-              <Input
-                placeholder="Search by vendor name…"
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Select
+          <ListToolbar className="p-0">
+            <ListSearchField
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by vendor name…"
+              className="min-w-[240px] flex-1 sm:max-w-none"
+            />
+            <ListToolbarSelect
+              aria-label="City"
               value={cityFilter}
-              onValueChange={(v) => {
-                setCityFilter(v);
+              onChange={(e) => {
+                setCityFilter(e.target.value);
                 setKpiFilter(null);
               }}
             >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="City" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                {cityOptions.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
+              <option value="all">All Cities</option>
+              {cityOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </ListToolbarSelect>
+            <ListToolbarSelect
+              aria-label="Status"
               value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v);
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
                 setKpiFilter(null);
               }}
             >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active only</SelectItem>
-                <SelectItem value="inactive">Inactive only</SelectItem>
-                <SelectItem value="approved">Approved only</SelectItem>
-                <SelectItem value="pending">Pending approval</SelectItem>
-                <SelectItem value="all">All statuses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+              <option value="approved">Approved only</option>
+              <option value="pending">Pending approval</option>
+              <option value="all">All statuses</option>
+            </ListToolbarSelect>
+          </ListToolbar>
         </CardHeader>
 
         <CardContent>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Loader2,
-  Search,
   ArrowLeft,
   CalendarClock,
   Clock,
@@ -29,6 +28,7 @@ import { fetchHrPolicies } from "@/service/companyService";
 import { hrService } from "@/service/hr.service";
 import { useAuth } from "@/context/AuthContext";
 import { onTimesheetChanged } from "@/lib/timesheet-sync";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmtTime = (iso: string | null, timeZone: string) =>
@@ -485,15 +485,13 @@ export default function EmployeeTimeSheets() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {MonthPicker}
-        <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
+        <ListToolbar className="px-0 py-0">
+          <ListSearchField
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
             placeholder="Search employee code or name…"
-            className="h-9 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-300/20"
           />
-        </div>
+        </ListToolbar>
       </div>
 
       <KpiSummaryStrip

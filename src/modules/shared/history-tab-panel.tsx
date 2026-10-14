@@ -7,7 +7,8 @@ import { BulkActionBar } from "@/components/bulk-action-bar";
 import { DestructiveDeleteDialog } from "@/components/destructive-delete-dialog";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableCardHeader } from "@/components/table-card-header";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -305,59 +306,65 @@ export function HistoryTabPanel({ module }: HistoryTabPanelProps) {
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="space-y-4">
-          <CardTitle>Archived history</CardTitle>
-          <div className="grid gap-4 md:grid-cols-[240px_1fr_auto]">
-            <div className="space-y-2">
-              <Label>Record type</Label>
-              <Select
-                value={entityType}
-                onValueChange={(value) =>
-                  setEntityType(value as HistoryEntityType)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {entityTypes.map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {HISTORY_ENTITY_LABELS[type]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="history-search">Search</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="history-search"
-                  value={searchInput}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Reference, party, or status"
-                  className="pl-9"
-                />
-              </div>
-            </div>
-            {canDelete && (
-              <div className="flex items-end">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => setDeleteAllDialogOpen(true)}
-                  disabled={!entityType || totalElements === 0 || loading}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete all archived
-                </Button>
-              </div>
-            )}
+      <Card className="gap-0 py-0 shadow-sm">
+        <TableCardHeader
+          title="Archived history"
+          meta={
+            loading
+              ? "Loading…"
+              : `${totalElements.toLocaleString()} ${entityLabel.toLowerCase()}`
+          }
+          className="px-6"
+        />
+        <div className="grid gap-4 border-b border-slate-100 px-6 py-4 md:grid-cols-[240px_1fr_auto]">
+          <div className="space-y-2">
+            <Label>Record type</Label>
+            <Select
+              value={entityType}
+              onValueChange={(value) =>
+                setEntityType(value as HistoryEntityType)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {entityTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {HISTORY_ENTITY_LABELS[type]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="history-search">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="history-search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Reference, party, or status"
+                className="pl-9"
+              />
+            </div>
+          </div>
+          {canDelete && (
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setDeleteAllDialogOpen(true)}
+                disabled={!entityType || totalElements === 0 || loading}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete all archived
+              </Button>
+            </div>
+          )}
+        </div>
+        <CardContent className="space-y-4 py-6">
           {canDelete && (
             <BulkActionBar
               mode="delete"

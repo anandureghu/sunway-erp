@@ -1,18 +1,10 @@
 import { useState } from "react";
-import { Search, ListTodo, FileCheck } from "lucide-react";
+import { ListTodo, FileCheck } from "lucide-react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import type { ServerPaginationProps } from "@/components/table-pagination";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseRequisition } from "@/types/purchase";
 import type { ColumnDef, Row, RowSelectionState } from "@tanstack/react-table";
@@ -21,6 +13,11 @@ import {
   KpiSummaryStrip,
   type KpiSummaryStat,
 } from "@/components/kpi-summary-strip";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 type RequisitionTab = "active" | "converted";
 
@@ -159,31 +156,27 @@ export function PurchaseRequisitionsListView({
                     {convertedBadge != null ? ` ${convertedBadge}` : ""}
                   </TabsTrigger>
                 </TabsList>
-                <div className="flex flex-wrap gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search…"
-                      value={searchQuery}
-                      onChange={(e) => onSearchChange(e.target.value)}
-                      className="pl-8 w-56 sm:w-64"
-                    />
-                  </div>
+                <ListToolbar className="p-0">
+                  <ListSearchField
+                    value={searchQuery}
+                    onChange={onSearchChange}
+                    placeholder="Search…"
+                    className="w-56 sm:w-64"
+                  />
                   {tab === "active" ? (
-                    <Select value={statusFilter} onValueChange={onStatusChange}>
-                      <SelectTrigger className="w-[160px]">
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All status</SelectItem>
-                        <SelectItem value="quotation">Quotation</SelectItem>
-                        <SelectItem value="submitted">Submitted</SelectItem>
-                        <SelectItem value="converted">Converted</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <ListToolbarSelect
+                      aria-label="Status"
+                      value={statusFilter}
+                      onChange={(e) => onStatusChange(e.target.value)}
+                    >
+                      <option value="all">All status</option>
+                      <option value="quotation">Quotation</option>
+                      <option value="submitted">Submitted</option>
+                      <option value="converted">Converted</option>
+                      <option value="rejected">Rejected</option>
+                    </ListToolbarSelect>
                   ) : null}
-                </div>
+                </ListToolbar>
               </div>
 
               <TabsContent value="active" className="mt-4">

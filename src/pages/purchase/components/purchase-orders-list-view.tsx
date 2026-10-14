@@ -1,18 +1,10 @@
 import { useState } from "react";
-import { Search, ListTodo, FileCheck } from "lucide-react";
+import { ListTodo, FileCheck } from "lucide-react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import type { ServerPaginationProps } from "@/components/table-pagination";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PurchaseOrder } from "@/types/purchase";
 import type { ColumnDef, Row, RowSelectionState } from "@tanstack/react-table";
@@ -25,6 +17,11 @@ import {
   OrderDateRangeFilter,
   type OrderDateRange,
 } from "@/components/order-date-range-filter";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 type OrderTab = "open" | "terminal";
 
@@ -169,43 +166,36 @@ export function PurchaseOrdersListView({
                       {terminalBadge != null ? ` ${terminalBadge}` : ""}
                     </TabsTrigger>
                   </TabsList>
-                  <div className="flex flex-wrap gap-2">
+                  <ListToolbar className="p-0">
                     <OrderDateRangeFilter
                       from={dateFrom}
                       to={dateTo}
                       onChange={onDateRangeChange}
                     />
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search orders..."
-                        value={searchQuery}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        className="pl-8 w-56 sm:w-64"
-                      />
-                    </div>
+                    <ListSearchField
+                      value={searchQuery}
+                      onChange={onSearchChange}
+                      placeholder="Search orders..."
+                      className="w-56 sm:w-64"
+                    />
                     {tab === "open" ? (
-                      <Select
+                      <ListToolbarSelect
+                        aria-label="Status"
                         value={statusFilter}
-                        onValueChange={onStatusChange}
+                        onChange={(e) => onStatusChange(e.target.value)}
                       >
-                        <SelectTrigger className="w-[160px]">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All status</SelectItem>
-                          <SelectItem value="draft">Draft</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="approved">Approved</SelectItem>
-                          <SelectItem value="ordered">Ordered</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="partially_received">
-                            Partially received
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="all">All status</option>
+                        <option value="draft">Draft</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="ordered">Ordered</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="partially_received">
+                          Partially received
+                        </option>
+                      </ListToolbarSelect>
                     ) : null}
-                  </div>
+                  </ListToolbar>
                 </div>
                 <TabsContent value="open" className="mt-4">
                   {tab === "open" ? (

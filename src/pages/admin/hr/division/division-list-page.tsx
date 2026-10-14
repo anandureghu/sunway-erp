@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Grid2x2, Search } from "lucide-react";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
+import { Grid2x2 } from "lucide-react";
 import { toast } from "sonner";
 import type { DivisionResponseDTO } from "@/types/division";
 import { DivisionDialog } from "./division-dialog";
@@ -16,6 +16,7 @@ import { fetchDivisions, deleteDivision } from "@/service/divisionService";
 export default function DivisionListPage() {
   const [divisions, setDivisions] = useState<DivisionResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<DivisionResponseDTO | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -107,10 +108,14 @@ export default function DivisionListPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input placeholder="Search division..." className="pl-10" />
-            </div>
+            <ListToolbar className="flex-1 px-0 py-0">
+              <ListSearchField
+                placeholder="Search division..."
+                value={searchQuery}
+                onChange={setSearchQuery}
+                className="sm:max-w-md"
+              />
+            </ListToolbar>
             <div className="flex gap-2">
               <ImportDivisionsCsvDialog onImported={fetchDivisionsData} />
               <Button

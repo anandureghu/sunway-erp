@@ -1,17 +1,9 @@
-import { Plus, Search, Filter, ListTodo, FileCheck } from "lucide-react";
+import { Plus, ListTodo, FileCheck } from "lucide-react";
 import { SelectableDataTable } from "@/components/selectable-data-table";
 import { BulkActionBar } from "@/components/bulk-action-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { SalesOrder } from "@/types/sales";
@@ -26,6 +18,11 @@ import {
   type OrderDateRange,
 } from "@/components/order-date-range-filter";
 import type { ServerPaginationProps } from "@/components/table-pagination";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 type ListTab = "active" | "closed";
 
@@ -139,72 +136,52 @@ export function SalesOrdersListView({
                   </Badge>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex flex-wrap items-center gap-2">
+              <ListToolbar className="p-0">
                 <OrderDateRangeFilter
                   from={dateFrom}
                   to={dateTo}
                   onChange={onDateRangeChange}
                 />
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search order no / customer..."
-                    value={searchQuery}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-8 w-72"
-                  />
-                </div>
-                <div className="relative">
-                  <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Select value={statusFilter} onValueChange={onStatusChange}>
-                    <SelectTrigger className="w-52 pl-8">
-                      <SelectValue placeholder="Order / delivery status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All statuses</SelectItem>
-                      {listTab === "active" ? (
-                        <>
-                          <SelectItem value="quotation">Quotation</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="picked">
-                            Delivery: Picked
-                          </SelectItem>
-                          <SelectItem value="dispatched">
-                            Delivery: Dispatched
-                          </SelectItem>
-                          <SelectItem value="delivered">
-                            Delivery: Delivered
-                          </SelectItem>
-                        </>
-                      ) : (
-                        <>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="relative">
-                  <Filter className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Select
-                    value={paymentStatusFilter}
-                    onValueChange={onPaymentStatusChange}
-                  >
-                    <SelectTrigger className="w-48 pl-8">
-                      <SelectValue placeholder="Payment status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All payment status</SelectItem>
-                      <SelectItem value="unpaid">Unpaid</SelectItem>
-                      <SelectItem value="partially_paid">Partially paid</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="overdue">Overdue</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                <ListSearchField
+                  value={searchQuery}
+                  onChange={onSearchChange}
+                  placeholder="Search order no / customer..."
+                  className="sm:max-w-none lg:w-72"
+                />
+                <ListToolbarSelect
+                  aria-label="Order / delivery status"
+                  value={statusFilter}
+                  onChange={(e) => onStatusChange(e.target.value)}
+                >
+                  <option value="all">All statuses</option>
+                  {listTab === "active" ? (
+                    <>
+                      <option value="quotation">Quotation</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="picked">Delivery: Picked</option>
+                      <option value="dispatched">Delivery: Dispatched</option>
+                      <option value="delivered">Delivery: Delivered</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </>
+                  )}
+                </ListToolbarSelect>
+                <ListToolbarSelect
+                  aria-label="Payment status"
+                  value={paymentStatusFilter}
+                  onChange={(e) => onPaymentStatusChange(e.target.value)}
+                >
+                  <option value="all">All payment status</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="partially_paid">Partially paid</option>
+                  <option value="paid">Paid</option>
+                  <option value="overdue">Overdue</option>
+                  <option value="cancelled">Cancelled</option>
+                </ListToolbarSelect>
+              </ListToolbar>
             </div>
           </Tabs>
         </CardHeader>

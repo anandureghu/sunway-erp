@@ -1,10 +1,8 @@
 import { useCallback, useState } from "react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import { DataTable } from "@/components/datatable";
@@ -22,6 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import type { PageResult } from "@/types/page";
+import { ListSearchField } from "@/components/list-toolbar";
 
 export default function JournalPage({ companyId }: { companyId: number }) {
   const navigate = useNavigate();
@@ -114,16 +113,12 @@ export default function JournalPage({ companyId }: { companyId: number }) {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <Input
-                placeholder="Search..."
-                className="pl-10"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-            </div>
-
+            <ListSearchField
+              value={searchInput}
+              onChange={setSearchInput}
+              placeholder="Search..."
+              className="flex-1 sm:max-w-none"
+            />
             {!accountPeriodOpen ? (
               <Tooltip>
                 <TooltipTrigger asChild>

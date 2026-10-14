@@ -6,8 +6,8 @@ import {
 } from "@/lib/columns/department-listing-admin";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Users } from "lucide-react";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
+import { Users } from "lucide-react";
 import { toast } from "sonner";
 import type { Department } from "@/types/department";
 import type { DivisionResponseDTO } from "@/types/division";
@@ -244,15 +244,14 @@ export default function DepartmentListPage({
 
       <Card>
         <CardHeader>
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
+          <ListToolbar className="px-0 py-0">
+            <ListSearchField
               placeholder="Search department or division..."
-              className="pl-10"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={setSearchQuery}
+              className="sm:max-w-md"
             />
-          </div>
+          </ListToolbar>
         </CardHeader>
 
         <CardContent>

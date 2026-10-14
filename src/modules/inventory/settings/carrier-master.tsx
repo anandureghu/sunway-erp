@@ -25,7 +25,7 @@ import {
 } from "@/service/inventoryService";
 import type { DispatchCarrier } from "@/types/inventory";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Search, Truck, CircleCheckBig, CircleSlash2, X } from "lucide-react";
+import { Plus, Truck, CircleCheckBig, CircleSlash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -33,6 +33,11 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 const icls =
   "h-10 rounded-xl border border-slate-200 bg-white text-[13px] text-slate-800 placeholder:text-slate-300 outline-none focus:border-blue-400 focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]";
@@ -230,33 +235,26 @@ export default function CarrierMaster() {
         ]}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search carriers…"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <Select
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search carriers…"
+          className="flex-1 sm:max-w-none"
+        />
+        <ListToolbarSelect
+          aria-label="Status"
           value={statusFilter}
-          onValueChange={(value) => {
-            setStatusFilter(value);
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
             setKpiFilter(null);
           }}
         >
-          <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <option value="all">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </ListToolbarSelect>
+      </ListToolbar>
 
       <DataTable columns={columns} data={filtered} />
 

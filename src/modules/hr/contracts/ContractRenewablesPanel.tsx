@@ -7,6 +7,7 @@ import {
 } from "@/service/contractService";
 import { cn, initialsFrom } from "@/lib/utils";
 import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
+import { TableCardHeader } from "@/components/table-card-header";
 import { TablePagination, usePagination } from "@/components/table-pagination";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import { formatDisplayDate } from "@/lib/format-date";
@@ -219,16 +220,19 @@ export default function ContractRenewablesPanel() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              {rows.length} contract{rows.length !== 1 ? "s" : ""}
-              {expiringSoon > 0 && (
-                <span className="ml-2 text-amber-600">
-                  · {expiringSoon} expiring within 30 days
-                </span>
-              )}
-            </p>
-          </div>
+          <TableCardHeader
+            title="Contract renewals"
+            meta={
+              <>
+                {rows.length} contract{rows.length !== 1 ? "s" : ""}
+                {expiringSoon > 0 && (
+                  <span className="ml-2 text-amber-600">
+                    · {expiringSoon} expiring within 30 days
+                  </span>
+                )}
+              </>
+            }
+          />
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm [&_td]:px-4 [&_td]:py-3 [&_th]:px-4 [&_th]:py-3">
               <thead>

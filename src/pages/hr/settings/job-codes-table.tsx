@@ -27,6 +27,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { ReactNode } from "react";
+import { TableCardHeader } from "@/components/table-card-header";
 import { TablePagination } from "@/components/table-pagination";
 import { type JobCode, JobCodeStatusBadge, HOLD_REASON_LABEL } from "./shared";
 
@@ -37,6 +39,7 @@ export function JobCodesTable({
   filteredCount,
   total,
   q,
+  toolbar,
   pageIndex,
   pageSize,
   pageCount,
@@ -53,6 +56,7 @@ export function JobCodesTable({
   filteredCount: number;
   total: number;
   q: string;
+  toolbar?: ReactNode;
   pageIndex: number;
   pageSize: number;
   pageCount: number;
@@ -67,12 +71,11 @@ export function JobCodesTable({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-3">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          {total} job code{total === 1 ? "" : "s"}
-          {q.trim() && ` · filtered`}
-        </p>
-      </div>
+      <TableCardHeader
+        title="Job codes"
+        meta={`${total} job code${total === 1 ? "" : "s"}${q.trim() ? " · filtered" : ""}`}
+      />
+      {toolbar}
       <Table>
         <TableHeader className="bg-white">
           <TableRow>

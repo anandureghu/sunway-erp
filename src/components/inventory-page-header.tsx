@@ -65,7 +65,7 @@ export function InventoryPageHeader({
             {children ?? <Package className="h-6 w-6 text-white" />}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">{title}</h1>
+            <h1 className="font-sans text-xl font-bold text-white">{title}</h1>
             {description ? (
               <p className="text-xs text-white/80 mt-0.5">{description}</p>
             ) : null}

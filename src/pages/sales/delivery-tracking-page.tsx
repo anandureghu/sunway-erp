@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Search,
   Truck,
   CheckCircle2,
   Circle,
@@ -71,6 +70,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 function getAllowedTrackingStatuses(
   current: DispatchStatus,
@@ -597,36 +601,33 @@ export default function DeliveryTrackingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Dispatches</CardTitle>
-            <div className="mt-4 space-y-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search dispatches..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select
+            <ListToolbar className="mt-4 flex-col items-stretch gap-2 p-0 lg:flex-col lg:items-stretch">
+              <ListSearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search dispatches..."
+                className="sm:max-w-none"
+              />
+              <ListToolbarSelect
+                aria-label="Delivery status"
                 value={dispatchStatusFilter}
-                onValueChange={(value) => {
-                  setDispatchStatusFilter(
-                    value as "all" | "created" | "in_motion" | "delivered",
-                  );
+                onChange={(e) => {
+                  const value = e.target.value as
+                    | "all"
+                    | "created"
+                    | "in_motion"
+                    | "delivered";
+                  setDispatchStatusFilter(value);
                   setKpiFilter(value === "all" ? null : value);
                 }}
+                className="w-full"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Delivery status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All delivery statuses</SelectItem>
-                  <SelectItem value="created">Pending dispatch</SelectItem>
-                  <SelectItem value="in_motion">In motion</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <option value="all">All delivery statuses</option>
+                <option value="created">Pending dispatch</option>
+                <option value="in_motion">In motion</option>
+                <option value="delivered">Delivered</option>
+              </ListToolbarSelect>
+            </ListToolbar>
           </CardHeader>
           <CardContent>
             {loading ? (

@@ -79,7 +79,7 @@ export function SecondaryPageHeader({
             </div>
           ) : null}
           <div>
-            <h1 className="font-serif text-lg font-bold leading-tight text-slate-900">
+            <h1 className="font-sans text-lg font-bold leading-tight text-slate-900">
               {title}
             </h1>
             {description ? (

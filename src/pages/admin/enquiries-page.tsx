@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Inbox, Search } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { listEnquiries } from "@/service/enquiryService";
@@ -9,7 +9,6 @@ import type { Enquiry, EnquiryStatus } from "@/types/enquiry";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -17,6 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 const PAGE_SIZES = [10, 20, 50] as const;
 
@@ -116,34 +120,27 @@ export default function EnquiriesPage() {
         icon={<Inbox className="h-5 w-5" />}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-8"
-            placeholder="Search name, email, phone…"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-        <Select
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={searchInput}
+          onChange={setSearchInput}
+          placeholder="Search name, email, phone…"
+          className="flex-1 sm:max-w-md"
+        />
+        <ListToolbarSelect
+          aria-label="Status"
           value={status}
-          onValueChange={(v) => {
-            setStatus(v as EnquiryStatus | "all");
+          onChange={(e) => {
+            setStatus(e.target.value as EnquiryStatus | "all");
             setPage(0);
           }}
         >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="NEW">New</SelectItem>
-            <SelectItem value="IN_PROGRESS">In progress</SelectItem>
-            <SelectItem value="CLOSED">Closed</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <option value="all">All statuses</option>
+          <option value="NEW">New</option>
+          <option value="IN_PROGRESS">In progress</option>
+          <option value="CLOSED">Closed</option>
+        </ListToolbarSelect>
+      </ListToolbar>
 
       <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
         {loading ? (

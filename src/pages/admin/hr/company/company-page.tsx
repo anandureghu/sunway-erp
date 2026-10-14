@@ -6,15 +6,12 @@ import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getCompanyColumns } from "@/lib/columns/company-listing-admin";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search, Building2 } from "lucide-react";
+  ListSearchField,
+  ListToolbar,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
+import { Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CompanyDialog } from "./company-dialog";
 import { EmployeeDialog } from "../employee/employee-dialog";
@@ -171,30 +168,22 @@ export default function CompanyListPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by company name or code..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <Select
+            <ListToolbar className="flex-1 px-0 py-0">
+              <ListSearchField
+                placeholder="Search by company name or code..."
+                value={searchQuery}
+                onChange={setSearchQuery}
+              />
+              <ListToolbarSelect
                 value={statusFilter}
-                onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                aria-label="Status"
               >
-                <SelectTrigger className="w-full sm:w-44">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All statuses</SelectItem>
-                  <SelectItem value="active">Active only</SelectItem>
-                  <SelectItem value="inactive">Inactive only</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <option value="all">All statuses</option>
+                <option value="active">Active only</option>
+                <option value="inactive">Inactive only</option>
+              </ListToolbarSelect>
+            </ListToolbar>
             <Button
               onClick={() => {
                 setSelected(null);

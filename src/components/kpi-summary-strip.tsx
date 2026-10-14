@@ -39,7 +39,7 @@ export function KpiSummaryStrip({
   return (
     <div
       className={cn(
-        "grid w-full gap-4",
+        "grid w-full gap-3",
         colsByCount,
         className,
       )}
@@ -53,7 +53,7 @@ export function KpiSummaryStrip({
             value={item.value}
             description={item.hint}
             color={item.accent}
-            icon={<Icon className="size-5" />}
+            icon={<Icon className="h-4 w-4" />}
             onClick={item.onClick}
             active={item.active}
           />

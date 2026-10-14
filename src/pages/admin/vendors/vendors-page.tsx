@@ -4,19 +4,10 @@ import type { Vendor } from "@/types/vendor";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getVendorColumns } from "@/lib/columns/vendor-listing-admin";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VendorDialog } from "./vendor-dialog";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getParentPath } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
@@ -26,6 +17,11 @@ import { SecondaryPageHeader } from "@/components/SecondaryPageHeader";
 import { ImportVendorsCsvDialog } from "./import-vendors-csv-dialog";
 import { listVendors, listVendorsPaged } from "@/service/vendorService";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 export default function VendorsPage({
   financeSettings,
@@ -272,54 +268,41 @@ export default function VendorsPage({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex-1 relative min-w-[300px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search by vendor name…"
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Select
-            value={cityFilter}
-            onValueChange={(value) => {
-              setCityFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Cities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {cities.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              setKpiFilter(null);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active only</SelectItem>
-              <SelectItem value="inactive">Inactive only</SelectItem>
-              <SelectItem value="all">All statuses</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <ListToolbar className="px-0 py-0">
+        <ListSearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search by vendor name…"
+          className="min-w-[300px] flex-1 sm:max-w-none"
+        />
+        <ListToolbarSelect
+          aria-label="City"
+          value={cityFilter}
+          onChange={(e) => {
+            setCityFilter(e.target.value);
+            setKpiFilter(null);
+          }}
+        >
+          <option value="all">All Cities</option>
+          {cities.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </ListToolbarSelect>
+        <ListToolbarSelect
+          aria-label="Status"
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setKpiFilter(null);
+          }}
+        >
+          <option value="active">Active only</option>
+          <option value="inactive">Inactive only</option>
+          <option value="all">All statuses</option>
+        </ListToolbarSelect>
+      </ListToolbar>
 
       {vendors.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">

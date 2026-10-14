@@ -83,7 +83,7 @@ export function PageHeader({
               </div>
             ) : null}
             <div className="min-w-0 space-y-0.5">
-              <h1 className="truncate font-serif text-2xl font-bold tracking-tight">
+              <h1 className="truncate font-sans text-2xl font-bold tracking-tight">
                 {title}
               </h1>
               {description ? (

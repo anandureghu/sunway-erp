@@ -5,18 +5,19 @@ import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { GLAccountBalance } from "@/types/gl";
 import { GL_BALANCE_COLUMNS } from "@/lib/columns/finance/gl-baance-columns";
 import { GLBalanceDialog } from "@/modules/finance/gl-balance-dialog";
+import { ListSearchField } from "@/components/list-toolbar";
 
 export default function GLBalancePage() {
   const [records, setRecords] = useState<GLAccountBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<GLAccountBalance | null>(null);
   const [open, setOpen] = useState(false);
+  // Search is not yet wired to filtering (matches previous uncontrolled input).
+  const [search, setSearch] = useState("");
 
   const fetchBalances = async () => {
     try {
@@ -84,10 +85,12 @@ export default function GLBalancePage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input placeholder="Search..." className="pl-10" />
-            </div>
+            <ListSearchField
+              value={search}
+              onChange={setSearch}
+              placeholder="Search..."
+              className="flex-1 sm:max-w-none"
+            />
 
             <Button
               onClick={() => {

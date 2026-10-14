@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, Search, Briefcase, Hourglass } from "lucide-react";
+import { Plus, Briefcase, Hourglass } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { FilterChipGroup, ListSearchField, ListToolbar } from "@/components/list-toolbar";
 import { jobCodeService } from "@/service/jobCodeService";
 import { fetchHrPolicies } from "@/service/companyService";
 import { useAuth } from "@/context/AuthContext";
@@ -289,15 +289,6 @@ export function JobCodesTab({
         icon={<Briefcase className="h-5 w-5" />}
         actions={
           <>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search..."
-                className="pl-9 w-48"
-              />
-            </div>
             <ImportJobCodesCsvDialog onImported={fetchJobCodes} />
             <Button
               onClick={openAdd}
@@ -344,42 +335,31 @@ export function JobCodesTab({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {(["ALL", "VACANT", "OCCUPIED", "ON_HOLD"] as const).map((s) => {
-          const active = statusFilter === s;
-          const count = s === "ALL" ? jobs.length : statusCounts[s];
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setStatusFilter(s)}
-              className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition ${
-                active
-                  ? "border-blue-600 bg-blue-600 text-white shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {s !== "ALL" && (
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${active ? "bg-white" : JOB_CODE_STATUS_META[s].dot}`}
-                />
-              )}
-              {s === "ALL" ? "All" : JOB_CODE_STATUS_META[s].label}
-              <span
-                className={`rounded-full px-1.5 text-[10px] tabular-nums ${active ? "bg-white/20" : "bg-slate-100 text-slate-500"}`}
-              >
-                {count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
       <JobCodesTable
         rows={pageItems}
         filteredCount={filtered.length}
         total={total}
         q={q}
+        toolbar={
+          <ListToolbar>
+            <ListSearchField
+              value={q}
+              onChange={setQ}
+              placeholder="Search job codes…"
+            />
+            <FilterChipGroup<JobCodeStatus | "ALL">
+              options={(["ALL", "VACANT", "OCCUPIED", "ON_HOLD"] as const).map(
+                (s) => ({
+                  value: s,
+                  label: s === "ALL" ? "All" : JOB_CODE_STATUS_META[s].label,
+                  count: s === "ALL" ? jobs.length : statusCounts[s],
+                }),
+              )}
+              value={statusFilter}
+              onChange={setStatusFilter}
+            />
+          </ListToolbar>
+        }
         pageIndex={pageIndex}
         pageSize={pageSize}
         pageCount={pageCount}

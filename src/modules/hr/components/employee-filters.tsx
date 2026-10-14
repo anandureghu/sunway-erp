@@ -1,10 +1,11 @@
-import { cn } from "@/lib/utils";
+import { FilterChipGroup } from "@/components/list-toolbar";
 
 /**
  * LOCKED UI — Employee Register status chips
  * Do not restyle, rename, or reorder these chips without asking the user first.
  * Reference: compact register toolbar (All / Active / Probation / On leave / Exiting / Inactive).
  * Active chip = solid slate-900 + white text; idle = white + border.
+ * Styling lives in FilterChipGroup (shared list-toolbar standard).
  */
 interface EmployeeFiltersProps {
   onFilterStatus: (status: string | null) => void;
@@ -34,26 +35,13 @@ export function EmployeeFilters({
 }: EmployeeFiltersProps) {
   const activeKey = toStatusKey(activeFilter);
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {filters.map((f) => {
-        const valueKey = toStatusKey(f.value);
-        const isActive = activeKey === valueKey;
-        return (
-          <button
-            key={f.label}
-            type="button"
-            onClick={() => onFilterStatus(valueKey)}
-            className={cn(
-              "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors",
-              isActive
-                ? "border-slate-900 bg-slate-900 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
-            )}
-          >
-            {f.label}
-          </button>
-        );
-      })}
-    </div>
+    <FilterChipGroup
+      options={filters.map((f) => ({
+        label: f.label,
+        value: toStatusKey(f.value),
+      }))}
+      value={activeKey}
+      onChange={onFilterStatus}
+    />
   );
 }

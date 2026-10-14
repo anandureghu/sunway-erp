@@ -4,8 +4,8 @@ import { DataTable } from "@/components/datatable";
 import { apiClient } from "@/service/apiClient";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Calendar } from "lucide-react";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
+import { Calendar } from "lucide-react";
 import type { AccountingPeriod } from "@/types/accounting-period";
 import { getAccountingPeriodColumns } from "@/lib/columns/accounting-period-columns";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ export default function AccountingPeriodPage({
     AccountingPeriod[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [open, setOpen] = useState(false);
 
   const { fetchAccountPeriodStatus } = useAuth();
@@ -98,10 +99,14 @@ export default function AccountingPeriodPage({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input placeholder="Search division..." className="pl-10" />
-            </div>
+            <ListToolbar className="flex-1 px-0 py-0">
+              <ListSearchField
+                placeholder="Search accounting period..."
+                value={searchQuery}
+                onChange={setSearchQuery}
+                className="sm:max-w-md"
+              />
+            </ListToolbar>
             <Button
               onClick={() => {
                 setOpen(true);

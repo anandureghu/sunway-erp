@@ -660,12 +660,11 @@ const Dashboard = () => {
                 </div>
 
                 {/*
-                  LOCKED UI — Home module cards (Employee Payroll size)
-                  Do not change card height / padding without asking the user first.
-                  All tiles share one size: min-h matches 2-line description; h-full
-                  equalizes a row when any card wraps to two lines.
+                  LOCKED UI — Home module cards (compact previous size)
+                  Do not change padding / min-height without asking the user first.
+                  Compact tiles: items-start, p-3.5, natural height with line-clamp-2.
                 */}
-                <div className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {item.items
                     .flatMap((subItem) =>
                       subItem.items?.length ? subItem.items : [subItem],
@@ -683,7 +682,7 @@ const Dashboard = () => {
                           type="button"
                           onClick={() => navigate(subItem.url)}
                           className={cn(
-                            "flex h-full min-h-[5.75rem] items-center gap-3 rounded-xl border bg-white p-3.5 text-left transition",
+                            "flex items-start gap-3 rounded-xl border bg-white p-3.5 text-left transition",
                             "hover:shadow-md active:scale-[0.99]",
                             theme.borderColor,
                             theme.hoverBorderColor,
@@ -699,17 +698,17 @@ const Dashboard = () => {
                               className={cn("h-4 w-4", theme.textColor)}
                             />
                           </div>
-                          <div className="min-w-0 flex-1 self-stretch py-0.5">
-                            <p className="text-sm font-semibold leading-snug text-slate-800">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-800">
                               {subItem.title}
                             </p>
-                            <p className="mt-0.5 line-clamp-2 min-h-[2rem] text-xs leading-snug text-slate-500">
+                            <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">
                               {description}
                             </p>
                           </div>
                           <ArrowRight
                             className={cn(
-                              "h-4 w-4 shrink-0 opacity-40",
+                              "mt-1 h-4 w-4 shrink-0 opacity-40",
                               theme.textColor,
                             )}
                           />

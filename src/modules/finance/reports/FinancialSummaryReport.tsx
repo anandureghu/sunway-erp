@@ -3,7 +3,7 @@
  * Delete with Account Summary page, sidebar entries, and backend FinanceSheetReportService.
  */
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Download, Loader2, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { TablePagination, usePagination } from "@/components/table-pagination";
@@ -14,6 +14,11 @@ import {
   money,
   type FinancialSummaryReport,
 } from "@/service/financeSheetReportService";
+import {
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 
 const FIN = "#1E6B4F";
 const FIN_DARK = "#14503B";
@@ -298,20 +303,17 @@ export default function FinancialSummaryReportView({
 
         <section>
           <SectionTitle title="Trial balance" />
-          <div className="mb-3 flex flex-wrap items-center gap-2 print:hidden">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search account code or name"
-                className="h-8 w-56 rounded-md border border-slate-300 bg-white pl-8 pr-2 text-[13px] outline-none focus:border-[#1E6B4F]"
-              />
-            </div>
-            <select
+          <ListToolbar className="mb-3 px-0 py-0 print:hidden">
+            <ListSearchField
+              value={query}
+              onChange={setQuery}
+              placeholder="Search account code or name"
+              className="sm:w-56"
+            />
+            <ListToolbarSelect
+              aria-label="Account class"
               value={cls}
               onChange={(e) => setCls(e.target.value)}
-              className="h-8 rounded-md border border-slate-300 bg-white px-2 text-[13px]"
             >
               <option value="">All classes</option>
               {classes.map((c) => (
@@ -319,11 +321,11 @@ export default function FinancialSummaryReportView({
                   {c}
                 </option>
               ))}
-            </select>
+            </ListToolbarSelect>
             <span className="ml-auto font-mono text-[11.5px] text-slate-400">
               {filtered.length} of {rows.length} accounts
             </span>
-          </div>
+          </ListToolbar>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] border-collapse text-[12.5px]">
               <thead>

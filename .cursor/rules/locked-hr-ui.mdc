@@ -1,6 +1,6 @@
 ---
 description: Locked HR UI patterns — ask before changing typography, Employee Register, or home module cards
-globs: src/pages/employees-page.tsx,src/modules/hr/components/employee-filters.tsx,src/modules/hr/columns/employees-columns.tsx,src/modules/hr/policies/HrPoliciesForm.tsx,src/pages/dashboard.tsx,src/modules/hr/current-job/tabs/CurrentJobForm.tsx
+globs: src/pages/employees-page.tsx,src/modules/hr/components/employee-filters.tsx,src/modules/hr/columns/employees-columns.tsx,src/modules/hr/policies/HrPoliciesForm.tsx,src/pages/dashboard.tsx,src/modules/hr/current-job/tabs/CurrentJobForm.tsx,src/modules/hr/components/summary-card.tsx,src/components/kpi-summary-strip.tsx
 alwaysApply: false
 ---
 
@@ -16,15 +16,20 @@ These surfaces are **frozen by product decision**. Files contain `LOCKED UI` com
    - Helpers: `text-[10px]` / `text-[11px] text-slate-400`
    - Inputs: `h-9 text-sm`
 
-2. **Employee Register** (`employees-page.tsx` + filters + columns):
+2. **Employee Register** (`employees-page.tsx` + filters + columns) — also the **app-wide list toolbar standard**:
+   - Shared: `components/list-toolbar.tsx` (`ListToolbar`, `ListSearchField`, `ListToolbarSelect`, `FilterChipGroup`)
    - Toolbar: search (pill) → All departments → status chips
    - Chips: All / Active / Probation / On leave / Exiting / Inactive
    - Active chip: `bg-slate-900 text-white`; idle: white + `border-slate-200`
    - Columns: Employee (name+code), Status, Nationality, Department/Division, Designation, Joined
+   - Other list pages should reuse these primitives rather than inventing new search/chip styles
 
 3. **Home module cards** (`dashboard.tsx` Modules tab):
-   - Uniform size: `min-h-[5.75rem]`, `h-full`, `auto-rows-fr`, description `line-clamp-2` + `min-h-[2rem]`
-   - Reference size: Employee Payroll tile (icon | title+2-line blurb | arrow)
+   - Compact previous size: `items-start`, `p-3.5`, natural height, description `line-clamp-2` (no forced `min-h` / `auto-rows-fr`)
+   - Layout: icon | title + blurb | arrow in `lg:grid-cols-4`
+
+3b. **KPI / summary cards** (`summary-card.tsx` + `kpi-summary-strip.tsx`):
+   - Same compact scale as home tiles: `p-3.5`, `gap-3`, `h-9 w-9` icon, value `text-lg` (not `text-2xl` / `py-5`)
 
 4. **Reporting Manager list** (`CurrentJobForm.tsx`):
    - Same department as the job being edited

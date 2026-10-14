@@ -16,7 +16,8 @@
  *   • body / UI          → font-sans  (index.css @layer base)
  *   • h1, h2             → font-serif (index.css @layer base)
  *   • table thead th     → font-mono  (index.css @layer components)
- *   • PageHeader, dialogs, sheets, sidebar labels → shared components
+ *   • PageHeader / SecondaryPageHeader titles → font-sans (UI Inter)
+ *   • Dialogs, sheets, sidebar labels → shared components
  *
  * To swap a font later:
  *   1. Update the Google Fonts @import in index.css (top of file)

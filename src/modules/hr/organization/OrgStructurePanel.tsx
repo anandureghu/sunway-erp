@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Loader2,
-  Search,
   Building2,
   Users,
   Network,
@@ -25,6 +24,7 @@ import { hrService } from "@/service/hr.service";
 import type { Department } from "@/types/department";
 import type { DivisionResponseDTO } from "@/types/division";
 import type { Employee } from "@/types/hr";
+import { ListSearchField, ListToolbar } from "@/components/list-toolbar";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const empName = (e: Employee) =>
@@ -540,15 +540,14 @@ export default function OrgStructurePanel() {
         </div>
       ) : (
         <>
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
+          <ListToolbar className="px-0 py-0">
+            <ListSearchField
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={setSearch}
               placeholder="Search department, head or employee…"
-              className="h-10 w-full rounded-xl border border-slate-200 pl-9 pr-3 text-sm focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-200"
+              className="sm:max-w-md"
             />
-          </div>
+          </ListToolbar>
 
           {/* top-down org chart tree (scrolls horizontally when wide) */}
           <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50/40 p-6">

@@ -4,7 +4,7 @@ import { DataTable } from "@/components/datatable";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Users, UserCheck, Mail, UserX } from "lucide-react";
+import { Users, UserCheck, Mail, UserX } from "lucide-react";
 import { apiClient } from "@/service/apiClient";
 import { toast } from "sonner";
 import { getCustomerColumns } from "@/lib/columns/customer-listing-admin";
@@ -19,12 +19,10 @@ import {
 import { kpiFilterItem } from "@/lib/kpi-filter";
 import { useConfirmDialog } from "@/context/ConfirmDialogContext";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  ListToolbar,
+  ListSearchField,
+  ListToolbarSelect,
+} from "@/components/list-toolbar";
 import { useServerPagedList } from "@/hooks/use-server-paged-list";
 import { listCustomersPaged } from "@/service/customerService";
 
@@ -256,45 +254,38 @@ export default function CustomersPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
-            <div className="relative flex-1 min-w-[220px]">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-              <Input
-                placeholder="Search by customer name..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <ListToolbar className="p-0">
+            <ListSearchField
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search by customer name..."
+              className="flex-1 min-w-[220px] sm:max-w-none"
+            />
             <Input
               placeholder="Filter by customer code..."
-              className="w-full lg:w-48"
+              className="h-9 w-full rounded-full border-slate-200 text-sm lg:w-48"
               value={codeFilter}
               onChange={(e) => setCodeFilter(e.target.value)}
             />
             <Input
               placeholder="Filter by phone..."
-              className="w-full lg:w-44"
+              className="h-9 w-full rounded-full border-slate-200 text-sm lg:w-44"
               value={phoneFilter}
               onChange={(e) => setPhoneFilter(e.target.value)}
             />
-            <Select
+            <ListToolbarSelect
+              aria-label="Status"
               value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value);
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
                 setKpiFilter(null);
               }}
             >
-              <SelectTrigger className="w-full lg:w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active only</SelectItem>
-                <SelectItem value="inactive">Inactive only</SelectItem>
-                <SelectItem value="all">All statuses</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <option value="active">Active only</option>
+              <option value="inactive">Inactive only</option>
+              <option value="all">All statuses</option>
+            </ListToolbarSelect>
+          </ListToolbar>
         </CardHeader>
 
         <CardContent>
