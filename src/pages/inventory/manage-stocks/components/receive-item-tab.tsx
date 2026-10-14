@@ -39,6 +39,7 @@ import { ItemSearchCombobox } from "./item-search-combobox";
 import { purchaseLineItemName } from "@/lib/purchase-line-item";
 import { formatAwaitingStockReceiptLabel } from "@/lib/filter-awaiting-stock-receipts";
 import { useAuth } from "@/context/AuthContext";
+import SelectVendor from "@/components/select-vendor";
 
 function findInventoryItemForItemId(
   items: ItemResponseDTO[],
@@ -271,6 +272,13 @@ export function ReceiveItemTab({
     setItemWarehouseStock([]);
     setItemSearchQuery("");
     setValue("warehouseId", "");
+    const supplierId =
+      receipt?.supplierId ??
+      receipt?.order?.supplierId ??
+      (receipt?.order?.supplier?.id != null
+        ? String(receipt.order.supplier.id)
+        : "");
+    setValue("supplierId", supplierId || "", { shouldValidate: true });
     if (!receipt) return;
     const lines = awaitingStockLines(receipt);
     if (lines.length > 0) {
@@ -292,6 +300,11 @@ export function ReceiveItemTab({
     setValue("warehouseId", String(item.warehouse_id), {
       shouldValidate: true,
     });
+    if (item.preferredVendorId != null) {
+      setValue("supplierId", String(item.preferredVendorId), {
+        shouldValidate: true,
+      });
+    }
     setValue(
       "expiryDate",
       toSaleByDate(item.expiryDate),
@@ -312,6 +325,7 @@ export function ReceiveItemTab({
       quantityReceived: 0,
       itemId: "",
       warehouseId: "",
+      supplierId: "",
       referenceNo: "",
     });
     setSelectedItem(null);
@@ -320,6 +334,8 @@ export function ReceiveItemTab({
     setItemWarehouseStock([]);
     setItemSearchQuery("");
   };
+
+  const watchedSupplierId = watch("supplierId");
 
   const onReceiveItem = async (data: ReceiveItemFormData) => {
     setSubmitting(true);
@@ -338,6 +354,9 @@ export function ReceiveItemTab({
               lotNo: data.serialNo,
               unitCost: data.costPrice,
               expiryDate: resolveSubmitSaleByDate(data.expiryDate),
+              supplierId: data.supplierId
+                ? Number(data.supplierId)
+                : undefined,
             },
           ],
         });
@@ -352,6 +371,7 @@ export function ReceiveItemTab({
           serialNo: data.serialNo,
           referenceNo: data.referenceNo,
           warehouseId: Number(data.warehouseId),
+          supplierId: data.supplierId ? Number(data.supplierId) : undefined,
           costPrice: data.costPrice,
           unitPrice: data.unitPrice,
         });
@@ -541,6 +561,17 @@ export function ReceiveItemTab({
                       SKU: {selectedItem.sku}
                     </p>
                   ) : null}
+                </div>
+
+                <div className="space-y-2">
+                  <SelectVendor
+                    label="Supplier"
+                    value={watchedSupplierId || undefined}
+                    onChange={(v) =>
+                      setValue("supplierId", v, { shouldValidate: true })
+                    }
+                    placeholder="Select supplier"
+                  />
                 </div>
 
                 <div>

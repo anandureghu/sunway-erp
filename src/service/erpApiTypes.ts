@@ -277,6 +277,7 @@ export type ItemStockReceivePayload = {
   serialNo?: string;
   referenceNo?: string;
   warehouseId?: number;
+  supplierId?: number;
   costPrice?: number;
   unitPrice?: number;
 };

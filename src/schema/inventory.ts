@@ -120,6 +120,7 @@ export const WAREHOUSE_SCHEMA = z.object({
 export const RECEIVE_ITEM_SCHEMA = z.object({
   itemId: z.string().min(1, "Item is required"),
   warehouseId: z.string().min(1, "Warehouse is required"),
+  supplierId: z.string().optional(),
   quantityReceived: z
     .number()
     .min(0.01, "Quantity received must be greater than 0"),
