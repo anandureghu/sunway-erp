@@ -12,6 +12,7 @@ export type HistoryEntityType =
   | "CUSTOMER_PAYMENT"
   | "PURCHASE_INVOICE"
   | "VENDOR_PAYMENT"
+  | "OTHER_PAYMENT"
   | "JOURNAL_ENTRY"
   | "TRANSACTION"
   | "BUDGET_DISTRIBUTION"
@@ -62,6 +63,7 @@ export const HISTORY_ENTITY_LABELS: Record<HistoryEntityType, string> = {
   CUSTOMER_PAYMENT: "Customer payments",
   PURCHASE_INVOICE: "Purchase invoices",
   VENDOR_PAYMENT: "Vendor payments",
+  OTHER_PAYMENT: "Other payments",
   JOURNAL_ENTRY: "Journal entries",
   TRANSACTION: "Transactions",
   BUDGET_DISTRIBUTION: "Budget distributions",
@@ -81,6 +83,7 @@ export const HISTORY_TYPE_MODULE: Record<HistoryEntityType, HistoryModule> = {
   CUSTOMER_PAYMENT: "finance",
   PURCHASE_INVOICE: "finance",
   VENDOR_PAYMENT: "finance",
+  OTHER_PAYMENT: "finance",
   JOURNAL_ENTRY: "finance",
   TRANSACTION: "finance",
   BUDGET_DISTRIBUTION: "finance",
@@ -100,12 +103,14 @@ export const HISTORY_MODULE_TYPES: Record<HistoryModule, HistoryEntityType[]> = 
     "PURCHASE_INVOICE",
     "CUSTOMER_PAYMENT",
     "VENDOR_PAYMENT",
+    "OTHER_PAYMENT",
   ],
   finance: [
     "SALES_INVOICE",
     "CUSTOMER_PAYMENT",
     "PURCHASE_INVOICE",
     "VENDOR_PAYMENT",
+    "OTHER_PAYMENT",
     "JOURNAL_ENTRY",
     "TRANSACTION",
     "BUDGET_DISTRIBUTION",
@@ -127,6 +132,7 @@ export const OPERATIONAL_ARCHIVE_TYPE: Partial<
   CUSTOMER_PAYMENT: "CUSTOMER_PAYMENT",
   PURCHASE_INVOICE: "PURCHASE_INVOICE",
   VENDOR_PAYMENT: "VENDOR_PAYMENT",
+  OTHER_PAYMENT: "OTHER_PAYMENT",
   JOURNAL_ENTRY: "JOURNAL_ENTRY",
   TRANSACTION: "TRANSACTION",
 };

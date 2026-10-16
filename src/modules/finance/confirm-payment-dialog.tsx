@@ -123,7 +123,11 @@ export function ConfirmPaymentDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isVendor ? "Confirm vendor payment" : "Confirm customer payment"}
+            {isOther
+              ? "Confirm expense payment"
+              : isVendor
+                ? "Confirm vendor payment"
+                : "Confirm customer payment"}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -258,16 +262,27 @@ export function ConfirmPaymentDialog({
                 Fully covered by applied credit — no cash payment required.
               </p>
             )}
-            {amountValid && cashCap > 0.001 && remainingAfter > 0.001 && (
+            {!isOther &&
+              amountValid &&
+              cashCap > 0.001 &&
+              remainingAfter > 0.001 && (
               <p className="text-sm text-muted-foreground">
                 Remaining after confirm:{" "}
                 <CurrencyAmount amount={remainingAfter} className="inline font-medium" />
                 {" "}(invoice will be partially paid)
               </p>
             )}
-            {amountValid && cashCap > 0.001 && remainingAfter <= 0.001 && (
+            {!isOther &&
+              amountValid &&
+              cashCap > 0.001 &&
+              remainingAfter <= 0.001 && (
               <p className="text-sm text-muted-foreground">
                 This will fully settle the invoice.
+              </p>
+            )}
+            {isOther && amountValid && cashCap > 0.001 && (
+              <p className="text-sm text-muted-foreground">
+                This will post the expense payment to the ledger.
               </p>
             )}
           </div>

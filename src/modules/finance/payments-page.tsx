@@ -325,7 +325,11 @@ export default function PaymentsPage({
     setBulkArchiving(true);
     try {
       const historyType =
-        variant === "vendor" ? "VENDOR_PAYMENT" : "CUSTOMER_PAYMENT";
+        variant === "vendor"
+          ? "VENDOR_PAYMENT"
+          : variant === "other"
+            ? "OTHER_PAYMENT"
+            : "CUSTOMER_PAYMENT";
       const result = await bulkArchiveHistoryRecords(
         historyType,
         selectedPaymentIds,
