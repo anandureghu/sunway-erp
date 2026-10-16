@@ -1,6 +1,7 @@
 "use client";
 import type { ColumnDef, CellContext } from "@tanstack/react-table";
 import type { Employee } from "../../../types/hr";
+import { EMPLOYMENT_CATEGORY_OPTIONS } from "../../../types/hr";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,9 @@ import { cn } from "@/lib/utils";
  * Do not restyle headers, cell hierarchy, or badge treatment without asking the user first.
  * Reference: name + code stacked; status badge; dept/division two-line; designation + job code;
  * headers = uppercase tracking (align with HR Policies label scale: ~11–12px).
+ *
+ * Column order: Employee → Department/Division → Designation → Contract Type →
+ * Joined Date → Status. (SL No. is prepended by DataTable.)
  */
 
 const StatusCell = ({ value }: { value?: string }) => {
@@ -79,6 +83,14 @@ const fmtJoinDate = (iso?: string): string => {
       });
 };
 
+const contractTypeLabel = (category?: string): string => {
+  if (!category) return "—";
+  const opt = EMPLOYMENT_CATEGORY_OPTIONS.find(
+    (o) => o.value === category.toUpperCase(),
+  );
+  return opt?.label ?? category.replace(/_/g, " ");
+};
+
 const headerClass =
   "text-[11px] font-semibold uppercase tracking-wider text-slate-500";
 
@@ -101,24 +113,6 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
         </div>
       );
     },
-  },
-  {
-    accessorKey: "status",
-    header: () => <span className={headerClass}>Status</span>,
-    enableSorting: true,
-    cell: ({ getValue }: Cell<Employee>) => (
-      <StatusCell value={getValue() as string} />
-    ),
-  },
-  {
-    accessorKey: "nationality",
-    header: () => <span className={headerClass}>Nationality</span>,
-    enableSorting: true,
-    cell: ({ getValue }: Cell<Employee>) => (
-      <span className="text-sm text-slate-700">
-        {(getValue() as string) || "—"}
-      </span>
-    ),
   },
   {
     id: "department",
@@ -174,13 +168,32 @@ export const EMPLOYEE_COLUMNS: ColumnDef<Employee>[] = [
     },
   },
   {
+    id: "contractType",
+    header: () => <span className={headerClass}>Contract Type</span>,
+    enableSorting: true,
+    accessorFn: (e) => e.employmentCategory ?? "",
+    cell: ({ row }: Cell<Employee>) => (
+      <span className="text-sm text-slate-700">
+        {contractTypeLabel(row.original.employmentCategory)}
+      </span>
+    ),
+  },
+  {
     accessorKey: "joinDate",
-    header: () => <span className={headerClass}>Joined</span>,
+    header: () => <span className={headerClass}>Joined Date</span>,
     enableSorting: true,
     cell: ({ getValue }: Cell<Employee>) => (
       <span className="text-sm tabular-nums text-slate-600">
         {fmtJoinDate(getValue() as string)}
       </span>
+    ),
+  },
+  {
+    accessorKey: "status",
+    header: () => <span className={headerClass}>Status</span>,
+    enableSorting: true,
+    cell: ({ getValue }: Cell<Employee>) => (
+      <StatusCell value={getValue() as string} />
     ),
   },
 ];

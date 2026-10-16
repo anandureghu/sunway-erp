@@ -7,6 +7,7 @@ import { hrService } from "@/service/hr.service";
 import { addressService } from "@/service/addressService";
 import { currentJobService } from "@/service/currentJobService";
 import type { Employee } from "@/types/hr";
+import { EMPLOYMENT_CATEGORY_OPTIONS } from "@/types/hr";
 import { useEmployeeSelection } from "@/context/employee-selection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -101,6 +102,9 @@ async function hydrateEmployees(list: Employee[]): Promise<Employee[]> {
 export default function EmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [departmentId, setDepartmentId] = useState<number | null>(null);
+  const [employmentCategory, setEmploymentCategory] = useState<string | null>(
+    null,
+  );
   const [departments, setDepartments] = useState<DepartmentOption[]>([]);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
   /** Full-directory snapshot for KPI cards (status breakdown). */
@@ -116,8 +120,9 @@ export default function EmployeesPage() {
     () => ({
       status: toApiStatus(statusFilter),
       departmentId,
+      employmentCategory,
     }),
-    [statusFilter, departmentId],
+    [statusFilter, departmentId, employmentCategory],
   );
 
   const fetchPage = useCallback(
@@ -127,6 +132,7 @@ export default function EmployeesPage() {
       search: string;
       status: string | null;
       departmentId: number | null;
+      employmentCategory: string | null;
     }): Promise<PageResult<Employee>> => {
       const page = await hrService.listEmployeesPage({
         page: params.page,
@@ -134,6 +140,7 @@ export default function EmployeesPage() {
         search: params.search,
         status: params.status,
         departmentId: params.departmentId,
+        employmentCategory: params.employmentCategory,
       });
       const content = page.content?.length
         ? await hydrateEmployees(page.content)
@@ -157,7 +164,11 @@ export default function EmployeesPage() {
     reload,
   } = useServerPagedList<
     Employee,
-    { status: string | null; departmentId: number | null }
+    {
+      status: string | null;
+      departmentId: number | null;
+      employmentCategory: string | null;
+    }
   >({
     fetcher: fetchPage,
     filters,
@@ -359,6 +370,7 @@ export default function EmployeesPage() {
     setSearchInput("");
     setStatusFilter(null);
     setDepartmentId(null);
+    setEmploymentCategory(null);
   };
 
   const directoryTotal = Math.max(statsEmployees.length, totalElements);
@@ -407,7 +419,10 @@ export default function EmployeesPage() {
       <EmployeeStats
         employees={statsEmployees}
         totalOverride={
-          !statusFilter && !departmentId && !searchInput.trim()
+          !statusFilter &&
+          !departmentId &&
+          !employmentCategory &&
+          !searchInput.trim()
             ? totalElements
             : undefined
         }
@@ -420,7 +435,7 @@ export default function EmployeesPage() {
         Do not change toolbar layout, typography scale, or column set without asking the user first.
         Typography aligned with Company HR Policies (section ~text-xs bold uppercase;
         labels ~text-[11px]; body ~text-sm).
-        Toolbar: search | All departments | status chips (single row when space allows).
+        Toolbar: search | All departments | Contract type | status chips.
       */}
       <Card className="gap-0 py-0 shadow-sm">
         <TableCardHeader
@@ -435,13 +450,13 @@ export default function EmployeesPage() {
 
         {/*
           LOCKED UI — Employee Register toolbar
-          Standard: ListToolbar (search → select → chips). Do not restyle without asking.
+          Standard: ListToolbar (search → selects → chips). Do not restyle without asking.
         */}
         <ListToolbar>
           <ListSearchField
             value={searchInput}
             onChange={setSearchInput}
-            placeholder="Search name, code, designation"
+            placeholder="Search name, code, designation, location, date…"
           />
 
           <ListToolbarSelect
@@ -455,6 +470,21 @@ export default function EmployeesPage() {
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.departmentName || d.name || `Department ${d.id}`}
+              </option>
+            ))}
+          </ListToolbarSelect>
+
+          <ListToolbarSelect
+            value={employmentCategory ?? ""}
+            onChange={(e) =>
+              setEmploymentCategory(e.target.value ? e.target.value : null)
+            }
+            aria-label="Filter by contract type"
+          >
+            <option value="">All contract types</option>
+            {EMPLOYMENT_CATEGORY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </ListToolbarSelect>
@@ -491,7 +521,6 @@ export default function EmployeesPage() {
             <DataTable<Employee, unknown>
               columns={EMPLOYEE_COLUMNS}
               data={rows}
-              hideSlNo
               onRowClick={(row: Row<Employee>) =>
                 handleEmployeeSelect(row.original)
               }

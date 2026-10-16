@@ -33,17 +33,6 @@ interface DataTableProps<TData, TValue> {
   serverPagination?: ServerPaginationProps;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SL_NO_COLUMN: ColumnDef<any, any> = {
-  id: "slNo",
-  header: "SL No.",
-  cell: ({ row }: { row: { index: number } }) => (
-    <span className="text-muted-foreground text-sm font-medium tabular-nums">
-      {row.index + 1}
-    </span>
-  ),
-};
-
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -52,9 +41,28 @@ export function DataTable<TData, TValue>({
   hideSlNo = false,
   serverPagination,
 }: DataTableProps<TData, TValue>) {
+  const slNoOffset = serverPagination
+    ? serverPagination.pageIndex * serverPagination.pageSize
+    : 0;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const slNoColumn: ColumnDef<any, any> = {
+    id: "slNo",
+    header: () => (
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        SL No.
+      </span>
+    ),
+    cell: ({ row }: { row: { index: number } }) => (
+      <span className="text-muted-foreground text-sm font-medium tabular-nums">
+        {slNoOffset + row.index + 1}
+      </span>
+    ),
+  };
+
   const allColumns = hideSlNo
     ? columns
-    : [SL_NO_COLUMN as ColumnDef<TData, unknown>, ...columns];
+    : [slNoColumn as ColumnDef<TData, unknown>, ...columns];
 
   const table = useReactTable({
     data,
