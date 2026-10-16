@@ -208,41 +208,39 @@ export function CreateDispatchForm({
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
-      <PageHeader variant="darkBlue"
+      <PageHeader
+        variant="darkBlue"
         title="Create Dispatch"
         description="Turn a picked picklist into a shipment. Select a saved carrier to prefill driver and comment details."
         backHref="/inventory/sales"
-        actions={
-          <Button
-            size="lg"
-            variant="secondary"
-            className="border border-white/20 bg-white/10 text-white hover:bg-white/15"
-            type="button"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-        }
       />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Dispatch information</CardTitle>
+          <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
+            <div className="space-y-1">
+              <CardTitle>Dispatch information</CardTitle>
+              {selectedPicklist?.order ? (
+                <p className="text-sm text-muted-foreground">
+                  Order: {selectedPicklist.order.orderNo || "-"}
+                  {" · "}
+                  Customer: {selectedPicklist.order.customerName || "-"}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={!selectedPicklistId || submitting}
+              >
+                {submitting ? "Creating..." : "Create dispatch"}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {selectedPicklist?.order && (
-              <div className="rounded-xl border bg-slate-50/80 p-3 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Order:</span>{" "}
-                  {selectedPicklist.order.orderNo || "-"}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Customer:</span>{" "}
-                  {selectedPicklist.order.customerName || "-"}
-                </p>
-              </div>
-            )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -383,14 +381,6 @@ export function CreateDispatchForm({
             </div>
           </CardContent>
         </Card>
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!selectedPicklistId || submitting}>
-            {submitting ? "Creating..." : "Create dispatch"}
-          </Button>
-        </div>
       </form>
     </div>
   );

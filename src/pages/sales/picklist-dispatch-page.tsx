@@ -368,6 +368,11 @@ export default function PicklistDispatchPage() {
     [reload, picklists, confirmCancel, navigate],
   );
 
+  const apiErrorMessage = (e: unknown, fallback: string) => {
+    const ax = e as { response?: { data?: { message?: string } }; message?: string };
+    return ax?.response?.data?.message || ax?.message || fallback;
+  };
+
   const dispatchColumns = useMemo(
     () =>
       createDispatchColumns(
@@ -375,16 +380,31 @@ export default function PicklistDispatchPage() {
           navigate(`/inventory/sales/tracking?dispatchId=${id}`);
         },
         async (id) => {
-          await dispatchShipment(id);
-          reload();
+          try {
+            await dispatchShipment(id);
+            toast.success("Shipment dispatched");
+            reload();
+          } catch (e: unknown) {
+            toast.error(apiErrorMessage(e, "Failed to dispatch shipment"));
+          }
         },
         async (id) => {
-          await markShipmentInTransit(id);
-          reload();
+          try {
+            await markShipmentInTransit(id);
+            toast.success("Shipment marked in transit");
+            reload();
+          } catch (e: unknown) {
+            toast.error(apiErrorMessage(e, "Failed to mark in transit"));
+          }
         },
         async (id) => {
-          await markShipmentOutForDelivery(id);
-          reload();
+          try {
+            await markShipmentOutForDelivery(id);
+            toast.success("Shipment out for delivery");
+            reload();
+          } catch (e: unknown) {
+            toast.error(apiErrorMessage(e, "Failed to mark out for delivery"));
+          }
         },
         (id) => {
           navigate(
@@ -392,22 +412,30 @@ export default function PicklistDispatchPage() {
           );
         },
         async (id) => {
-          await markShipmentFailedDelivery(
-            id,
-            "Marked failed from dispatch screen",
-          );
-          reload();
+          try {
+            await markShipmentFailedDelivery(
+              id,
+              "Marked failed from dispatch screen",
+            );
+            toast.success("Shipment marked failed delivery");
+            reload();
+          } catch (e: unknown) {
+            toast.error(apiErrorMessage(e, "Failed to mark failed delivery"));
+          }
         },
         async (id) => {
           const shipment = dispatches.find((d) => d.id === id);
           const label = shipment?.dispatchNo || id;
+          // Let Radix close the actions menu before opening the confirm dialog,
+          // otherwise the dialog never receives focus and cancel appears broken.
+          await new Promise((r) => setTimeout(r, 0));
           if (!(await confirmCancel(`shipment ${label}`))) return;
           try {
             await cancelShipment(id);
             toast.success("Shipment cancelled");
             reload();
-          } catch (e: any) {
-            toast.error(e?.message || "Failed to cancel shipment");
+          } catch (e: unknown) {
+            toast.error(apiErrorMessage(e, "Failed to cancel shipment"));
           }
         },
         (id) => {

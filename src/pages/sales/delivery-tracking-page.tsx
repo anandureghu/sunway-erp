@@ -352,15 +352,24 @@ export default function DeliveryTrackingPage() {
     if (!selectedDispatch || updatingStatus) return;
     if (action === "cancelled") {
       const label = selectedDispatch.dispatchNo || selectedDispatch.id;
+      // Defer so any open menu/popover releases focus before the confirm dialog.
+      await new Promise((r) => setTimeout(r, 0));
       if (!(await confirmCancel(`shipment ${label}`))) return;
     }
     try {
       setUpdatingStatus(true);
-      if (action === "dispatch") await dispatchShipment(selectedDispatch.id);
-      if (action === "in_transit")
+      if (action === "dispatch") {
+        await dispatchShipment(selectedDispatch.id);
+        toast.success("Shipment dispatched");
+      }
+      if (action === "in_transit") {
         await markShipmentInTransit(selectedDispatch.id);
-      if (action === "out_for_delivery")
+        toast.success("Shipment marked in transit");
+      }
+      if (action === "out_for_delivery") {
         await markShipmentOutForDelivery(selectedDispatch.id);
+        toast.success("Shipment out for delivery");
+      }
       if (action === "delivered") {
         setUpdatingStatus(false);
         setPodSignature("");
@@ -369,13 +378,25 @@ export default function DeliveryTrackingPage() {
         setDeliverDialogOpen(true);
         return;
       }
-      if (action === "failed_delivery")
+      if (action === "failed_delivery") {
         await markShipmentFailedDelivery(
           selectedDispatch.id,
           "Marked failed from tracking screen",
         );
-      if (action === "cancelled") await cancelShipment(selectedDispatch.id);
+        toast.success("Shipment marked failed delivery");
+      }
+      if (action === "cancelled") {
+        await cancelShipment(selectedDispatch.id);
+        toast.success("Shipment cancelled");
+      }
       await refreshSelectedDispatch();
+    } catch (e: unknown) {
+      const ax = e as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(
+        ax?.response?.data?.message ||
+          ax?.message ||
+          "Failed to update shipment status",
+      );
     } finally {
       setUpdatingStatus(false);
     }

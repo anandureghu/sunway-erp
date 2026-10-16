@@ -521,6 +521,10 @@ export type PicklistItemDTO = {
   itemId?: Id;
   quantity?: number;
   itemName?: string;
+  itemSku?: string;
+  warehouseId?: number;
+  warehouseName?: string;
+  availableQuantity?: number;
 };
 
 export type PicklistResponseDTO = {

@@ -195,6 +195,13 @@ const PicklistDetailPage = () => {
                 {picklist.items && picklist.items.length > 0 ? (
                   picklist.items.map((item) => {
                     const orderLine = getOrderLineForItem(item.itemId);
+                    const itemCode =
+                      item.itemSku || orderLine?.itemSku || undefined;
+                    const warehouseName =
+                      item.warehouseName ||
+                      orderLine?.warehouseName ||
+                      undefined;
+                    const availableQty = item.availableQuantity;
                     return (
                       <tr
                         key={item.itemId}
@@ -205,9 +212,19 @@ const PicklistDetailPage = () => {
                       >
                         <td className="px-3 py-2 font-medium text-primary underline underline-offset-2">
                           {item.itemName}
+                          {itemCode ? (
+                            <span className="ml-1 font-normal text-muted-foreground no-underline">
+                              ({itemCode})
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-3 py-2">
-                          {orderLine?.warehouseName || "-"}
+                          {warehouseName || "-"}
+                          {availableQty != null ? (
+                            <span className="ml-1 text-muted-foreground">
+                              ({availableQty} available)
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-3 py-2 text-right">
                           {orderLine?.unitPrice != null ? (

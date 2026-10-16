@@ -1479,10 +1479,10 @@ function EmployeePayrollTab() {
                     {`${selected.firstName?.[0] ?? ""}${selected.lastName?.[0] ?? ""}`.toUpperCase()}
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-slate-900">
+                    <h2 className="font-sans text-lg font-bold text-slate-900">
                       {selected.firstName} {selected.lastName}
                     </h2>
-                    <p className="text-sm text-slate-500">
+                    <p className="font-sans text-sm text-slate-500">
                       {selected.employeeNo || `#${selected.id}`} ·{" "}
                       {selected.departmentName ||
                         selected.department ||
