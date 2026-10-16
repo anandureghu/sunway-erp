@@ -13,6 +13,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * Client-side pagination state for a list that is already fully loaded.
@@ -64,9 +65,14 @@ export type ServerPaginationProps = {
 
 type TablePaginationProps = ServerPaginationProps & {
   pageSizeOptions?: number[];
+  className?: string;
 };
 
-/** Presentational footer: "N row(s) total · Rows per page · Page X of Y · nav". */
+/**
+ * Presentational footer: total · rows/page · page X of Y · nav.
+ * Wraps and uses compact gaps so it fits narrow panels (e.g. Delivery Tracking
+ * Dispatches column) without overflowing the parent card.
+ */
 export function TablePagination({
   total,
   pageIndex,
@@ -75,18 +81,24 @@ export function TablePagination({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [10, 20, 30, 40, 50],
+  className,
 }: TablePaginationProps) {
   const canPrevious = pageIndex > 0;
   const canNext = pageIndex < pageCount - 1;
 
   return (
-    <div className="flex items-center justify-between px-2 py-4">
-      <div className="flex-1 text-sm text-muted-foreground">
+    <div
+      className={cn(
+        "flex w-full min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 px-1 py-3 sm:px-2 sm:py-4",
+        className,
+      )}
+    >
+      <div className="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
         {total} row(s) total
       </div>
-      <div className="flex items-center space-x-6 lg:space-x-8">
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Rows per page</p>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-center gap-2">
+          <p className="whitespace-nowrap text-sm font-medium">Rows</p>
           <Select
             value={`${pageSize}`}
             onValueChange={(value) => onPageSizeChange(Number(value))}
@@ -103,13 +115,13 @@ export function TablePagination({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+        <div className="whitespace-nowrap text-sm font-medium tabular-nums">
           Page {pageIndex + 1} of {pageCount}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="outline"
-            className="hidden h-8 w-8 p-0 lg:flex"
+            className="h-8 w-8 p-0"
             onClick={() => onPageChange(0)}
             disabled={!canPrevious}
           >
@@ -136,7 +148,7 @@ export function TablePagination({
           </Button>
           <Button
             variant="outline"
-            className="hidden h-8 w-8 p-0 lg:flex"
+            className="h-8 w-8 p-0"
             onClick={() => onPageChange(pageCount - 1)}
             disabled={!canNext}
           >
