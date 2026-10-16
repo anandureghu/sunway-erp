@@ -11,6 +11,23 @@ export const InventoryModule = {
   SALES: "INVENTORY_SALES",
 } as const;
 
+/** Modules that unlock the General Ledger page / sidebar entry (any-of). */
+export const FINANCE_LEDGER_ACCESS_MODULES = [
+  "FINANCE_LEDGER",
+  "FINANCE_COA",
+  "FINANCE_JOURNAL",
+  "FINANCE_BUDGET",
+  "FINANCE_RECONCILIATION",
+  "FINANCE_INVOICE",
+] as const;
+
+/** Modules that unlock Finance Settings (any-of). */
+export const FINANCE_SETTINGS_ACCESS_MODULES = [
+  "FINANCE_COA",
+  "FINANCE_BUDGET",
+  "FINANCE_RECONCILIATION",
+] as const;
+
 /** CSV bulk-import permissions (admin-grantable). */
 export const BulkUploadModule = {
   HR: "HRS_BULK_UPLOAD",

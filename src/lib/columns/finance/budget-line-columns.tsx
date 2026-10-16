@@ -2,8 +2,6 @@ import { type ColumnDef, type Row } from "@tanstack/react-table";
 import type { BudgetLineDTO } from "@/types/budget";
 import { Button } from "@/components/ui/button";
 import type { Company } from "@/types/company";
-import type { Role } from "@/types/hr";
-import { hasAnyRole } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,21 +18,25 @@ export function getBudgetLineColumns({
   onEdit,
   onDelete,
   company,
-  role,
   onStatusChange,
+  canEdit = false,
+  canApprove = false,
+  canDelete = false,
 }: {
   onEdit: (line: BudgetLineDTO) => void;
   onDelete: (line: BudgetLineDTO) => void;
   onStatusChange: (id: number, status: string) => void;
   company: Company;
-  role?: Role;
+  canEdit?: boolean;
+  canApprove?: boolean;
+  canDelete?: boolean;
 }): ColumnDef<BudgetLineDTO>[] {
+  const showActions = canEdit || canApprove || canDelete;
+
   return [
     { header: "Credited Account", accessorKey: "accountName" },
     { header: "Picklist", accessorKey: "departmentId" },
     { header: "Project", accessorKey: "projectId" },
-    // { header: "Start Date", accessorKey: "startDate" },
-    // { header: "End Date", accessorKey: "endDate" },
     {
       header: "Amount",
       accessorKey: "amount",
@@ -62,7 +64,7 @@ export function getBudgetLineColumns({
         );
       },
     },
-    ...(hasAnyRole(role, ["FINANCE_MANAGER", "SUPER_ADMIN"])
+    ...(showActions
       ? [
           {
             id: "actions",
@@ -83,42 +85,45 @@ export function getBudgetLineColumns({
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <Separator />
 
-                      {entry.status !== "APPROVED" && (
+                      {canEdit && entry.status !== "APPROVED" && (
                         <DropdownMenuItem onClick={() => onEdit(entry)}>
                           Edit
                         </DropdownMenuItem>
                       )}
 
-                      {(entry.status === "IMPLEMENTED" ||
-                        entry.status === "HOLD") && (
-                        <>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              onStatusChange(entry.id!, "APPROVED")
-                            }
-                          >
-                            Approve
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            onClick={() =>
-                              onStatusChange(entry.id!, "REJECTED")
-                            }
-                          >
-                            Reject
-                          </DropdownMenuItem>
-
-                          {entry.status !== "HOLD" && (
+                      {canApprove &&
+                        (entry.status === "IMPLEMENTED" ||
+                          entry.status === "HOLD") && (
+                          <>
                             <DropdownMenuItem
-                              onClick={() => onStatusChange(entry.id!, "HOLD")}
+                              onClick={() =>
+                                onStatusChange(entry.id!, "APPROVED")
+                              }
                             >
-                              Hold
+                              Approve
                             </DropdownMenuItem>
-                          )}
-                        </>
-                      )}
 
-                      {entry.status !== "APPROVED" && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                onStatusChange(entry.id!, "REJECTED")
+                              }
+                            >
+                              Reject
+                            </DropdownMenuItem>
+
+                            {entry.status !== "HOLD" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  onStatusChange(entry.id!, "HOLD")
+                                }
+                              >
+                                Hold
+                              </DropdownMenuItem>
+                            )}
+                          </>
+                        )}
+
+                      {canDelete && entry.status !== "APPROVED" && (
                         <DropdownMenuItem onClick={() => onDelete(entry)}>
                           Delete
                         </DropdownMenuItem>

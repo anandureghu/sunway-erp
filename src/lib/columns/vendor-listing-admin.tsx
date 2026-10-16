@@ -20,6 +20,9 @@ interface VendorColumnsProps {
   onView?: (vendor: Vendor) => void;
   onApproveChange?: () => void;
   financeSettings?: boolean;
+  /** When true, show Reject on pending vendors (module approve, not JWT role). */
+  canReject?: boolean;
+  /** @deprecated Prefer canReject — kept for callers still passing JWT role. */
   role?: Role;
 }
 
@@ -110,6 +113,7 @@ export const getVendorColumns = ({
   onView,
   onApproveChange,
   financeSettings = false,
+  canReject = false,
   role,
 }: VendorColumnsProps): ColumnDef<Vendor>[] => [
   {
@@ -230,7 +234,10 @@ export const getVendorColumns = ({
                   <CheckCircle className="mr-2 h-4 w-4" />
                   Approve
                 </DropdownMenuItem>
-                {role === "FINANCE_MANAGER" && (
+                {(canReject ||
+                  role === "FINANCE_MANAGER" ||
+                  role === "ADMIN" ||
+                  role === "SUPER_ADMIN") && (
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600"
                     onClick={() => approveVendor(vendor.id, false, onApproveChange)}

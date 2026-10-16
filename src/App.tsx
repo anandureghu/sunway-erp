@@ -236,7 +236,14 @@ export default function App() {
               path="ledger"
               element={
                 <ModuleAccessGate
-                  module="FINANCE_LEDGER"
+                  modules={[
+                    "FINANCE_LEDGER",
+                    "FINANCE_COA",
+                    "FINANCE_JOURNAL",
+                    "FINANCE_BUDGET",
+                    "FINANCE_RECONCILIATION",
+                    "FINANCE_INVOICE",
+                  ]}
                   title="General ledger access denied"
                 >
                   <GeneralLedgerPage />
@@ -278,10 +285,30 @@ export default function App() {
               }
             />
             <Route path="journals">
-              <Route path=":id" element={<JournalDetailPage />} />
+              <Route
+                path=":id"
+                element={
+                  <ModuleAccessGate
+                    module="FINANCE_JOURNAL"
+                    title="Journal access denied"
+                  >
+                    <JournalDetailPage />
+                  </ModuleAccessGate>
+                }
+              />
             </Route>
             <Route path="budgets">
-              <Route path=":id" element={<BudgetDetailPage />} />
+              <Route
+                path=":id"
+                element={
+                  <ModuleAccessGate
+                    module="FINANCE_BUDGET"
+                    title="Budget access denied"
+                  >
+                    <BudgetDetailPage />
+                  </ModuleAccessGate>
+                }
+              />
             </Route>
             <Route path="customers/:id" element={<CustomerDetailPage />} />
             <Route path="vendors/:id" element={<VendorDetailPage />} />

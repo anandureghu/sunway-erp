@@ -66,15 +66,15 @@ export const FINANCE_PERMISSION_MODULES: PermissionModuleRow[] = [
   { id: "FINANCE_INVOICE", label: "Invoices & Credit Notes", group: "Accounts Receivable", description: "Customer invoices & credit notes" },
   // Accounts Payable  (/finance/payable)
   { id: "FINANCE_PAYMENT", label: "Payments", group: "Accounts Payable", description: "Supplier bills & payments" },
-  // General Ledger  (/finance/ledger)
-  { id: "FINANCE_LEDGER", label: "General Ledger", group: "General Ledger", description: "Ledger accounts & balances" },
+  // General Ledger  (/finance/ledger) — also unlocks Finance Settings when COA/Budget/Reconcile granted
+  { id: "FINANCE_LEDGER", label: "General Ledger", group: "General Ledger", description: "Ledger accounts, balances & transactions" },
   { id: "FINANCE_JOURNAL", label: "Journal Entries", group: "General Ledger", description: "Manual journal postings" },
+  { id: "FINANCE_COA", label: "Chart of Accounts", group: "General Ledger", description: "Account structure & bank accounts (Finance Settings)" },
+  { id: "FINANCE_BUDGET", label: "Budget", group: "General Ledger", description: "Budgets & budget lines" },
+  { id: "FINANCE_RECONCILIATION", label: "Reconciliation", group: "General Ledger", description: "Bank & account reconciliation" },
   // Finance Reports  (/finance/reports)
   { id: "FINANCE_REPORTS", label: "Finance Reports", group: "Finance Reports", description: "Financial statements & analytics" },
-  // Finance Settings  (/finance/settings)
-  { id: "FINANCE_COA", label: "Chart of Accounts", group: "Finance Settings", description: "Account structure" },
-  { id: "FINANCE_BUDGET", label: "Budget", group: "Finance Settings", description: "Budgets & budget lines" },
-  { id: "FINANCE_RECONCILIATION", label: "Reconciliation", group: "Finance Settings", description: "Bank & account reconciliation" },
+  // Finance Settings admin-only grants
   { id: "FINS_BULK_UPLOAD", label: "Bulk Upload", group: "Finance Settings", description: "CSV bulk import in Finance Settings (admin-grantable)" },
   { id: "INVENTORY_VENDOR_BULK_UPLOAD", label: "Supplier Bulk Upload", group: "Finance Settings", description: "Import suppliers from CSV (admin-grantable)" },
 ];

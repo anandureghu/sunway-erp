@@ -522,8 +522,13 @@ export const getSidebarItems = async (
                   },
                 ]
               : []),
-            // General Ledger → FINANCE_LEDGER
-            ...(canView(permissions, "FINANCE_LEDGER")
+            // General Ledger — any GL-area module (tabs are gated on the page)
+            ...(canView(permissions, "FINANCE_LEDGER") ||
+            canView(permissions, "FINANCE_COA") ||
+            canView(permissions, "FINANCE_JOURNAL") ||
+            canView(permissions, "FINANCE_BUDGET") ||
+            canView(permissions, "FINANCE_RECONCILIATION") ||
+            canView(permissions, "FINANCE_INVOICE")
               ? [
                   {
                     title: "General Ledger",

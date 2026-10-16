@@ -9,6 +9,8 @@ import { VendorDialog } from "./vendor-dialog";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getParentPath } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useModulePermission } from "@/hooks/use-module-permission";
+import { InventoryModule } from "@/lib/module-permissions";
 import { getApiErrorMessage } from "@/lib/api-error-message";
 import { KpiSummaryStrip } from "@/components/kpi-summary-strip";
 import { kpiFilterItem } from "@/lib/kpi-filter";
@@ -36,6 +38,9 @@ export default function VendorsPage({
   const [kpiVendors, setKpiVendors] = useState<Vendor[]>([]);
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const { canApprove: canRejectVendor } = useModulePermission(
+    InventoryModule.PURCHASE,
+  );
 
   const filters = useMemo(() => {
     const base: {
@@ -150,6 +155,7 @@ export default function VendorsPage({
     onView: handleRowClick,
     onApproveChange: fetchVendors,
     financeSettings: financeSettings,
+    canReject: canRejectVendor,
     role: user?.role,
   });
 
